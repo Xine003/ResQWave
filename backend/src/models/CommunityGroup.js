@@ -39,6 +39,17 @@ module.exports = new EntitySchema ({
         },
     },
 
+    relations: {
+        focalPerson: {
+            type: "one-to-one",
+            target: "FocalPerson",
+            joinColumn: {
+                name: "focalPersonID"
+            },
+            inverseSide: "focalPersons"
+        },
+    },
+
     hooks: {
         beforeInsert: async (communitygroup) => {
             const repo = require("../dataSource").AppDataSource.getRepository("CommunityGroup");

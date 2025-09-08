@@ -22,6 +22,16 @@ module.exports = new EntitySchema ({
             createDate: true,
         },
     },
+    relations: {
+        focalPerson: {
+            type: "one-to-one",
+            target: "FocalPerson",
+            joinColumn: {
+                name: "focalPersonID"
+            },
+            inverseSide: "terminal"
+        },
+    },
 
     hooks: {
         beforeInsert: async (terminal) => {

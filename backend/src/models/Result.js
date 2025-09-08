@@ -29,6 +29,17 @@ module.exports = new EntitySchema ({
         },
     },
 
+    relations: {
+        alert: {
+            type: "many-to-one",
+            target: "Alert",
+            joinColumn: {
+                name: "emergencyID"
+            },
+            inverseSide: "alerts"
+        },
+    },
+
     hooks: {
         beforeInsert: async (result) => {
             const repo = require("../dataSource").AppDataSource.getRepository("Result");

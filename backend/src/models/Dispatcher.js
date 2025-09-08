@@ -1,4 +1,6 @@
+
 const { EntitySchema } = require("typeorm");
+
 
 module.exports = new EntitySchema ({
     name: "Dispatcher",
@@ -19,8 +21,8 @@ module.exports = new EntitySchema ({
             nullable: false,
         },
         createdBy: {
-            type: "timestamp",
-            createDate: true,
+            type: "varchar",
+            length: 255,
         },
         createdAt: {
             type: "timestamp",
@@ -30,6 +32,16 @@ module.exports = new EntitySchema ({
             type: "timestamp",
             createDate: true,
         },
+    },
+    relations: {
+        admin: {
+            type: "many-to-one",
+            target: "Admin",
+            joinColumn: {
+                name: "createdBy"
+            },
+            inverseSide: "dispatchers"
+        }
     },
 
     hooks: {
