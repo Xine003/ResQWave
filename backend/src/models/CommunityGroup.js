@@ -8,6 +8,11 @@ module.exports = new EntitySchema ({
             type: "varchar",
             primary: true,
         },
+        communityGroupName: {
+            type: "varchar",
+            length: 255,
+            nullable: false,
+        },
         focalPersonID: {
             type: "varchar",
             length: 255,
@@ -29,11 +34,15 @@ module.exports = new EntitySchema ({
             type: "integer",
             nullable: false,
         },
+        noOfKids: {
+            type: "integer",
+            nullable: false,
+        },
         otherInformation: {
             type: "varchar",
             length: 255,
         },
-        communityBoundary: {
+        coordinates: {
             type: "float",
             nullable: false,
         },
