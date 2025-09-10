@@ -83,24 +83,24 @@ module.exports = new EntitySchema ({
     },
 
     hooks: {
-        beforeInsert: async (result) => {
-            const repo = require("../dataSource").AppDataSource.getRepository("Result");
+        beforeInsert: async (rescueform) => {
+            const repo = require("../dataSource").AppDataSource.getRepository("RescueForm");
 
             // Get last result
-            const lastResult = await repo
-                .createdQueryBuilder("result")
-                .orderBy("result.id", "DESC")
+            const lastRescueForm = await repo
+                .createdQueryBuilder("rescueForm")
+                .orderBy("rescueform.id", "DESC")
                 .getOne();
 
             let newNumber = 1;
-            if (lastResult) {
+            if (lastRescueForm) {
                 // Extract number part: RES001
-                const lastNumber = parseInt(lastResult.id.replace("RES", ""), 10);
+                const lastNumber = parseInt(lastRescueForm.id.replace("RESQF", ""), 10);
                 newNumber = lastNumber + 1;
             }
 
             // Format as RES001
-            result.id = "RES" + String(newNumber).padStart(3, "0");
+            rescueform.id = "RESQF" + String(newNumber).padStart(3, "0");
         }
     }
 });

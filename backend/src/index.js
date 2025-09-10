@@ -1,5 +1,6 @@
 const express = require("express");
 const { AppDataSource } = require("./config/dataSource");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 app.use(express.json());
@@ -13,6 +14,16 @@ AppDataSource.initialize()
         app.get("/", (req, res) => {
             res.send("ResQWave Backend Running");
         });
+
+        // Public Routes
+        app.use ("/", authRoutes);
+
+        // Protect Everything After This
+        app.use(authMiddleware);
+
+        // Protected Routes
+        
+
 
         app.listen(5000, () => {
             console.log("Server Running at http://localhost:5000");
