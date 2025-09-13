@@ -1,6 +1,8 @@
 const express = require("express");
 const { AppDataSource } = require("./config/dataSource");
 const authRoutes = require("./routes/authRoutes");
+const dispatcherRoutes = require("./routes/dispatcherRoutes");
+const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
 app.use(express.json());
@@ -22,7 +24,7 @@ AppDataSource.initialize()
         app.use(authMiddleware);
 
         // Protected Routes
-        
+        app.use("/dispatcher", dispatcherRoutes);
 
 
         app.listen(5000, () => {

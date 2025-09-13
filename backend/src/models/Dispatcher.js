@@ -37,6 +37,10 @@ module.exports = new EntitySchema ({
             type: "timestamp",
             createDate: true,
         },
+        archived: {
+            type: "boolean",
+            default: false,
+        },
     },
     relations: {
         admin: {
@@ -49,25 +53,4 @@ module.exports = new EntitySchema ({
         }
     },
 
-    hooks: {
-        beforeInsert: async (dispatcher) => {
-            const repo = require("../dataSource").AppDataSource.getRepository("Dispatcher");
-
-            // Get last admin
-            const lastDispatcher = await repo
-                .createdQueryBuilder("dispatcher")
-                .orderBy("dispatcher.id", "DESC")
-                .getOne();
-
-            let newNumber = 1;
-            if (lastDispatcher) {
-                // Extract number part: DIS001
-                const lastNumber = parseInt(lastDispatcher.id.replace("DIS", ""), 10);
-                newNumber = lastNumber + 1;
-            }
-
-            // Format as DIS001
-            dispatcher.id = "DIS" + String(newNumber).padStart(3, "0");
-        }
-    }
 });
