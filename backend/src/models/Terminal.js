@@ -8,11 +8,6 @@ module.exports = new EntitySchema ({
             type: "varchar",
             primary: true,
         },
-        focalPersonID: {
-            type: "varchar",
-            length: 255,
-            nullable: false
-        },
         dateCreated: {
             type: "timestamp",
             createDate: true,
@@ -26,16 +21,10 @@ module.exports = new EntitySchema ({
             length: 255,
             nullable: false,
         },
-    },
-    relations: {
-        focalPerson: {
-            type: "one-to-one",
-            target: "FocalPerson",
-            joinColumn: {
-                name: "focalPersonID"
-            },
-            inverseSide: "terminal"
-        },
+        archived: {
+            type: "boolean",
+            default: false,
+        }
     },
 
     hooks: {

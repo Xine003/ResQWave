@@ -5,12 +5,18 @@ const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
 // CREATE Dispatcher
 const createDispatcher = async(req, res) => {
     try {
-        const {name, email, password, adminID } = req.body;
+        const {name, email, contactNumber, password, adminID } = req.body;
 
         // Check if the email exists
-        const existing = await dispatcherRepo.findOne({ where: {email} });
-        if (existing) {
+        const existingEmail = await dispatcherRepo.findOne({ where: {email} });
+        if (existingEmail) {
             return res.status(400).json({ message: "Email Already Used" });
+        }
+
+        // Check if the contact number exist
+        const existingNumber = await dispatcherRepo.findOne({ where: {contactNumber } });
+        if (existingNumber) {
+            return res.status(400).jsono({ message: "Contact Number already used"});
         }
 
         // Generate Specific UID
@@ -33,6 +39,7 @@ const createDispatcher = async(req, res) => {
         const dispatcher = dispatcherRepo.create({
             id: newID,
             name,
+            contactNumber,
             email,
             password: hashedPassword,
             createdBy: adminID,
@@ -77,7 +84,7 @@ const getDispatcher = async (req, res) => {
 const updateDispatcher = async (req, res) => {
     try {
         const { id } = req.params;
-        const {name, email, password} = req.body;
+        const {name, email, contactNumber, password} = req.body;
 
         const dispatcher = await dispatcherRepo.findOne({where: {id} });
         if (!dispatcher) {
@@ -86,6 +93,7 @@ const updateDispatcher = async (req, res) => {
 
         if (name) dispatcher.name = name;
         if (email) dispatcher.email = email;
+        if (contactNumber) dispatcher.contactNumber = contactNumber;
         if (password) dispatcher.password = await bcrypt.hash(password, 10);
 
         await dispatcherRepo.save(dispatcher);

@@ -11,7 +11,8 @@ module.exports = new EntitySchema ({
         terminalID: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            unique: true,
+            nullable: true,
         },
         photo: {
             type: "blob",
@@ -43,6 +44,20 @@ module.exports = new EntitySchema ({
         alternativeFPContactNumber: {
             type: "integer",
             nullable: false,
+        },
+        createdBy: {
+            type: "varchar",
+            length: 255,
+        }
+
+    },
+
+    relations: {
+        terminal: {
+            target: "Terminal",
+            type: "one-to-one",
+            joinColumn: {name: "terminalID"},
+            inverseSide: "terminals"
         },
     },
 

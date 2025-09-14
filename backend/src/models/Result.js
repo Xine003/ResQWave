@@ -33,9 +33,7 @@ module.exports = new EntitySchema ({
         alert: {
             type: "many-to-one",
             target: "Alert",
-            joinColumn: {
-                name: "emergencyID"
-            },
+            joinColumn: {name: "emergencyID"},
             inverseSide: "alerts"
         },
     },
