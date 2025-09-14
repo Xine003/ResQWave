@@ -3,6 +3,7 @@ const { AppDataSource } = require("./config/dataSource");
 const authRoutes = require("./routes/authRoutes");
 const dispatcherRoutes = require("./routes/dispatcherRoutes");
 const terminalRoutes = require("./routes/terminalRoutes");
+const focalPersonRoutes = require("./routes/focalPersonRoutes");
 const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
@@ -27,6 +28,8 @@ AppDataSource.initialize()
         // Protected Routes
         app.use("/dispatcher", dispatcherRoutes);
         app.use("/terminal", terminalRoutes);
+        app.use("/focalperson", focalPersonRoutes);
+
 
 
         app.listen(5000, () => {
