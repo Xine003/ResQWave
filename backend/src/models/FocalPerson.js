@@ -8,11 +8,10 @@ module.exports = new EntitySchema ({
             type: "varchar",
             primary: true,
         },
-        terminalID: {
+        communityGroupID: {
             type: "varchar",
             length: 255,
-            unique: true,
-            nullable: true,
+            nullable: false,
         },
         photo: {
             type: "blob",
@@ -48,16 +47,20 @@ module.exports = new EntitySchema ({
         createdBy: {
             type: "varchar",
             length: 255,
+        },
+        archived: {
+            type: "boolean",
+            default: false,
         }
-
     },
 
     relations: {
-        terminal: {
-            target: "Terminal",
+        communityGroup: {
+            target: "CommunityGroup",
             type: "one-to-one",
-            joinColumn: {name: "terminalID"},
-            inverseSide: "terminals"
+            joinColumn: {name: "communityGroupID"},
+            inverseSide: "communityGroups",
+            onDelete: "CASCADE"
         },
     },
 });

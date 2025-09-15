@@ -1,5 +1,6 @@
 const { AppDataSource } = require("../config/dataSource");
 const terminalRepo = AppDataSource.getRepository("Terminal");
+const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
 
 // CREATE Terminal
 const createTerminal = async (req, res) => {
@@ -111,8 +112,16 @@ const archivedTerminal = async (req, res) => {
             return res.status(404).json({message: "Terminal Not Found"});
         }
 
+        // Terminal Archived
         terminal.archived = true;
         await terminalRepo.save(terminal);
+
+        // Find Linked Community Group
+        const communityGroup = await communityGroupRepo.findOne({where: {terminalID: id} });
+        if (communityGroup) {
+            communityGroup.terminalID = null; // Detach Terminal
+            await communityGroupRepo.save(communityGroup);
+        }
 
         res.json({message: "Terminal Archived"});
     } catch (err) {

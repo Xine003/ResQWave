@@ -1,20 +1,10 @@
 const { AppDataSource } = require("../config/dataSource");
 const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
-const terminalRepo = AppDataSource.getRepository("Terminal");
 
 // CREATE FocalPerson 
 const createFocalPerson = async (req, res) => {
     try {
-        const { terminalID, name, contactNumber, address, alternativeFP, alternativeFPContactNumber, createdBy} = req.body;
-
-        const terminal = await terminalRepo.findOne({where: {id: terminalID} });
-        if (!terminal) {
-            return res.status(404).json({message: "Terminal Not Found"});
-        }
-
-        if (terminal.availability === "occupied") {
-            return res.status(400).json({message: "Terminal already has a focal person"});
-        }
+        const { name, contactNumber, address, alternativeFP, alternativeFPContactNumber, createdBy} = req.body;
 
         // Generate Specific UID
         const lastFocalPerson = await focalPersonRepo
@@ -32,7 +22,6 @@ const createFocalPerson = async (req, res) => {
 
         const focalPerson = focalPersonRepo.create({
             id: newID,
-            terminalID,
             name,
             contactNumber,
             address,
@@ -41,10 +30,6 @@ const createFocalPerson = async (req, res) => {
         });
 
         await focalPersonRepo.save(focalPerson);
-
-        // Update Terminal Availability
-        terminal.availability = "occupied";
-        await terminalRepo.save(terminal);
 
         res.status(201).json({message: "Focal Person Created", focalPerson});
     } catch (err) {
@@ -85,7 +70,7 @@ const updateFocalPerson = async (req, res) => {
         const { name, contactNumber, alternativeFP, alternativeFPContactNumber} = req.body;
 
         const focalPerson = await focalPerson.findOne({ where: {id} });
-        if (!focalperson) {
+        if (!focalPerson) {
             return res.status(404).json({message: "Focal Person Not Found"});
         }
 
