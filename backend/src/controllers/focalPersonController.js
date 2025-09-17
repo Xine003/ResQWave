@@ -1,10 +1,15 @@
 const { AppDataSource } = require("../config/dataSource");
+const bcrypt = require("bcrypt");
 const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 
 // CREATE FocalPerson 
 const createFocalPerson = async (req, res) => {
     try {
-        const { name, contactNumber, address, alternativeFP, alternativeFPContactNumber, createdBy} = req.body;
+        const { communityGroupID, name, contactNumber, address, alternativeFP, alternativeFPContactNumber, password } = req.body;
+
+        if (!communityGroupID) {
+            return res.status(400).json({ message: "communityGroupID is required" });
+        }
 
         // Generate Specific UID
         const lastFocalPerson = await focalPersonRepo
@@ -20,18 +25,31 @@ const createFocalPerson = async (req, res) => {
 
         const newID = "FOCALP" + String(newNumber).padStart(3, "0");
 
+        // Default password is Focal Person ID when not provided
+        const plainPassword = password || newID;
+        // Hashed Password
+        const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
         const focalPerson = focalPersonRepo.create({
             id: newID,
+            communityGroupID,
             name,
             contactNumber,
             address,
             alternativeFP,
-            alternativeFPContactNumber
+            alternativeFPContactNumber,
+            createdBy: req.admin.id || req.dispatcher.id ,
+            password: hashedPassword,
         });
 
         await focalPersonRepo.save(focalPerson);
 
-        res.status(201).json({message: "Focal Person Created", focalPerson});
+        const responseBody = { message: "Focal Person Created", focalPerson };
+        if (!password) {
+            responseBody.temporaryPassword = plainPassword;
+        }
+
+        res.status(201).json(responseBody);
     } catch (err) {
         console.error(err);
         res.status(500).json({message: "Server Error - CREATE FP"});
