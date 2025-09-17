@@ -45,25 +45,4 @@ module.exports = new EntitySchema ({
         },
     },
 
-    hooks: {
-        beforeInsert: async (alert) => {
-            const repo = require("../dataSource").AppDataSource.getRepository("Alert");
-
-            // Get last alert
-            const lastAlert = await repo
-                .createdQueryBuilder("alert")
-                .orderBy("alert.id", "DESC")
-                .getOne();
-
-            let newNumber = 1;
-            if (lastAlert) {
-                // Extract number part: ALE001
-                const lastNumber = parseInt(lastAlert.id.replace("ALE", ""), 10);
-                newNumber = lastNumber + 1;
-            }
-
-            // Format as ALE001
-            alert.id = "ALE" + String(newNumber).padStart(3, "0");
-        }
-    }
 });

@@ -81,26 +81,4 @@ module.exports = new EntitySchema ({
             inverseSide: "focalpersons"
         },
     },
-
-    hooks: {
-        beforeInsert: async (rescueform) => {
-            const repo = require("../dataSource").AppDataSource.getRepository("RescueForm");
-
-            // Get last result
-            const lastRescueForm = await repo
-                .createdQueryBuilder("rescueForm")
-                .orderBy("rescueform.id", "DESC")
-                .getOne();
-
-            let newNumber = 1;
-            if (lastRescueForm) {
-                // Extract number part: RES001
-                const lastNumber = parseInt(lastRescueForm.id.replace("RESQF", ""), 10);
-                newNumber = lastNumber + 1;
-            }
-
-            // Format as RES001
-            rescueform.id = "RESQF" + String(newNumber).padStart(3, "0");
-        }
-    }
 });
