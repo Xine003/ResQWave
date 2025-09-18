@@ -51,6 +51,11 @@ module.exports = new EntitySchema ({
         archived: {
             type: "boolean",
             default: false,
+        },
+        password: {
+            type: "varchar",
+            length: 255,
+            nullable: false,
         }
     },
 

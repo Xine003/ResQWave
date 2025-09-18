@@ -5,7 +5,7 @@ const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
 // CREATE Dispatcher
 const createDispatcher = async(req, res) => {
     try {
-        const {name, email, contactNumber, password, adminID } = req.body;
+        const {name, email, contactNumber, password} = req.body;
 
         // Check if the email exists
         const existingEmail = await dispatcherRepo.findOne({ where: {email} });
@@ -16,7 +16,7 @@ const createDispatcher = async(req, res) => {
         // Check if the contact number exist
         const existingNumber = await dispatcherRepo.findOne({ where: {contactNumber } });
         if (existingNumber) {
-            return res.status(400).jsono({ message: "Contact Number already used"});
+            return res.status(400).json({ message: "Contact Number already used"});
         }
 
         // Generate Specific UID
@@ -33,8 +33,11 @@ const createDispatcher = async(req, res) => {
 
         const newID = "DSP" + String(newNumber).padStart(3, "0");
 
+        // Default password is Dispatcher ID when not provided
+        const plainPassword = password || newID;
+        
         // Hash Password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
         const dispatcher = dispatcherRepo.create({
             id: newID,
@@ -42,12 +45,18 @@ const createDispatcher = async(req, res) => {
             contactNumber,
             email,
             password: hashedPassword,
-            createdBy: adminID,
+            createdBy: req.user && req.user.id ? req.user.id : null
         });
 
         await dispatcherRepo.save(dispatcher);
 
-        res.status(201).json({message: "Dispatcher Created", dispatcher });
+        // Return temporary password only when defaulted to ID
+        const responseBody = { message: "Dispatcher Created", dispatcher };
+        if (!password) {
+            responseBody.temporaryPassword = plainPassword;
+        }
+
+        res.status(201).json(responseBody);
     } catch (err) {
         console.error(err);
         res.status(500).json({message: "Server Error - CREATE Dispatcher"});

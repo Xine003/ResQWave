@@ -1,8 +1,9 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { AppDataSource } = require("../config/dataSource");
-
+const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
 const adminRepo = AppDataSource.getRepository("Admin");
+const focalRepo = AppDataSource.getRepository("FocalPerson");
 
 // Registration
 const register = async (req, res) => {
@@ -48,8 +49,8 @@ const register = async (req, res) => {
     }
 };
 
-// Login
-const login = async (req, res) => {
+// Admin Login
+const adminLogin = async (req, res) => {
     try {
         const {name, password} = req.body;
 
@@ -67,17 +68,89 @@ const login = async (req, res) => {
 
         // Create JWT
         const token = jwt.sign(
-            { id: admin.id, name: admin.name },
+            { id: admin.id, name: admin.name, role: "admin" },
             process.env.JWT_SECRET || "ResQWave-SecretKey",
             { expiresIn: "1h" }
         );
 
 
-        res.json({ message: "Login Successful", token });
+        res.json({ message: "Admin Login Successful", token });
     } catch (err) {
         console.error(err);
         res.status(500).json({message: "Server Error"});
     }
 };
 
-module.exports = { register, login };
+// Dispatcher Login
+const dispatcherLogin = async (req, res) => {
+    try {
+        const { id, password } = req.body;
+        if (!id || !password) {
+            return res.status(400).json({message: "Username and password are required"});
+        } 
+
+        const dispatcher = await dispatcherRepo.findOne({ where: {id} });
+        if (!dispatcher) {
+            return res.status(400).json({message: "Invalid Credential"});
+        }
+
+        const isMatch = await bcrypt.compare(password, dispatcher.password);
+        if (!isMatch) {
+            return res.status(400).json({message: "Invalid Credential"});
+        }
+
+        const token = jwt.sign(
+            { id: dispatcher.id, name: dispatcher.name, role: "dispatcher"},
+            process.env.JWT_SECRET || "ResQWave-SecretKey",
+            {expiresIn: "1h"}
+        ); 
+
+        
+        res.json({ message: "Dispatcher Login Successful", token });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+// Focal Person Login
+const focalLogin = async (req, res) => {
+    try {
+        const { id, password } = req.body;
+        if (!id || !password) {
+            return res.status(400).json({ message: "Username and password are required" });
+        }
+
+        const focal = await focalRepo.findOne({ where: { id } });
+        if (!focal) {
+            return res.status(400).json({ message: "Invalid Credentials" });
+        }
+
+        if (!focal.password) {
+            return res.status(501).json({ message: "Focal Person password not set. Please add password field to model." });
+        }
+
+        const isMatch = await bcrypt.compare(password, focal.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Invalid Credentials" });
+        }
+
+        const token = jwt.sign(
+            { id: focal.id, name: focal.name, role: "focalPerson" },
+            process.env.JWT_SECRET || "ResQWave-SecretKey",
+            { expiresIn: "1h" }
+        );
+
+        res.json({ message: "Focal Person Login Successful", token });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+module.exports = { 
+    register, 
+    adminLogin,
+    dispatcherLogin,
+    focalLogin,
+};
