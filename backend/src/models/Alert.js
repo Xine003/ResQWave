@@ -28,9 +28,8 @@ module.exports = new EntitySchema ({
             createDate: true,
         },
         status: {
-            type: "varchar",
-            length: 255,
-            nullable: false,
+            type: "enum",
+            enum: ["Critical", "User-Initiated"],
         },
     },
 

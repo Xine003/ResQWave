@@ -10,7 +10,5 @@ router.post("/admin/login", adminLogin);
 router.post("/dispatcher/login", dispatcherLogin);
 router.post("/focal/login", focalLogin);
 
-// Protected Route
-router.get("/testing", authMiddleware);
 
 module.exports = router;

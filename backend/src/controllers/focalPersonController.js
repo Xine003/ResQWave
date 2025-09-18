@@ -38,7 +38,7 @@ const createFocalPerson = async (req, res) => {
             address,
             alternativeFP,
             alternativeFPContactNumber,
-            createdBy: req.admin.id || req.dispatcher.id ,
+            createdBy: req.user && req.user.id ? req.user.id : null,
             password: hashedPassword,
         });
 

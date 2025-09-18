@@ -45,7 +45,7 @@ const createDispatcher = async(req, res) => {
             contactNumber,
             email,
             password: hashedPassword,
-            createdBy: req.admin.id,
+            createdBy: req.user && req.user.id ? req.user.id : null
         });
 
         await dispatcherRepo.save(dispatcher);

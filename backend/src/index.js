@@ -5,7 +5,7 @@ const dispatcherRoutes = require("./routes/dispatcherRoutes");
 const terminalRoutes = require("./routes/terminalRoutes");
 const focalPersonRoutes = require("./routes/focalPersonRoutes");
 const communityGroupRoutes = require("./routes/communityGroupRoutes");
-const authMiddleware = require("./middleware/authMiddleware");
+const {authMiddleware, requireRole} = require("./middleware/authMiddleware");
 
 const app = express();
 app.use(express.json());
@@ -27,10 +27,11 @@ AppDataSource.initialize()
         app.use(authMiddleware);
 
         // Protected Routes
-        app.use("/dispatcher", dispatcherRoutes);
-        app.use("/terminal", terminalRoutes);
-        app.use("/focalperson", focalPersonRoutes);
-        app.use("/communitygroup", communityGroupRoutes);
+        // Only Admin can access Dispatcher Management
+        app.use("/dispatcher", requireRole("admin"), dispatcherRoutes);
+        app.use("/terminal", requireRole("admin", "dispatcher"), terminalRoutes);
+        app.use("/focalperson", requireRole("admin", "dispatcher"), focalPersonRoutes);
+        app.use("/communitygroup", requireRole("admin", "dispatcher"), communityGroupRoutes);
 
 
 
