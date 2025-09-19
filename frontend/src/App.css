@@ -1,0 +1,11 @@
+body, html {
+  font-family: 'Geist', sans-serif;
+}
+
+.primary-background {
+	background-color: #171717;
+}
+
+.header-navs{
+    color: #707070;
+}
