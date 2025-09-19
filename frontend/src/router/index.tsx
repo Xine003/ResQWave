@@ -2,7 +2,12 @@ import { createBrowserRouter } from 'react-router-dom';
 import { Landing, LoginFocal } from '../pages/Focal';
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/forgotpassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/verificationSignin';
-import { Dashboard, LoginOfficial } from '../pages/Official';
+import {
+  Dashboard,
+  ForgotPasswordPageDispatcher,
+  LoginDispatcher
+} from '../pages/Official';
+
 
 export const router = createBrowserRouter([
   {
@@ -10,7 +15,7 @@ export const router = createBrowserRouter([
     element: <Landing />,
   },
   {
-    path: '/login-focal',
+    path: '/login-focal', 
     element: <LoginFocal />,
   },
   {
@@ -26,7 +31,11 @@ export const router = createBrowserRouter([
     element: <Dashboard />,
   },
   {
-    path: '/login-official',
-    element: <LoginOfficial />,
+    path: '/login-dispatcher',
+    element: <LoginDispatcher />,
+  },
+  {
+    path: '/forgot-password-dispatcher',
+    element: <ForgotPasswordPageDispatcher />,
   },
 ]);
