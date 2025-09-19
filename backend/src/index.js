@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const { AppDataSource } = require("./config/dataSource");
 const authRoutes = require("./routes/authRoutes");
 const dispatcherRoutes = require("./routes/dispatcherRoutes");
@@ -8,6 +9,7 @@ const communityGroupRoutes = require("./routes/communityGroupRoutes");
 const {authMiddleware, requireRole} = require("./middleware/authMiddleware");
 
 const app = express();
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
 
 //Connect DB
@@ -32,8 +34,6 @@ AppDataSource.initialize()
         app.use("/terminal", requireRole("admin", "dispatcher"), terminalRoutes);
         app.use("/focalperson", requireRole("admin", "dispatcher"), focalPersonRoutes);
         app.use("/communitygroup", requireRole("admin", "dispatcher"), communityGroupRoutes);
-
-
 
         app.listen(5000, () => {
             console.log("Server Running at http://localhost:5000");

@@ -6,7 +6,7 @@ export function Dashboard() {
   return (
     <div className="flex flex-col justify-center items-center h-screen relative">
       <h1>Focal Landing Page</h1>
-      <Button onClick={() => navigate('/login-official')} >Back</Button>
+      <Button onClick={() => navigate('/login-dispatcher')} >Back</Button>
     </div>
   )
 }

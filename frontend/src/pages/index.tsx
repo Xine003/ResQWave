@@ -1,2 +1,3 @@
 export { Landing, LoginFocal } from './Focal';
-export { Dashboard, LoginOfficial } from './Official';
+export { Dashboard, ForgotPasswordPageDispatcher, LoginDispatcher } from './Official';
+
