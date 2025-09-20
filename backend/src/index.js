@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 require("dotenv").config();
 const { AppDataSource } = require("./config/dataSource");
 const authRoutes = require("./routes/authRoutes");
@@ -10,6 +11,7 @@ const communityGroupRoutes = require("./routes/communityGroupRoutes");
 const {authMiddleware, requireRole} = require("./middleware/authMiddleware");
 
 const app = express();
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
 
 //Connect DB
@@ -33,8 +35,8 @@ AppDataSource.initialize()
         // Only Admin can access Dispatcher Management
         app.use("/dispatcher", requireRole("admin"), dispatcherRoutes);
         app.use("/terminal", requireRole("admin", "dispatcher"), terminalRoutes);
-        app.use("/focalperson", focalPersonRoutes);
-        app.use("/communitygroup", communityGroupRoutes);
+        app.use("/focalperson", requireRole("admin", "dispatcher"), focalPersonRoutes);
+        app.use("/communitygroup", requireRole("admin", "dispatcher"), communityGroupRoutes);
 
 
 
