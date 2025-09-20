@@ -1,6 +1,8 @@
 const express = require("express");
+require("dotenv").config();
 const { AppDataSource } = require("./config/dataSource");
 const authRoutes = require("./routes/authRoutes");
+const resetPasswordRoutes = require("./routes/resetPasswordRoutes");
 const dispatcherRoutes = require("./routes/dispatcherRoutes");
 const terminalRoutes = require("./routes/terminalRoutes");
 const focalPersonRoutes = require("./routes/focalPersonRoutes");
@@ -22,6 +24,7 @@ AppDataSource.initialize()
 
         // Public Routes
         app.use ("/", authRoutes);
+        app.use ("/", resetPasswordRoutes);
 
         // Protect Everything After This
         app.use(authMiddleware);
@@ -30,8 +33,8 @@ AppDataSource.initialize()
         // Only Admin can access Dispatcher Management
         app.use("/dispatcher", requireRole("admin"), dispatcherRoutes);
         app.use("/terminal", requireRole("admin", "dispatcher"), terminalRoutes);
-        app.use("/focalperson", requireRole("admin", "dispatcher"), focalPersonRoutes);
-        app.use("/communitygroup", requireRole("admin", "dispatcher"), communityGroupRoutes);
+        app.use("/focalperson", focalPersonRoutes);
+        app.use("/communitygroup", communityGroupRoutes);
 
 
 
