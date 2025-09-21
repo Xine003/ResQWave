@@ -1,9 +1,12 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 const { AppDataSource } = require("../config/dataSource");
 const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
 const adminRepo = AppDataSource.getRepository("Admin");
 const focalRepo = AppDataSource.getRepository("FocalPerson");
+const loginVerificationRepo = AppDataSource.getRepository("LoginVerification");
 
 // Registration
 const register = async (req, res) => {
@@ -99,14 +102,39 @@ const dispatcherLogin = async (req, res) => {
             return res.status(400).json({message: "Invalid Credential"});
         }
 
-        const token = jwt.sign(
-            { id: dispatcher.id, name: dispatcher.name, role: "dispatcher"},
-            process.env.JWT_SECRET,
-            {expiresIn: "1h"}
-        ); 
+        // Generate Code
+        const code = crypto.randomInt(100000, 999999).toString();
+        const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 Minutes
 
-        
-        res.json({ message: "Dispatcher Login Successful", token });
+        // Save to Login Verification
+        const verification = loginVerificationRepo.create({
+            userID: dispatcher.id,
+            userType: "dispatcher",
+            code,
+            expiry
+        });
+        await loginVerificationRepo.save(verification);
+
+        // Send OTP via Email
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            },
+        });
+
+        await transporter.sendMail({
+            from: `"ResQWave" <${process.env.EMAIL_USER}>`,
+            to: dispatcher.email,
+            subject: "ResQWave 2FA Verification",
+            text: `Your login verification is ${code}. It  will expire in 5 Minutes` 
+        });
+
+        // For dev only, log code
+        console.log(`🔑 2FA code for ${dispatcher.id}: ${code}`);
+      
+        res.json({ message: "Verification Send to Email"});
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
@@ -135,13 +163,7 @@ const focalLogin = async (req, res) => {
             return res.status(400).json({ message: "Invalid Credentials" });
         }
 
-        const token = jwt.sign(
-            { id: focal.id, name: focal.name, role: "focalPerson" },
-            process.env.JWT_SECRET,
-            { expiresIn: "1h" }
-        );
-
-        res.json({ message: "Focal Person Login Successful", token });
+        res.json({ message: "Verification Send to Email"});
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });

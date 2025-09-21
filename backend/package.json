@@ -21,8 +21,10 @@
     "mysql2": "^3.14.4",
     "nodemailer": "^7.0.6",
     "reflect-metadata": "^0.2.2",
+    "socket.io": "^4.8.1",
     "twilio": "^5.10.0",
-    "typeorm": "^0.3.26"
+    "typeorm": "^0.3.26",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

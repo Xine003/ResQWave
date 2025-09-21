@@ -11,6 +11,7 @@ const terminalRoutes = require("./routes/terminalRoutes");
 const focalPersonRoutes = require("./routes/focalPersonRoutes");
 const communityGroupRoutes = require("./routes/communityGroupRoutes");
 const alertRoutes = require("./routes/alertRoutes");
+const verificationRoutes = require("./routes/verificationRoutes");
 const {authMiddleware, requireRole} = require("./middleware/authMiddleware");
 
 // Test For Realtime
@@ -38,7 +39,8 @@ AppDataSource.initialize()
         // Public Routes
         app.use ("/", authRoutes);
         app.use ("/", resetPasswordRoutes);
-
+        app.use ("/", verificationRoutes);
+        
         // Protect Everything After This
         app.use(authMiddleware);
 
