@@ -5,7 +5,7 @@ const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 // CREATE FocalPerson 
 const createFocalPerson = async (req, res) => {
     try {
-        const { communityGroupID, name, contactNumber, address, alternativeFP, alternativeFPContactNumber, password } = req.body;
+        const { communityGroupID, name, email, contactNumber, address, alternativeFP, alternativeFPEmail ,alternativeFPContactNumber, password } = req.body;
 
         if (!communityGroupID) {
             return res.status(400).json({ message: "communityGroupID is required" });
@@ -34,9 +34,11 @@ const createFocalPerson = async (req, res) => {
             id: newID,
             communityGroupID,
             name,
+            email,
             contactNumber,
             address,
             alternativeFP,
+            alternativeFPEmail,
             alternativeFPContactNumber,
             createdBy: req.user && req.user.id ? req.user.id : null,
             password: hashedPassword,

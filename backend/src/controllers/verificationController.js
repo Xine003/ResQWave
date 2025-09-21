@@ -7,10 +7,16 @@ const focalRepo = AppDataSource.getRepository("FocalPerson");
 
 const verifyDispatcherLogin = async (req, res) => {
     try {
-        const {id, code} = req.body;
+        const {tempToken, code} = req.body;
+
+        // decode tempToken to get userId
+        const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+        if (decoded.step !== "2fa") {
+            return res.status(400).json({ message: "Invalid flow" });
+        }
 
         const record = await verificationRepo.findOne({where: {
-            userID: id, 
+            userID: decoded.id, 
             userType:"dispatcher", 
             code}
         });
@@ -24,7 +30,7 @@ const verifyDispatcherLogin = async (req, res) => {
         }
 
         // If Valid
-        const dispatcher = await dispatcherRepo.findOne({where: {id} });
+        const dispatcher = await dispatcherRepo.findOne({where: {id: decoded.id} });
         
         const token = jwt.sign(
             {id: dispatcher.id, name: dispatcher.name, role:"dispatcher"}, 
@@ -44,10 +50,16 @@ const verifyDispatcherLogin = async (req, res) => {
 
 const verifyFocalPersonLogin = async (req, res) => {
     try {
-        const {id, code} = req.body;
+        const {tempToken, code} = req.body;
+
+        // decode tempToken to get userId
+        const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+        if (decoded.step !== "2fa") {
+            return res.status(400).json({ message: "Invalid flow" });
+        }
 
         const record = await verificationRepo.findOne({
-            where: {userID: id, userType:"focalPerson", code},
+            where: {userID: decoded.id, userType:"focalPerson", code},
         });
 
         if(!record) {
@@ -59,7 +71,7 @@ const verifyFocalPersonLogin = async (req, res) => {
         }
 
         // If Valid
-        const focalPerson = await focalRepo.findOne({where: {id} });
+        const focalPerson = await focalRepo.findOne({where: {id: decoded.id} });
 
         const token = jwt.sign(
             {id: focalPerson.id, name: focalPerson.name, role:"focalPerson"}, 

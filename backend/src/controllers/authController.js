@@ -133,8 +133,13 @@ const dispatcherLogin = async (req, res) => {
 
         // For dev only, log code
         console.log(`🔑 2FA code for ${dispatcher.id}: ${code}`);
-      
-        res.json({ message: "Verification Send to Email"});
+        const tempToken = jwt.sign(
+            { id: dispatcher.id, role: "dispatcher", step: "2fa" },
+            process.env.JWT_SECRET,
+            { expiresIn: "5m" } // only valid for a short time
+        );
+
+        res.json({ message: "Verification Send to Email", tempToken});
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
@@ -163,7 +168,44 @@ const focalLogin = async (req, res) => {
             return res.status(400).json({ message: "Invalid Credentials" });
         }
 
-        res.json({ message: "Verification Send to Email"});
+        // Generate Code
+        const code = crypto.randomInt(100000, 999999).toString();
+        const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 Minutes
+
+        // Save to Login Verification
+        const verification = loginVerificationRepo.create({
+            userID: focal.id,
+            userType: "focalPerson",
+            code,
+            expiry
+        });
+        await loginVerificationRepo.save(verification);
+
+        // Send OTP via Email
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            },
+        });
+
+        await transporter.sendMail({
+            from: `"ResQWave" <${process.env.EMAIL_USER}>`,
+            to: focal.email,
+            subject: "ResQWave 2FA Verification",
+            text: `Your login verification is ${code}. It  will expire in 5 Minutes` 
+        });
+
+        // For dev only, log code
+        console.log(`🔑 2FA code for ${focal.id}: ${code}`);
+        const tempToken = jwt.sign(
+            { id: focal.id, role: "focalPerson", step: "2fa" },
+            process.env.JWT_SECRET,
+            { expiresIn: "5m" } // only valid for a short time
+        );
+
+        res.json({ message: "Verification Send to Email", tempToken});
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
