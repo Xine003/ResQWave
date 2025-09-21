@@ -69,7 +69,7 @@ const adminLogin = async (req, res) => {
         // Create JWT
         const token = jwt.sign(
             { id: admin.id, name: admin.name, role: "admin" },
-            process.env.JWT_SECRET || "ResQWave-SecretKey",
+            process.env.JWT_SECRET,
             { expiresIn: "1h" }
         );
 
@@ -101,7 +101,7 @@ const dispatcherLogin = async (req, res) => {
 
         const token = jwt.sign(
             { id: dispatcher.id, name: dispatcher.name, role: "dispatcher"},
-            process.env.JWT_SECRET || "ResQWave-SecretKey",
+            process.env.JWT_SECRET,
             {expiresIn: "1h"}
         ); 
 
@@ -137,7 +137,7 @@ const focalLogin = async (req, res) => {
 
         const token = jwt.sign(
             { id: focal.id, name: focal.name, role: "focalPerson" },
-            process.env.JWT_SECRET || "ResQWave-SecretKey",
+            process.env.JWT_SECRET,
             { expiresIn: "1h" }
         );
 

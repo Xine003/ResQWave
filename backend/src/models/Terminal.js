@@ -11,10 +11,11 @@ module.exports = new EntitySchema ({
         dateCreated: {
             type: "timestamp",
             createDate: true,
+            update: false
         },
         dateUpdated: {
             type: "timestamp",
-            createDate: true,
+            updateDate: true,
         },
         status: {
             type: "enum",
@@ -30,5 +31,13 @@ module.exports = new EntitySchema ({
             enum: ["Available", "Occupied"],
             default: "Available",
         }
+    },
+
+    relations: {
+        alerts: {
+            type: "one-to-many",
+            target: "Alert",
+            inverseSide: "terminal",
+        },
     },
 });

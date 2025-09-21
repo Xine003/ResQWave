@@ -14,8 +14,8 @@ module.exports = new EntitySchema ({
             nullable: false,
         },
         alertType: {
-            type: "varchar",
-            length: 255,
+            type: "enum",
+            enum: ["Critical", "User-Initiated"],
             nullable: false,
         },
         sentThrough: {
@@ -26,10 +26,16 @@ module.exports = new EntitySchema ({
         dateTimeSent: {
             type: "timestamp",
             createDate: true,
+            update: false
+        },
+        updatedAt: {
+            type: "timestamp",
+            updateDate: true,
         },
         status: {
             type: "enum",
-            enum: ["Critical", "User-Initiated"],
+            enum: ["Waitlist", "Unassigned", "Dispatched"],
+            nullable: false,
         },
     },
 
@@ -40,7 +46,7 @@ module.exports = new EntitySchema ({
             joinColumn: {
                 name: "terminalID"
             },
-            inverseSide: "terminals"
+            inverseSide: "alerts"
         },
     },
 

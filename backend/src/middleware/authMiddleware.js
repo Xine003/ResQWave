@@ -11,7 +11,7 @@ const authMiddleware = (req, res, next) => {
 
     try {
         // Verify Token
-        const secret = process.env.JWT_SECRET || "ResQWave-SecretKey";
+        const secret = process.env.JWT_SECRET;
         const decoded = jwt.verify(token, secret);
 
         // Attach user info to request (contains id, name, role)
