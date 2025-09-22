@@ -1,46 +1,39 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { FocalHeader } from '@/components/Focal/FocalHeader';
-import { Eye, EyeOff, CircleAlert } from 'lucide-react';
-import resqwave_logo from '/Landing/resqwave_logo.png';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { CircleAlert, Eye, EyeOff } from "lucide-react"
+import React, { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { loginDispatcherApi } from "./apis"
+import type { LoginDispatcher } from "./interfaces"
+import resqwave_logo from "/Landing/resqwave_logo.png"
 
-export function LoginFocal() {
-  const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [id, setId] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+export function LoginDispatcher() {
+  const navigate = useNavigate()
+  const [ID, setID] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Dummy correct credentials
-  const CORRECT_ID = "COMGROUP-01";
-  const CORRECT_PASSWORD = "password123";
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!id || !password) {
-      setError("Please enter both ID and Password.");
-      return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
+    try {
+      const payload: LoginDispatcher = { ID, password }
+      const data = await loginDispatcherApi(payload)
+      localStorage.setItem("token", data.token)
+      setIsLoading(false)
+      navigate("/dashboard")
+    } catch (err: any) {
+      setError(err.message || "Login failed")
+      setIsLoading(false)
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      if (id !== CORRECT_ID || password !== CORRECT_PASSWORD) {
-        setError("Wrong credentials. Invalid username or password.");
-        setIsLoading(false);
-        return;
-      }
-      setError("");
-      setIsLoading(false);
-      navigate('/verification-signin');
-    }, 1200);
   }
 
   return (
     <div className="min-h-screen flex flex-col primary-background" style={{ position: 'relative', overflow: 'hidden' }}>
       <div className="loginfocal-radial-gradient" />
-      <FocalHeader />
       <main className="flex flex-1 flex-col items-center justify-center w-full" style={{ marginTop: '0px', zIndex: 20, position: 'relative' }}>
         <div className="flex flex-col items-center gap-4 mb-8">
           <span className="mb-2">
@@ -49,7 +42,7 @@ export function LoginFocal() {
           <h1 className="text-4xl font-semibold text-white mb-1">Sign in</h1>
           <p className="text-gray-300 text-center mb-2">
             Log in using your account credentials.<br />
-            <span className="font-semibold mt-1 block">For focal person's use only.</span>
+            <span className="font-semibold mt-1 block">For dispatcher use only.</span>
           </p>
         </div>
         {/* Error Alert UI */}
@@ -57,35 +50,39 @@ export function LoginFocal() {
           <div className="flex items-center gap-5 bg-[#291415] border border-[#F92626] text-red-200 rounded-md px-5 py-4 mb-4 animate-in fade-in w-full max-w-[490px] mx-auto">
             <CircleAlert className="text-[#F92626]" size={22} />
             <div>
-              <span className="font-bold text-[#F92626]">{error.includes("Wrong credentials") ? "Wrong credentials" : "Missing input"}</span><br />
+              <span className="font-bold text-[#F92626]">{error.includes("credentials") ? "Wrong credentials" : "Login failed"}</span><br />
               <span className="text-[#F92626] text-[14px]">{error}</span>
             </div>
           </div>
         )}
         <form className="flex flex-col gap-4 w-full max-w-[490px]" onSubmit={handleSubmit}>
           <Input
+            id="username"
             type="text"
             placeholder="ID"
-            value={id}
+            required
+            value={ID}
             onChange={e => {
-              setId(e.target.value);
-              if (error) setError("");
+              setID(e.target.value)
+              if (error) setError("")
             }}
-            aria-invalid={!!error && (!id || error.includes("Wrong credentials"))}
-            className={`bg-[#232323] rounded-md px-5 py-5 text-white text-3xl placeholder:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 ${!!error && (!id || error.includes("Wrong credentials")) ? "border border-red-500" : "border border-[#333]"}`}
+            aria-invalid={!!error}
+            className={`bg-[#232323] rounded-md px-5 py-5 text-white text-3xl placeholder:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 ${!!error ? "border border-red-500" : "border border-[#333]"}`}
             style={{ fontSize: "16px", height: "56px" }}
           />
           <div className="relative">
             <Input
+              id="password"
               type={showPassword ? "text" : "password"}
               placeholder="Password"
+              required
               value={password}
               onChange={e => {
-                setPassword(e.target.value);
-                if (error) setError("");
+                setPassword(e.target.value)
+                if (error) setError("")
               }}
-              aria-invalid={!!error && (!password || error.includes("Wrong credentials"))}
-              className={`bg-[#232323] rounded-md px-5 py-5 text-white text-4xl w-full placeholder:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 ${!!error && (!password || error.includes("Wrong credentials")) ? "border border-red-500" : "border border-[#333]"}`}
+              aria-invalid={!!error}
+              className={`bg-[#232323] rounded-md px-5 py-5 text-white text-4xl w-full placeholder:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 ${!!error ? "border border-red-500" : "border border-[#333]"}`}
               style={{ fontSize: "16px", height: "56px" }}
             />
             <span
@@ -118,7 +115,7 @@ export function LoginFocal() {
         <div className="text-center mt-4">
           <button
             className="text-[#A3A3A3] hover:text-[#929090] mt-2 text-md bg-transparent border-none cursor-pointer"
-            onClick={() => navigate('/forgot-password')}
+            onClick={() => navigate('/forgot-password-dispatcher')}
           >
             Forgot Password?
           </button>

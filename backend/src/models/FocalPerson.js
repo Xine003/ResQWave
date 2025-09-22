@@ -8,6 +8,11 @@ module.exports = new EntitySchema ({
             type: "varchar",
             primary: true,
         },
+        email: {
+            type: "varchar",
+            length: 255,
+            nullable: false
+        },
         communityGroupID: {
             type: "varchar",
             length: 255,
@@ -26,12 +31,12 @@ module.exports = new EntitySchema ({
             type: "integer",
             nullable: false
         },
-        address: {
+        alternativeFP: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: false
         },
-        alternativeFP: {
+        alternativeFPEmail: {
             type: "varchar",
             length: 255,
             nullable: false

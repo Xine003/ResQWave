@@ -5,7 +5,7 @@ const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 // CREATE FocalPerson 
 const createFocalPerson = async (req, res) => {
     try {
-        const { communityGroupID, name, contactNumber, address, alternativeFP, alternativeFPContactNumber, password } = req.body;
+        const { communityGroupID, name, email, contactNumber, address, alternativeFP, alternativeFPEmail ,alternativeFPContactNumber, password } = req.body;
 
         if (!communityGroupID) {
             return res.status(400).json({ message: "communityGroupID is required" });
@@ -34,9 +34,11 @@ const createFocalPerson = async (req, res) => {
             id: newID,
             communityGroupID,
             name,
+            email,
             contactNumber,
             address,
             alternativeFP,
+            alternativeFPEmail,
             alternativeFPContactNumber,
             createdBy: req.user && req.user.id ? req.user.id : null,
             password: hashedPassword,
@@ -70,7 +72,8 @@ const getFocalPersons = async (req, res) => {
 // READ One Focal Person
 const getFocalPerson = async (req, res) => {
     try {
-        const focalPerson = await focalPersonRepo.find({where: {id} });
+        const {id} = req.params;
+        const focalPerson = await focalPersonRepo.findOne({where: {id} });
         if (!focalPerson) {
             return res.status(404).json({message: "Focal Person Not Found"});
         }
@@ -87,7 +90,7 @@ const updateFocalPerson = async (req, res) => {
         const { id } = req.params;
         const { name, contactNumber, alternativeFP, alternativeFPContactNumber} = req.body;
 
-        const focalPerson = await focalPerson.findOne({ where: {id} });
+        const focalPerson = await focalPersonRepo.findOne({ where: {id} });
         if (!focalPerson) {
             return res.status(404).json({message: "Focal Person Not Found"});
         }
@@ -97,7 +100,7 @@ const updateFocalPerson = async (req, res) => {
         if (alternativeFP) focalPerson.alternativeFP = alternativeFP;
         if (alternativeFPContactNumber) focalPerson.alternativeFPContactNumber = alternativeFPContactNumber;
 
-        await focalPerson.save(focalPerson);
+        await focalPersonRepo.save(focalPerson);
 
         res.json({message: "Focal Person Updated", focalPerson});
     } catch (err) {

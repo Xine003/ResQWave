@@ -1,2 +1,4 @@
 export { Dashboard } from './Dashboard';
-export { LoginOfficial } from './LoginOfficial';
+export { LoginDispatcher } from './LoginDispatcher';
+export { ForgotPasswordPageDispatcher } from "./LoginDispatcher/forgotPassword";
+

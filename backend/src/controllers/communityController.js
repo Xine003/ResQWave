@@ -6,7 +6,7 @@ const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 // CREATE Community Group
 const createCommunityGroup = async (req, res) => {
     try {
-        const { terminalID, communityGroupName, noOfIndividuals, noOfFamilies, noOfPWD, noOfPregnantWomen, noOfKids, noOfSeniors,otherInformation, coordinates} = req.body;
+        const { terminalID, communityGroupName, noOfIndividuals, noOfFamilies, noOfPWD, noOfPregnantWomen, noOfKids, noOfSeniors,otherInformation, coordinates, address} = req.body;
 
         const terminal = await terminalRepo.findOne({where : {id: terminalID} });
         if (!terminal) {
@@ -42,7 +42,8 @@ const createCommunityGroup = async (req, res) => {
             noOfSeniors,
             noOfKids,
             otherInformation,
-            coordinates
+            coordinates,
+            address
         });
 
         await communityRepo.save(communityGroup);
@@ -102,6 +103,7 @@ const updateCommunityGroup = async (req, res) => {
         if (noOfSeniors) communityGroup.noOfSeniors = noOfSeniors;
         if (noOfKids) communityGroup.noOfKids = noOfKids;
         if (otherInformation) communityGroup.otherInformation = otherInformation;
+        if (address) communityGroup.address = addressl
 
         await communityGroup.save(communityGroup);
 
