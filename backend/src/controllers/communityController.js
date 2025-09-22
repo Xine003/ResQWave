@@ -79,6 +79,70 @@ const createCommunityGroup = async (req, res) => {
     }
 };
 
+// VIEW Own Community Group (for logged-in focal person)
+const viewOwnCommunityGroup = async (req, res) => {
+  try {
+    const focalPersonID = req.user?.id || req.params.focalPersonID || req.query.focalPersonID;
+    if (!focalPersonID) return res.status(400).json({ message: "Missing Focal Person ID" });
+
+    const focal = await focalPersonRepo.findOne({ where: { id: focalPersonID } });
+    if (!focal) return res.status(404).json({ message: "Focal Person Not Found" });
+
+    const group = await communityRepo.findOne({
+      where: { id: focal.communityGroupID, archived: false },
+    });
+    if (!group) return res.status(404).json({ message: "Community Group Not Found" });
+
+    return res.json({
+      communityGroupName: group.communityGroupName,
+      terminalID: group.terminalID,
+      focalPerson: {
+        name: focal.name,
+        alternativeFP: focal.alternativeFP ?? null,
+      },
+      address: group.address ?? null,
+      coordinates: Array.isArray(group.coordinates) ? group.coordinates : null,
+      createdDate: group.createdAt ?? null,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error -- VIEW OWN CG" });
+  }
+};
+
+// VIEW Other Community Groups (focal person sees limited fields only)
+const viewOtherCommunityGroups = async (req, res) => {
+  try {
+    const focalPersonID = req.user?.id || req.params.focalPersonID || req.query.focalPersonID;
+    let ownGroupId = null;
+    if (focalPersonID) {
+      const focal = await focalPersonRepo.findOne({ where: { id: focalPersonID } });
+      ownGroupId = focal?.communityGroupID || null;
+    }
+
+    // Select limited fields (avoid simple-json columns)
+    const qb = communityRepo
+      .createQueryBuilder("cg")
+      .select(["cg.id", "cg.communityGroupName", "cg.address", "cg.createdAt"])
+      .where("cg.archived = :arch", { arch: false });
+
+    if (ownGroupId) qb.andWhere("cg.id <> :own", { own: ownGroupId });
+
+    const rows = await qb.getRawMany();
+
+    return res.json(
+      rows.map((r) => ({
+        communityGroupName: r.cg_communityGroupName,
+        address: r.cg_address ?? null,
+        createdDate: r.cg_createdAt ?? null,
+      }))
+    );
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error -- VIEW OTHER CGs" });
+  }
+};
+
 // READ All Community Group
 const getCommunityGroups = async (req, res) => {
     try {
@@ -90,18 +154,17 @@ const getCommunityGroups = async (req, res) => {
     }
 };
 
-// READ One Community Group
+// Fix: READ One Community Group (admin/dispatcher full details)
 const getCommunityGroup = async (req, res) => {
-    try {
-        const communityGroup = await communityRepo.findOne({ where: {id} });
-        if (!communityGroup) {
-            return res.status(404).json({message: "Community Group Not Found"});
-        }
-        res.json(communityGroup);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({message: "Server Error -- READ One CG"});
-    }
+  try {
+    const { id } = req.params;
+    const communityGroup = await communityRepo.findOne({ where: { id } });
+    if (!communityGroup) return res.status(404).json({ message: "Community Group Not Found" });
+    res.json(communityGroup);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error -- READ One CG" });
+  }
 };
 
 // UPDATE Community Grouo Boundary
@@ -130,34 +193,34 @@ const updateCommunityBoundary = async (req, res) => {
     }
 }
 
-// UPDATE Community Group
+// Fix: UPDATE Community Group (include address, use repo.save)
 const updateCommunityGroup = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { communityGroupName, noOfIndividuals, noOfFamilies, noOfPWD, noOfPregnantWomen, noOfSeniors, noOfKids, otherInformation} = req.body;
+  try {
+    const { id } = req.params;
+    const {
+      communityGroupName, noOfIndividuals, noOfFamilies, noOfPWD,
+      noOfPregnantWomen, noOfSeniors, noOfKids, otherInformation, address
+    } = req.body || {};
 
-        const communityGroup = await communityRepo.findOne({where: {id} });
-        if (!communityGroup) {
-            return res.status(404).json({message: "Community Group Not Found"});
-        }
+    const communityGroup = await communityRepo.findOne({ where: { id } });
+    if (!communityGroup) return res.status(404).json({ message: "Community Group Not Found" });
 
-        if (communityGroupName) communityGroup.communityGroupName = communityGroupName;
-        if (noOfIndividuals) communityGroup.noOfIndividuals = noOfIndividuals;
-        if (noOfFamilies) communityGroup.noOfFamilies = noOfFamilies;
-        if (noOfPWD) communityGroup.noOfPWD = noOfPWD;
-        if (noOfPregnantWomen) communityGroup.noOfPregnantWomen = noOfPregnantWomen;
-        if (noOfSeniors) communityGroup.noOfSeniors = noOfSeniors;
-        if (noOfKids) communityGroup.noOfKids = noOfKids;
-        if (otherInformation) communityGroup.otherInformation = otherInformation;
-        if (address) communityGroup.address = address;
+    if (communityGroupName != null) communityGroup.communityGroupName = communityGroupName;
+    if (noOfIndividuals != null) communityGroup.noOfIndividuals = noOfIndividuals;
+    if (noOfFamilies != null) communityGroup.noOfFamilies = noOfFamilies;
+    if (noOfPWD != null) communityGroup.noOfPWD = noOfPWD;
+    if (noOfPregnantWomen != null) communityGroup.noOfPregnantWomen = noOfPregnantWomen;
+    if (noOfSeniors != null) communityGroup.noOfSeniors = noOfSeniors;
+    if (noOfKids != null) communityGroup.noOfKids = noOfKids;
+    if (otherInformation != null) communityGroup.otherInformation = otherInformation;
+    if (address != null) communityGroup.address = address;
 
-        await communityGroup.save(communityGroup);
-
-        res.json({message: "Community Group Updated", communityGroup});
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({message: "Server Error - UPDATE CG"});
-    }
+    await communityRepo.save(communityGroup);
+    res.json({ message: "Community Group Updated", communityGroup });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error - UPDATE CG" });
+  }
 };
 
 // ARCHIVED Community Group
@@ -220,5 +283,7 @@ module.exports = {
     updateCommunityBoundary,
     updateCommunityGroup,
     archivedCommunityGroup,
-    getArchivedCommunityGroup
+    getArchivedCommunityGroup,
+    viewOwnCommunityGroup,
+    viewOtherCommunityGroups,
 };

@@ -63,6 +63,15 @@ module.exports = new EntitySchema ({
         archived: {
             type: "boolean",
             default: false,
+        },
+        createdAt: {
+            type: "timestamp",
+            createDate: true,
+            update: false
+        },
+        updatedAt: {
+            type: "timestamp",
+            updateDate: true,
         }
     },
 

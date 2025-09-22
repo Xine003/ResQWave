@@ -7,14 +7,22 @@ const {
     updateCommunityBoundary,
     updateCommunityGroup,
     archivedCommunityGroup,
-    getArchivedCommunityGroup
+    getArchivedCommunityGroup,
+    viewOwnCommunityGroup,
+    viewOtherCommunityGroups,
 } = require("../controllers/communityController");
+const { requireRole } = require("../middleware/authMiddleware");
 
-// CRUD + Archived
+
+// CRUD + Archived 
 router.post("/", createCommunityGroup);
+router.get("/archived", getArchivedCommunityGroup);
+
+// For Focal Person
+router.get("/own", requireRole("focalPerson"), viewOwnCommunityGroup);
+router.get("/others", requireRole("focalPerson"), viewOtherCommunityGroups);
 router.get("/", getCommunityGroups);
 router.get("/:id", getCommunityGroup);
-router.get("/archived", getArchivedCommunityGroup);
 router.put("/:id/boundary", updateCommunityBoundary);
 router.put("/:id", updateCommunityGroup);
 router.delete("/:id", archivedCommunityGroup);
