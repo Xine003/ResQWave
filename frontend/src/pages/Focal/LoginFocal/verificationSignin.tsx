@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ForgotPasswordVerification } from "@/components/Focal/VerifyandForgot";
+import { ForgotPasswordVerification } from "@/pages/Focal/LoginFocal/components/VerifyandForgot";
 
 export default function VerificationSignin() {
     const [code, setCode] = useState("");
@@ -17,9 +17,11 @@ export default function VerificationSignin() {
         setIsVerifying(true);
         setTimeout(() => {
             setIsVerifying(false);
-            // Dummy: always succeed for demo
-            // navigate('/dashboard');
             setError("");
+            // Set dummy auth state
+            window.isFocalAuthenticated = true;
+            // Navigate to dashboard after successful verification
+            navigate('/login-focal/focal-dashboard');
         }, 1200);
     }
 

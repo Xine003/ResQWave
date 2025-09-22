@@ -23,13 +23,25 @@ export function LandingHeader({ navOpen, setNavOpen }: { navOpen: boolean, setNa
       </div>
       {/* Desktop nav and button */}
       <div className="hidden md:flex flex-1 items-center justify-end gap-11">
-        <nav className="flex gap-11 text-[16px] header-navs">
-          <a href="#importance" className="text-white font-light hover:font-normal transition">Importance</a>
-          <a href="#how" className="text-white font-light hover:font-normal transition">How it works</a>
-          <a href="#impact" className="text-white font-light hover:font-normal transition">Impact</a>
-          <a href="#faqs" className="text-white font-light hover:font-normal transition">FAQs</a>
+        <nav className="header-navs">
+          <a href="#importance" className="importance-link">
+            Importance
+            <span className="underline-effect" />
+          </a>
+          <a href="#how" className="importance-link">
+            How it works
+          <span className="underline-effect" />
+          </a>
+          <a href="#impact" className="importance-link">
+            Impact
+          <span className="underline-effect" />
+          </a>
+          <a href="#faqs" className="importance-link">
+            FAQs
+          <span className="underline-effect" />
+          </a>
         </nav>
-        <Button className="bg-[#3B82F6] hover:bg-blue-600 duration-150 text-white text-[14px] px-6 py-2 rounded ml-1 font-medium" onClick={() => navigate('/login-focal')}>
+        <Button className="bg-[#3B82F6] hover:bg-[#2563C9] duration-150 text-white text-[14px] px-6 py-2 rounded ml-1 font-medium" onClick={() => navigate('/login-focal')}>
           FOCAL LOGIN
         </Button>
       </div>

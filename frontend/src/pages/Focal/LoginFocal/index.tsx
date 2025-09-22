@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { FocalHeader } from '@/components/Focal/FocalHeader';
+import { FocalHeader } from '@/pages/Focal/LoginFocal/components/FocalHeader';
 import { Eye, EyeOff, CircleAlert } from 'lucide-react';
 import resqwave_logo from '/Landing/resqwave_logo.png';
 
@@ -33,7 +33,9 @@ export function LoginFocal() {
       }
       setError("");
       setIsLoading(false);
-      navigate('/verification-signin');
+      // Set dummy auth state
+      window.isFocalAuthenticated = true;
+      navigate('verification-signin');
     }, 1200);
   }
 
@@ -118,7 +120,7 @@ export function LoginFocal() {
         <div className="text-center mt-4">
           <button
             className="text-[#A3A3A3] hover:text-[#929090] mt-2 text-md bg-transparent border-none cursor-pointer"
-            onClick={() => navigate('/forgot-password')}
+            onClick={() => navigate('forgot-password')}
           >
             Forgot Password?
           </button>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ForgotPasswordVerification } from "@/components/Focal/VerifyandForgot";
+import { ForgotPasswordVerification } from "@/pages/Focal/LoginFocal/components/VerifyandForgot";
 
 export default function ForgotPasswordPage() {
     const [code, setCode] = useState("");
