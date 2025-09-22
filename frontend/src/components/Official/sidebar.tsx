@@ -41,35 +41,42 @@ export function Sidebar() {
                   : location.pathname === item.path;
               return (
                 <li key={index}>
-                  <button
-                    className={`w-[60px] h-[60px] flex my-1.5 items-center justify-center gap-2.5 flex-shrink-0 aspect-square rounded-[5px] border-[1.5px] border-[#404040] transition-colors ${
-                      isActive
-                        ? "bg-white text-black"
-                        : "bg-[#171717] text-white/60 hover:bg-[#302F2F] hover:text-white"
-                    }`}
-                    title={item.label}
-                    onClick={() => navigate(item.path)}
-                  >
-                    <Icon className="w-7 h-7" />
-                  </button>
+                  <div className="relative group">
+                    <button
+                      className={`w-[60px] h-[60px] flex my-1.5 items-center justify-center gap-2.5 flex-shrink-0 aspect-square rounded-[5px] border-[1.5px] border-[#404040] transition-colors ${
+                        isActive
+                          ? "bg-white text-black"
+                          : "bg-[#171717] text-white/60 hover:bg-[#302F2F] hover:text-white"
+                      }`}
+                      onClick={() => navigate(item.path)}
+                    >
+                      <Icon className="w-7 h-7" />
+                    </button>
+                    <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-5 py-2 rounded-lg bg-black text-white text-base font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shadow-lg">
+                      {item.label}
+                    </span>
+                  </div>
                 </li>
               );
             })}
           </ul>
         </nav>
 
-        <div>
+        <div className="relative group">
           <button
             className={`w-[60px] h-[60px] flex items-center justify-center gap-2.5 flex-shrink-0 aspect-square rounded-[5px] border-[1.5px] border-[#404040] transition-colors ${
               location.pathname === "/settings-dispatcher"
                 ? "bg-white text-black"
                 : "bg-[#171717] text-white/60 hover:bg-[#302F2F] hover:text-white"
             }`}
-            title="Settings"
+            aria-label="Settings"
             onClick={() => navigate("/settings-dispatcher")}
           >
             <Settings className="w-7 h-7" />
           </button>
+          <span className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-5 py-2 rounded-lg bg-black text-white text-base font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shadow-lg">
+            Settings
+          </span>
         </div>
       </aside>
 
@@ -82,33 +89,41 @@ export function Sidebar() {
               ? (location.pathname.startsWith("/visualization") || location.pathname.startsWith("/tabular"))
               : location.pathname === item.path;
           return (
-            <button
-              key={index}
-              className={`flex flex-col items-center justify-center transition-colors ${
-                isActive
-                  ? "text-black bg-white"
-                  : "text-white/60 hover:text-white"
-              }`}
-              title={item.label}
-              onClick={() => navigate(item.path)}
-            >
-              <Icon className="w-6 h-6" />
-              <span className="text-[10px] mt-1">{item.label}</span>
-            </button>
+            <div key={index} className="relative group">
+              <button
+                className={`flex flex-col items-center justify-center transition-colors ${
+                  isActive
+                    ? "text-black bg-white"
+                    : "text-white/60 hover:text-white"
+                }`}
+                onClick={() => navigate(item.path)}
+              >
+                <Icon className="w-6 h-6" />
+                <span className="text-[10px] mt-1">{item.label}</span>
+              </button>
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-5 py-2 rounded-lg bg-black text-white text-base font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shadow-lg">
+                {item.label}
+              </span>
+            </div>
           );
         })}
-        <button
-          className={`flex flex-col items-center justify-center transition-colors ${
-            location.pathname === "/settings-dispatcher"
-              ? "text-black bg-white"
-              : "text-white/60 hover:text-white"
-          }`}
-          title="Settings"
-          onClick={() => navigate("/settings-dispatcher")}
-        >
-          <Settings className="w-6 h-6" />
-          <span className="text-[10px] mt-1">Settings</span>
-        </button>
+        <div className="relative group">
+          <button
+            className={`flex flex-col items-center justify-center transition-colors ${
+              location.pathname === "/settings-dispatcher"
+                ? "text-black bg-white"
+                : "text-white/60 hover:text-white"
+            }`}
+            aria-label="Settings"
+            onClick={() => navigate("/settings-dispatcher")}
+          >
+            <Settings className="w-6 h-6" />
+            <span className="text-[10px] mt-1">Settings</span>
+          </button>
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-5 py-2 rounded-lg bg-black text-white text-base font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shadow-lg">
+            Settings
+          </span>
+        </div>
       </nav>
     </>
   )
