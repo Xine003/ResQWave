@@ -8,7 +8,6 @@ import {
   ForgotPasswordPageDispatcher,
   LoginDispatcher,
   Reports,
-  SettingsDispatcher,
   Tabular,
   Visualization
 } from '../pages/Official';
@@ -58,10 +57,6 @@ export const router = createBrowserRouter([
       {
         path: 'tabular',
         element: <Tabular />
-      },
-      {
-        path: 'settings-dispatcher',
-        element: <SettingsDispatcher />
       },
     ]
   }
