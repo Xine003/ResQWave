@@ -1,11 +1,16 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { OfficialLayout } from '@/components/Official/officialLayout';
+import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { Landing, LoginFocal } from '../pages/Focal';
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/forgotpassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/verificationSignin';
 import {
-  Dashboard,
+  CommunityGroups,
   ForgotPasswordPageDispatcher,
-  LoginDispatcher
+  LoginDispatcher,
+  Reports,
+  SettingsDispatcher,
+  Tabular,
+  Visualization
 } from '../pages/Official';
 
 
@@ -27,10 +32,6 @@ export const router = createBrowserRouter([
     element: <VerificationSignin />,
   },
   {
-    path: '/dashboard',
-    element: <Dashboard />,
-  },
-  {
     path: '/login-dispatcher',
     element: <LoginDispatcher />,
   },
@@ -38,4 +39,30 @@ export const router = createBrowserRouter([
     path: '/forgot-password-dispatcher',
     element: <ForgotPasswordPageDispatcher />,
   },
+  {
+    path: '/',
+    element: <OfficialLayout><Outlet /></OfficialLayout>,
+    children: [
+      {
+        path: 'visualization',
+        element: <Visualization />
+      },
+      {
+        path: 'reports',
+        element: <Reports />
+      },
+      {
+        path: 'community-groups',
+        element: <CommunityGroups />
+      },
+      {
+        path: 'tabular',
+        element: <Tabular />
+      },
+      {
+        path: 'settings-dispatcher',
+        element: <SettingsDispatcher />
+      },
+    ]
+  }
 ]);
