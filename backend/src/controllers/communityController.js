@@ -6,8 +6,28 @@ const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 // CREATE Community Group
 const createCommunityGroup = async (req, res) => {
     try {
-        const { terminalID, communityGroupName, noOfIndividuals, noOfFamilies, noOfPWD, noOfPregnantWomen, noOfKids, noOfSeniors,otherInformation, coordinates, address} = req.body;
+        // ADD THIS DEBUG LINE
+        console.log("Received body:", JSON.stringify(req.body, null, 2));
+        
+        const { 
+            terminalID, 
+            communityGroupName, 
+            noOfIndividuals, 
+            noOfFamilies, 
+            noOfPWD, 
+            noOfPregnantWomen, 
+            noOfKids, 
+            noOfSeniors,
+            otherInformation, 
+            coordinates, 
+            address,
+            boundary
+        } = req.body;
 
+        // ADD THIS DEBUG LINE
+        console.log("Extracted boundary:", boundary);
+
+        // Rest of your code...
         const terminal = await terminalRepo.findOne({where : {id: terminalID} });
         if (!terminal) {
             return res.status(404).json({message: "Terminal Not Found"});
@@ -17,9 +37,9 @@ const createCommunityGroup = async (req, res) => {
             return res.status(400).json({message: "Terminal Already Occupied"});
         }
 
-        // GENERATE Specific UID
         const lastCommunity = await communityRepo
             .createQueryBuilder("communityGroup")
+            .select(["communityGroup.id"])
             .orderBy("communityGroup.id", "DESC")
             .getOne();
 
@@ -43,19 +63,19 @@ const createCommunityGroup = async (req, res) => {
             noOfKids,
             otherInformation,
             coordinates,
-            address
+            address,
+            boundary
         });
 
         await communityRepo.save(communityGroup);
 
-        // Update Terminal Availability
         terminal.availability = "occupied";
         await terminalRepo.save(terminal);
 
         res.status(201).json({message: "Community Group Created", communityGroup});
     } catch (err) {
-        console.error(err);
-        res.status(500).json({message: "Server Error -- CREATE CG"});
+        console.error("Full error:", err);
+        res.status(500).json({message: "Server Error -- CREATE CG", error: err.message});
     }
 };
 
@@ -84,6 +104,32 @@ const getCommunityGroup = async (req, res) => {
     }
 };
 
+// UPDATE Community Grouo Boundary
+const updateCommunityBoundary = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { boundary } = req.body;
+
+        if (boundary == null || typeof boundary !== "object") {
+            return res.status(400).json({ message: "boundary must be a JSON object" });
+        }
+
+        const communityGroup = await communityRepo.findOne({where: {id} });
+        if (!communityGroup) {
+            return res.status(404).json({message: "Community Group Not Found"});
+        }
+
+        communityGroup.boundary = boundary;
+
+        await communityRepo.save(communityGroup);
+
+        res.json({message: "Community Group Updated", boundary});
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({message: "Server Error - UPDATE CG Boundary"});
+    }
+}
+
 // UPDATE Community Group
 const updateCommunityGroup = async (req, res) => {
     try {
@@ -103,7 +149,7 @@ const updateCommunityGroup = async (req, res) => {
         if (noOfSeniors) communityGroup.noOfSeniors = noOfSeniors;
         if (noOfKids) communityGroup.noOfKids = noOfKids;
         if (otherInformation) communityGroup.otherInformation = otherInformation;
-        if (address) communityGroup.address = addressl
+        if (address) communityGroup.address = address;
 
         await communityGroup.save(communityGroup);
 
@@ -171,6 +217,7 @@ module.exports = {
     createCommunityGroup,
     getCommunityGroups,
     getCommunityGroup,
+    updateCommunityBoundary,
     updateCommunityGroup,
     archivedCommunityGroup,
     getArchivedCommunityGroup

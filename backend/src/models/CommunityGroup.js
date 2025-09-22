@@ -51,6 +51,10 @@ module.exports = new EntitySchema ({
             length: 255,
             nullable: false,
         },
+        boundary: {
+            type: "json",
+            nullable: false,
+        },
         coordinates: {
             // Store array of floats as JSON (e.g., [lat, lng])
             type: "simple-json",

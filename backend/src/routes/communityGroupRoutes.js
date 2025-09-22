@@ -4,6 +4,7 @@ const {
     createCommunityGroup,
     getCommunityGroups,
     getCommunityGroup,
+    updateCommunityBoundary,
     updateCommunityGroup,
     archivedCommunityGroup,
     getArchivedCommunityGroup
@@ -14,6 +15,7 @@ router.post("/", createCommunityGroup);
 router.get("/", getCommunityGroups);
 router.get("/:id", getCommunityGroup);
 router.get("/archived", getArchivedCommunityGroup);
+router.put("/:id/boundary", updateCommunityBoundary);
 router.put("/:id", updateCommunityGroup);
 router.delete("/:id", archivedCommunityGroup);
 
