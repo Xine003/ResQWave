@@ -69,3 +69,13 @@ body, html {
   filter: blur(50px);
 }
 
+.tab-trigger {
+  font-weight: 400;
+  height: 35px;
+}
+
+.tab-trigger[data-state="active"] {
+  background: #414141 !important;
+  color: #fff !important;
+  font-weight: 400 !important;
+}
