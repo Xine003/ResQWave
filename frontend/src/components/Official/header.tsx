@@ -64,7 +64,7 @@ export function Header() {
             className={`flex-1 md:flex-none px-3 md:px-4 py-1 rounded-[5px] text-xs md:text-sm font-medium transition-colors ${
               activeTab === "table"
                 ? "bg-[#414141] text-white"
-                : "bg-[#2a2a2a] text-white/60 hover:text-white hover:bg-[#333333]"
+                : "text-white/60 hover:text-white hover:bg-[#333333]"
             }`}
           >
             Table View
@@ -73,7 +73,7 @@ export function Header() {
       </div>
       <div className="flex items-center gap-2 md:gap-4 text-white/90 text-xs md:text-sm mt-2 md:mt-0 w-full md:w-auto justify-end">
         <span className="font-medium">{currentTime}</span>
-        <span className="text-white/70">|</span>
+        <div className="w-px h-6 bg-white/70"></div>
         <span className="text-white/70">{currentDate}</span>
       </div>
     </header>
