@@ -45,8 +45,11 @@ export default function Header() {
                                 padding: "0.15rem 1.5rem",
                                 borderRadius: 4,
                                 transition: "background 0.2s",
+                                cursor: 'pointer'
                             }}
                             className="tab-trigger"
+                            onMouseEnter={e => (e.currentTarget.style.background = '#333333')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                         >Community Map</TabsTrigger>
                         <TabsTrigger
                             value="about"
@@ -56,8 +59,11 @@ export default function Header() {
                                 padding: "0.5rem 1.5rem",
                                 borderRadius: 4,
                                 transition: "background 0.2s",
+                                cursor: 'pointer'
                             }}
                             className="tab-trigger"
+                            onMouseEnter={e => (e.currentTarget.style.background = '#333333')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                         >About Your Community</TabsTrigger>
                         <TabsTrigger
                             value="history"
@@ -67,8 +73,11 @@ export default function Header() {
                                 padding: "0.5rem 1.5rem",
                                 borderRadius: 4,
                                 transition: "background 0.2s",
+                                cursor: 'pointer'
                             }}
                             className="tab-trigger"
+                            onMouseEnter={e => (e.currentTarget.style.background = '#333333')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                         >History</TabsTrigger>
                     </TabsList>
                 </Tabs>
@@ -80,8 +89,8 @@ export default function Header() {
                             src="https://avatars.githubusercontent.com/u/1?v=4"
                             alt="Profile"
                             style={{
-                                width: 36,
-                                height: 36,
+                                width: 43,
+                                height: 43,
                                 borderRadius: "50%",
                                 objectFit: "cover",
                                 cursor: "pointer",

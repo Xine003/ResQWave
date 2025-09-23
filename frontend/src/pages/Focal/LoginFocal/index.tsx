@@ -33,8 +33,6 @@ export function LoginFocal() {
       }
       setError("");
       setIsLoading(false);
-      // Set dummy auth state
-      window.isFocalAuthenticated = true;
       navigate('verification-signin');
     }, 1200);
   }
