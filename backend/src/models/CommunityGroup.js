@@ -16,7 +16,7 @@ module.exports = new EntitySchema ({
         terminalID: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         noOfIndividuals: {
             type: "integer",
@@ -78,10 +78,15 @@ module.exports = new EntitySchema ({
     relations: {
         terminal: {
             target: "Terminal",
-            type: "one-to-one",
+            type: "many-to-one",
             joinColumn: {name: "terminalID"},
             inverseSide: "terminals",
-            onDelete: "CASCADE"
+            onDelete: "SET NULL",
+            onUpdate: "CASCADE",
         },
     },
+    indices: [
+        // Each terminal can be linked to at most one group
+    { name: "UQ_communitygroups_terminalID", columns: ["terminalID"], unique: true },
+    ]
 });
