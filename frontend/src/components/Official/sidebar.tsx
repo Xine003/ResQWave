@@ -86,7 +86,7 @@ export function Sidebar() {
                 type="button"
                 onClick={handleSettingsClick}
               >
-                <Settings className="w-7 h-7" />
+                <Settings className="w-6 h-6" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={8}>
