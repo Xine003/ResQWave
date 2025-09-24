@@ -1,6 +1,6 @@
 const { io } = require("socket.io-client");
 
-const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkRTUDAwMSIsIm5hbWUiOiJPcmlnaW5hbCBSZXNRV2F2ZSIsInJvbGUiOiJkaXNwYXRjaGVyIiwic2Vzc2lvbklEIjoiYTkzNTA4OTItMmFjYy00ZjM1LTg5YWItYTgwZWVjMTVlYzMxIiwiaWF0IjoxNzU4Njk4NDA3LCJleHAiOjE3NTg3MDIwMDd9.Pe8QEyxX0-x2R5yXG9kVaTEjd00-ju-71NLSo67wwlo";
+const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkRTUDAwMSIsIm5hbWUiOiJPcmlnaW5hbCBSZXNRV2F2ZSIsInJvbGUiOiJkaXNwYXRjaGVyIiwic2Vzc2lvbklEIjoiNmQ1Nzc0MzgtMTJiMi00MDA5LThhZWMtYzBkYjFkZWZhMTQ3IiwiaWF0IjoxNzU4NzA4NjE2LCJleHAiOjE3NTg3MTIyMTZ9.68vnWjpz9XN6QNMVSVGCpJWScfdXDvPOnKY1tIuSDvs";
 const TERMINAL_ID = "RESQWAVE003"; // must exist
 
 const socket = io("http://localhost:5000", { auth: { token: TOKEN } });
@@ -13,9 +13,9 @@ socket.emit(
   "alert:trigger",
   {
     terminalId: TERMINAL_ID,
-    alertType: "Critical",
+    alertType: "User-Initiated",
     sentThrough: "Sensor",
-    status: "Unassigned"
+    status: "Waitlist"
   },
   (ack) => console.log("ack:", ack)
   );

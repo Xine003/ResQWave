@@ -176,6 +176,53 @@ const getUnassignedAlerts = async (req, res) => {
   }
 };
 
+const getUnassignedMapAlerts = async (req, res) => {
+	try {
+		const alerts = await alertRepo
+			.createQueryBuilder("alert")
+			.leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
+			.select([
+				"cg.communityGroupName AS communityGroupName",
+				"alert.alertType AS alertType",
+				"alert.dateTimeSent As timeSent",
+				"cg.address AS address",
+				"alert.status AS status"
+			])
+			.where("alert.status = :status", { status: "Unassigned" })
+			.orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "ASC")
+			.addOrderBy("alert.dateTimeSent", "DESC")
+			.getRawMany();
+		
+		res.json(alerts);
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({message: "Server Error"});
+	}
+}
+
+const getWaitlistedMapAlerts = async (req, res) => {
+	try {
+		const alerts = await alertRepo
+			.createQueryBuilder("alert")
+			.leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
+			.select([
+				"cg.communityGroupName AS communityGroupName",
+				"alert.alertType AS alertType",
+				"alert.dateTimeSent As timeSent",
+				"cg.address AS address",
+				"alert.status AS status"
+			])
+			.where("alert.status = :status", { status: "Waitlist" })
+			.orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "DESC")
+			.addOrderBy("alert.dateTimeSent", "DESC")
+			.getRawMany();
+		
+		res.json(alerts);
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({message: "Server Error"});
+	}
+}
 
 // Read Single Alert
 const getAlert = async (req, res) => {
@@ -197,6 +244,8 @@ module.exports = {
 	getDispatchedAlerts,
 	getWaitlistedAlerts,
 	getUnassignedAlerts,
+	getWaitlistedMapAlerts,
+	getUnassignedMapAlerts,
 	getAlert,
 };
 

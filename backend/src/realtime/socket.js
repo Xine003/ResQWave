@@ -91,16 +91,26 @@ function setupSocket(server, options = {}) {
           address: group?.address || null
         };
 
-        console.log("[socket] broadcasting liveReport:new", livePayload);
+        // Lightweight payload for map interface
+        const mapPayload = {
+          communityGroupName: group?.communityGroupName || null,
+          alertType,
+          timeSent: saved.dateTimeSent || saved.createdAt || new Date(),
+          address: group?.address || null,
+          status, // needed to split Unassigned vs Waitlist in frontend
+        };
 
-        // REMOVE global emit to avoid duplicates
-        // io.emit("liveReport:new", livePayload);
+        console.log("[socket] broadcasting liveReport:new", livePayload);
 
         // Emit to dashboards room
         io.to("alerts:all").emit("liveReport:new", livePayload);
 
+        // Emit to Map 
+        io.to ("alerts:all").emit("mapReport:new", mapPayload);
+
         // Emit to terminal-specific room (for terminal clients)
         io.to(`terminal:${terminalId}`).emit("liveReport:new", livePayload);
+
 
         ack?.({ ok: true, alertId: saved.id });
       } catch (err) {
