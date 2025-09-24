@@ -1,7 +1,7 @@
 const { io } = require("socket.io-client");
 
-const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkRTUDAwMSIsIm5hbWUiOiJPcmlnaW5hbCBSZXNRV2F2ZSIsInJvbGUiOiJkaXNwYXRjaGVyIiwiaWF0IjoxNzU4NDY0Njg3LCJleHAiOjE3NTg0NjgyODd9.dhqM8AVYk4etWFDtcgcSzBab58Y3WElQZT4SN7_q7eM";
-const TERMINAL_ID = "RESQWAVE002"; // must exist
+const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkRTUDAwMSIsIm5hbWUiOiJPcmlnaW5hbCBSZXNRV2F2ZSIsInJvbGUiOiJkaXNwYXRjaGVyIiwic2Vzc2lvbklEIjoiYTkzNTA4OTItMmFjYy00ZjM1LTg5YWItYTgwZWVjMTVlYzMxIiwiaWF0IjoxNzU4Njk4NDA3LCJleHAiOjE3NTg3MDIwMDd9.Pe8QEyxX0-x2R5yXG9kVaTEjd00-ju-71NLSo67wwlo";
+const TERMINAL_ID = "RESQWAVE003"; // must exist
 
 const socket = io("http://localhost:5000", { auth: { token: TOKEN } });
 

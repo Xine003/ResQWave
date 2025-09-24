@@ -1,15 +1,15 @@
 const jwt = require("jsonwebtoken");
 const { Server } = require("socket.io");
 const { AppDataSource } = require("../config/dataSource");
+const alertRepo = AppDataSource.getRepository("Alert");
+const terminalRepo = AppDataSource.getRepository("Terminal");
+const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
+
 
 function setupSocket(server, options = {}) {
   const io = new Server(server, {
     cors: { origin: options.origin || "http://localhost:5173", credentials: true },
   });
-
-  const alertRepo = AppDataSource.getRepository("Alert");
-  const terminalRepo = AppDataSource.getRepository("Terminal");
-  const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
 
   // JWT auth for sockets
   io.use((socket, next) => {

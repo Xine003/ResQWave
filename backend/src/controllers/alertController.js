@@ -70,20 +70,112 @@ const createUserInitiatedAlert = async (req, res) => {
 	}
 };
 
-// List Alerts with optional filters: status, terminalId
 const getAlerts = async (req, res) => {
-	try {
-		const { status, terminalId } = req.query;
-		const where = {};
-		if (status && ["Critical", "User-Initiated"].includes(status)) where.status = status;
-		if (terminalId) where.terminalID = terminalId;
-		const alerts = await alertRepo.find({ where, order: { dateTimeSent: "DESC" } });
-		res.json(alerts);
-	} catch (err) {
-		console.error(err);
-		res.status(500).json({ message: "Server Error - READ Alerts" });
-	}
+  try {
+    const alerts = await alertRepo
+      .createQueryBuilder("alert")
+      .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
+      .select([
+        "alert.id AS alertId",
+        "alert.terminalID AS terminalId",
+        "alert.alertType AS alertType",
+        "alert.status AS status",
+        "alert.dateTimeSent AS lastSignalTime",
+        "cg.communityGroupName AS communityGroup",
+        "cg.address AS address",
+      ])
+	  .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "DESC")
+	  .addOrderBy("alert.dateTimeSent", "DESC")
+      .getRawMany();
+
+    res.json(alerts);
+  } catch (err) {
+    console.error("[getAlerts] error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };
+
+
+const getDispatchedAlerts = async (req, res) => {
+	  try {
+    const alerts = await alertRepo
+      .createQueryBuilder("alert")
+      .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
+      .select([
+        "alert.id AS alertId",
+        "alert.terminalID AS terminalId",
+        "alert.alertType AS alertType",
+        "alert.status AS status",
+        "alert.dateTimeSent AS lastSignalTime",
+    	"cg.communityGroupName AS communityGroup", // force alias name
+        "cg.address AS address",
+      ])
+      .where("alert.status = :status", { status: "Dispatched" })
+      .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`)
+      .addOrderBy("alert.dateTimeSent", "DESC")
+      .getRawMany();
+
+    res.json(alerts);
+  } catch (err) {
+    console.error("[getAlerts] error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+// List All Alerts with waitlist status
+const getWaitlistedAlerts = async (req, res) => {
+  try {
+    const alerts = await alertRepo
+      .createQueryBuilder("alert")
+      .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
+      .select([
+        "alert.id AS alertId",
+        "alert.terminalID AS terminalId",
+        "alert.alertType AS alertType",
+        "alert.status AS status",
+        "alert.dateTimeSent AS lastSignalTime",
+    	"cg.communityGroupName AS communityGroup", // force alias name
+        "cg.address AS address",
+      ])
+      .where("alert.status = :status", { status: "Waitlist" })
+      .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`)
+      .addOrderBy("alert.dateTimeSent", "DESC")
+      .getRawMany();
+
+    res.json(alerts);
+  } catch (err) {
+    console.error("[getAlerts] error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+// List Alerts with Unassigned Status
+const getUnassignedAlerts = async (req, res) => {
+  try {
+    const alerts = await alertRepo
+      .createQueryBuilder("alert")
+      .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
+      .select([
+        "alert.id AS alertId",
+        "alert.terminalID AS terminalId",
+        "alert.alertType AS alertType",
+        "alert.status AS status",
+        "alert.dateTimeSent AS lastSignalTime",
+    	"cg.communityGroupName AS communityGroup", // force alias name
+        "cg.address AS address",
+      ])
+      .where("alert.status = :status", { status: "Unassigned" })
+      .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`)
+      .addOrderBy("alert.dateTimeSent", "DESC")
+      .getRawMany();
+
+    res.json(alerts);
+  } catch (err) {
+    console.error("[getAlerts] error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 
 // Read Single Alert
 const getAlert = async (req, res) => {
@@ -102,6 +194,9 @@ module.exports = {
 	createCriticalAlert,
 	createUserInitiatedAlert,
 	getAlerts,
+	getDispatchedAlerts,
+	getWaitlistedAlerts,
+	getUnassignedAlerts,
 	getAlert,
 };
 

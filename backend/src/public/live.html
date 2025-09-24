@@ -51,7 +51,7 @@
         tr.innerHTML = `
           <td>${a.terminalId || ""}</td>
           <td>${a.alertId || ""}</td>
-          <td>${a.communityGroup ? a.communityGroup.name : ""}</td>
+          <td>${a.communityGroup || ""}</td>
           <td>${a.alertType || ""}</td>
           <td>${a.status || ""}</td>
           <td>${a.lastSignalTime ? new Date(a.lastSignalTime).toLocaleString() : ""}</td>
@@ -74,8 +74,13 @@
         socket = io("/", { auth: { token } });
 
         socket.on("connect", () => {
-          statusEl.textContent = "Connected: " + socket.id;
-          statusEl.style.color = "green";
+          fetch("/alerts", {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          .then(res => res.json())
+          .then(alerts => {
+            alerts.forEach(addRow);
+          });
         });
 
         socket.on("connect_error", (e) => {
