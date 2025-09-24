@@ -9,6 +9,11 @@ module.exports = new EntitySchema ({
       primary: true,
       generated: true,
     },
+    sessionID: {
+      type: "varchar",
+      unique: true,
+      nullable: true
+    },
     userID: {
       type: "varchar",
       nullable: false,
@@ -20,7 +25,7 @@ module.exports = new EntitySchema ({
     code: {
       type: "varchar",
       length: 6,
-      nullable: false,
+      nullable: true,
     },
     expiry: {
       type: "timestamp",
