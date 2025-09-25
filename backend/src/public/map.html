@@ -105,7 +105,7 @@
         socket.on("liveReport:new", (a) => {
           // Map livePayload → map alert schema
           const mapped = {
-            communityGroupName: a.communityGroup?.name || "",
+            communityGroupName: a.communityGroupName || "",
             alertType: a.alertType,
             timeSent: a.lastSignalTime,   // align to controller's `timeSent`
             address: a.address,

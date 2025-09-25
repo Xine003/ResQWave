@@ -1,6 +1,6 @@
 const { io } = require("socket.io-client");
 
-const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkRTUDAwMSIsIm5hbWUiOiJPcmlnaW5hbCBSZXNRV2F2ZSIsInJvbGUiOiJkaXNwYXRjaGVyIiwic2Vzc2lvbklEIjoiNmQ1Nzc0MzgtMTJiMi00MDA5LThhZWMtYzBkYjFkZWZhMTQ3IiwiaWF0IjoxNzU4NzA4NjE2LCJleHAiOjE3NTg3MTIyMTZ9.68vnWjpz9XN6QNMVSVGCpJWScfdXDvPOnKY1tIuSDvs";
+const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkRTUDAwMSIsIm5hbWUiOiJPcmlnaW5hbCBSZXNRV2F2ZSIsInJvbGUiOiJkaXNwYXRjaGVyIiwic2Vzc2lvbklEIjoiOTUxOTc4ZTctNTUxMi00Mjg4LWEwNDctYmIyMjQxMjRiNTdiIiwiaWF0IjoxNzU4ODA3MDE4LCJleHAiOjE3NTg4MTA2MTh9.CmeDU458mzacxbcYlFn_ymE6Pj15h92Kbo_bihCERaw";
 const TERMINAL_ID = "RESQWAVE003"; // must exist
 
 const socket = io("http://localhost:5000", { auth: { token: TOKEN } });
@@ -15,7 +15,7 @@ socket.emit(
     terminalId: TERMINAL_ID,
     alertType: "User-Initiated",
     sentThrough: "Sensor",
-    status: "Waitlist"
+    status: "Unassigned"
   },
   (ack) => console.log("ack:", ack)
   );

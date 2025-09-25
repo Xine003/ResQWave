@@ -1,6 +1,9 @@
 const { AppDataSource } = require("../config/dataSource");
 const alertRepo = AppDataSource.getRepository("Alert");
 const terminalRepo = AppDataSource.getRepository("Terminal");
+const rescueFormRepo = AppDataSource.getRepository("RescueForm");
+const { getIO } = require("../realtime/socket");
+
 
 // Helper: generate incremental Alert ID like ALRT001
 async function generateAlertId() {
@@ -237,6 +240,56 @@ const getAlert = async (req, res) => {
 	}
 };
 
+// UPDATE Alert Status
+const updateAlertStatus = async (req, res) => {
+    try {
+        const { alertID } = req.params;
+        const { action } = req.body; // "waitlist" or "dispatch"
+
+        // 1. Find alert
+        const alert = await alertRepo.findOne({ where: { id: alertID } });
+        if (!alert) {
+            return res.status(404).json({ message: "Alert not found" });
+        }
+
+        // 2. Validate that rescue form exists
+        const rescueForm = await rescueFormRepo.findOne({ where: { emergencyID: alertID } });
+        if (!rescueForm) {
+            return res.status(400).json({ message: "Rescue Form must be created before dispatching or waitlisting" });
+        }
+
+        // 3. Update status
+        if (action === "waitlist") {
+            alert.status = "Waitlist";
+        } else if (action === "dispatch") {
+            alert.status = "Dispatched";
+        } else {
+            return res.status(400).json({ message: "Invalid action. Use 'waitlist' or 'dispatch'." });
+        }
+
+        await alertRepo.save(alert);
+
+		//  Realtime broadcast
+		getIO().to("alerts:all").emit("alertStatusUpdated", {
+		alertID: alert.id,
+		newStatus: alert.status,
+		});
+
+
+        return res.status(200).json({
+            message: `Alert ${action === "waitlist" ? "added to waitlist" : "dispatched successfully"}`,
+            alert,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+
+
+
 module.exports = {
 	createCriticalAlert,
 	createUserInitiatedAlert,
@@ -247,5 +300,6 @@ module.exports = {
 	getWaitlistedMapAlerts,
 	getUnassignedMapAlerts,
 	getAlert,
+	updateAlertStatus 
 };
 

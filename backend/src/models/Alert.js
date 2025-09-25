@@ -35,6 +35,7 @@ module.exports = new EntitySchema ({
         status: {
             type: "enum",
             enum: ["Waitlist", "Unassigned", "Dispatched"],
+            default: "Unassigned",
             nullable: false,
         },
     },
