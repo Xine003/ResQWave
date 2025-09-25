@@ -1,13 +1,14 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { ColumnDef } from "@tanstack/react-table"
+import { Archive, Edit, Info } from "lucide-react"
 
 export type CommunityGroup = {
   id: string
   name: string
-  status: "ONLINE" | "OFFLINE"
+  status: "ONLINE" | "OFFLINE" | "N/A"
   focalPerson: string
   contactNumber: string
   address: string
@@ -48,7 +49,7 @@ export const columns: ColumnDef<CommunityGroup>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent"
+          className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent focus:bg-transparent active:bg-transparent"
         >
           Community Name
           <svg className="ml-2 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,8 +75,8 @@ export const columns: ColumnDef<CommunityGroup>[] = [
           variant={status === "ONLINE" ? "default" : "secondary"}
           className={
             status === "ONLINE"
-              ? "bg-green-500/70 text-green-500 border-green-500 hover:bg-green-500/70"
-              : "bg-gray-500/70 text-gray-500 border-gray-500 hover:bg-gray-500/70"
+              ? "bg-green-500/20 text-green-500 border-green-500 hover:bg-green-500/70 h-7"
+              : "bg-[#171717] text-[#404040] border-[#404040] hover:bg-gray-500/70 h-7"
           }
         >
           {status}
@@ -90,7 +91,7 @@ export const columns: ColumnDef<CommunityGroup>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent"
+          className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent focus:bg-transparent active:bg-transparent"
         >
           Focal Person
           <svg className="ml-2 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,7 +124,7 @@ export const columns: ColumnDef<CommunityGroup>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent"
+          className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent focus:bg-transparent active:bg-transparent"
         >
           Registered At
           <svg className="ml-2 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,14 +139,19 @@ export const columns: ColumnDef<CommunityGroup>[] = [
       )
     },
     cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("registeredAt")}</div>,
+    sortingFn: (rowA, rowB, columnId) => {
+      // Sort by date ascending (oldest to newest)
+      const a = new Date(rowA.getValue(columnId))
+      const b = new Date(rowB.getValue(columnId))
+      return a.getTime() - b.getTime()
+    },
+  sortDescFirst: false, 
   },
   {
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-      const group = row.original
-
-      return (
+  return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0 text-[#a1a1a1] hover:text-white hover:bg-[#262626]">
@@ -160,13 +166,28 @@ export const columns: ColumnDef<CommunityGroup>[] = [
               </svg>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-[#262626] border-[#404040] text-white">
-            <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040]">Edit</DropdownMenuItem>
-            <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040]">Archive</DropdownMenuItem>
-            <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] text-red-400">Delete</DropdownMenuItem>
-          </DropdownMenuContent>
+          <DropdownMenuContent
+        align="start" side="left" sideOffset={2}
+        className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
+      >
+        <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+          <Info className="mr-2 h-4 w-4 text-white" />
+          <span>More Info</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+          <Edit className="mr-2 h-4 w-4 text-white" />
+          <span>Edit</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-[#404040]" />
+        <DropdownMenuItem
+          className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000]"
+        >
+          <Archive className="mr-2 h-4 w-4 text-[#FF0000]" />
+          <span>Archive</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
         </DropdownMenu>
       )
     },
-  },
+  }, 
 ]

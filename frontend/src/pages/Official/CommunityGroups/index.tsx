@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ArchiveRestore, Info, Trash2 } from "lucide-react"
 import { useState } from "react"
-import { columns, type CommunityGroup } from "./components/columns"
+import { columns as activeColumns, type CommunityGroup } from "./components/columns"
+import { CommunityGroupDrawer } from "./components/community-group-drawer"
 import { DataTable } from "./components/data-table"
 
-const communityGroups: CommunityGroup[] = [
+const activeGroups: CommunityGroup[] = [
   {
     id: "CG-008",
     name: "Riverside Community",
@@ -67,27 +70,79 @@ const communityGroups: CommunityGroup[] = [
     address: "Block 4, Lot 9, Riverside Rd, 1421",
     registeredAt: "September 8, 2025",
   },
+]
+
+const archivedGroups: CommunityGroup[] = [
   {
     id: "CG-001",
-    name: "Banaba Extension",
-    status: "OFFLINE",
-    focalPerson: "Liza Ramos",
-    contactNumber: "0998 765 4312",
-    address: "Block 9, Lot 7, Bagong Silang Rd, 1413",
-    registeredAt: "September 10, 2025",
+    name: "Archived Group Example",
+    status: "N/A",
+    focalPerson: "Maria Santos",
+    contactNumber: "0917 000 0000",
+    address: "Block 1, Lot 1, Archive Rd, 1400",
+    registeredAt: "August 1, 2025",
+  },
+]
+
+const archivedColumns = [
+  ...activeColumns.slice(0, -1), 
+  {
+    id: "actions",
+    enableHiding: false,
+    cell: ({ row }: any) => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0 text-[#a1a1a1] hover:text-white hover:bg-[#262626]">
+            <span className="sr-only">Open menu</span>
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zM12 13a1 1 0 110-2 1 1 0 010 2zM12 20a1 1 0 110-2 1 1 0 010 2z"
+              />
+            </svg>
+          </Button>
+        </DropdownMenuTrigger>
+       <DropdownMenuContent
+        align="start" side="left" sideOffset={2}
+        className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-35 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
+      >
+        <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+          <Info className="mr-2 h-4 w-4 text-white" />
+          <span className="text-sm">More Info</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+          <ArchiveRestore className="mr-2 h-4 w-4 text-white" />
+          <span className="text-sm">Restore</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-[#404040]" />
+        <DropdownMenuItem
+          className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000] text-sm"
+        >
+          <Trash2 className="mr-2 h-4 w-4 text-[#FF0000]" />
+          <span>Delete Permanently</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+      </DropdownMenu>
+    ),
   },
 ]
 
 export function CommunityGroups() {
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active")
+   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const tableData = activeTab === "active" ? activeGroups : archivedGroups
+  const tableColumns = activeTab === "active" ? activeColumns : archivedColumns
 
   return (
-  <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col" style={{height: 'calc(100vh - 73px)'}}>
+    <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col" style={{height: 'calc(100vh - 73px)'}}>
       <div className="w-full max-w-9xl mx-auto flex-1 flex flex-col min-h-0">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
             <h1 className="text-2xl font-semibold text-white">Community Groups</h1>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-[#262626] rounded-[5px] p-1">
               <button
                 onClick={() => setActiveTab("active")}
                 className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
@@ -95,7 +150,7 @@ export function CommunityGroups() {
                 }`}
               >
                 Active Groups
-                <span className="ml-2 px-2 py-0.5 bg-[#262626] rounded text-xs">9</span>
+                <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{activeGroups.length}</span>
               </button>
               <button
                 onClick={() => setActiveTab("archived")}
@@ -106,7 +161,7 @@ export function CommunityGroups() {
                 }`}
               >
                 Archived Groups
-                <span className="ml-2 px-2 py-0.5 bg-[#262626] rounded text-xs">1</span>
+                <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{archivedGroups.length}</span>
               </button>
             </div>
           </div>
@@ -121,17 +176,18 @@ export function CommunityGroups() {
                 />
               </svg>
             </Button>
-            <Button className="bg-[#4285f4] hover:bg-[#3367d6] text-white px-4 py-2 rounded-[5px] flex items-center gap-2">
+            <Button onClick={() => setDrawerOpen(true)} className="bg-[#4285f4] hover:bg-[#3367d6] text-white px-4 py-2 rounded-[5px] flex items-center gap-2">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add New Community Group
             </Button>
+            <CommunityGroupDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
           </div>
         </div>
 
-  <div className="flex-1 min-h-0 overflow-auto">
-          <DataTable columns={columns} data={communityGroups} />
+        <div className="flex-1 min-h-0 overflow-auto">
+          <DataTable columns={tableColumns} data={tableData} />
         </div>
       </div>
     </div>
