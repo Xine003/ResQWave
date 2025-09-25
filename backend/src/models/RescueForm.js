@@ -13,15 +13,8 @@ module.exports = new EntitySchema ({
             length: 255,
             nullable: false
         },
-        dispatcherID: {
-            type: "varchar",
-            length: 255,
-            nullable: false
-        },
-        focalPersonID: {
-            type: "varchar",
-            length: 255,
-            nullable: false
+        focalUnreachable: {
+            type: "boolean",
         },
         waterLevel: {
             type: "varchar",
@@ -62,23 +55,7 @@ module.exports = new EntitySchema ({
             joinColumn: {
                 name: "emergencyID"
             },
-            inverseSide: "alerts"
-        },
-        dispatcher: {
-            type: "one-to-one",
-            target: "Dispatcher",
-            joinColumn: {
-                name: "dispatcherID"
-            },
-            inverseSide: "dispatchers"
-        },
-        focalPerson: {
-            type: "one-to-one",
-            target: "FocalPerson",
-            joinColumn: {
-                name: "focalPersonID"
-            },
-            inverseSide: "focalpersons"
+            inverseSide: "rescueForms"
         },
     },
 });
