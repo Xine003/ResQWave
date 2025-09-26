@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { MapPin, Plus, RefreshCcw, Trash, Upload, X } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
-import { CloseCreateDialog } from "./closeCreateDialog"
+import { CloseCreateDialog } from "./close-create-dialog"
 
 interface CommunityGroupDrawerProps {
   open: boolean
