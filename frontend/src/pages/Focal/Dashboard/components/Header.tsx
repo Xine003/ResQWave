@@ -1,4 +1,4 @@
-import React from "react";
+// React import not required directly here
 import resqwave_logo from '/Landing/resqwave_logo.png';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -18,7 +18,7 @@ export default function Header() {
                 height: "85px",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                 position: "relative",
-                zIndex: 10,
+                zIndex: 'var(--z-header)',
             }}
         >
             <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>

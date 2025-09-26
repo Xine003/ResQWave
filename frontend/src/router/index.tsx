@@ -29,6 +29,8 @@ const FocalProtectedRoute: React.FC = () => {
     return <Navigate to="/login-focal" replace />;
   }
   */
+
+  
   // --- END PROTECTIVE ROUTE LOGIC ---
   return <Outlet />;
 };
@@ -58,7 +60,7 @@ export const router = createBrowserRouter([
       {
         path: 'focal-dashboard',
         element: <FocalDashboard />,
-      },
+      }
     ],
   },
   {
