@@ -4,18 +4,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Archive, Edit, Info } from "lucide-react"
+import type { CommunityColumnsOptions, CommunityGroup } from "../types"
 
-export type CommunityGroup = {
-  id: string
-  name: string
-  status: "ONLINE" | "OFFLINE" | "N/A"
-  focalPerson: string
-  contactNumber: string
-  address: string
-  registeredAt: string
-}
-
-export const createColumns = (opts: { onMoreInfo: (group: CommunityGroup) => void; onArchive?: (group: CommunityGroup) => void }): ColumnDef<CommunityGroup>[] => [
+export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<CommunityGroup>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -207,3 +198,7 @@ export const createColumns = (opts: { onMoreInfo: (group: CommunityGroup) => voi
     },
   }, 
 ]
+
+// Re-export for backward compatibility if other modules imported the type from this file
+export type { CommunityGroup } from "../types"
+

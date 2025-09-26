@@ -6,6 +6,7 @@ import { createColumns, type CommunityGroup } from "./components/columns"
 import { CommunityGroupInfoSheet } from "./components/community-group-info-sheet"
 import { CommunityGroupDrawer } from "./components/create-community-group-drawer"
 import { DataTable } from "./components/data-table"
+import type { CommunityGroupDetails } from "./types"
 
 // active groups are now managed in state (initially empty)
 
@@ -67,34 +68,10 @@ export function CommunityGroups() {
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active")
    const [drawerOpen, setDrawerOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
-  const [selectedInfoData, setSelectedInfoData] = useState<{
-    name: string
-    terminalId: string
-    communityId: string
-    individuals: number
-    families: number
-    kids: number
-    seniors: number
-    pwds: number
-    pregnantWomen: number
-    notableInfo: string[]
-    focalPerson: {
-      name: string
-      photo?: string
-      contactNumber: string
-      email: string
-      houseAddress: string
-      coordinates: string
-    }
-    alternativeFocalPerson: {
-      name: string
-      contactNumber: string
-      email: string
-    }
-  } | undefined>(undefined)
+  const [selectedInfoData, setSelectedInfoData] = useState<CommunityGroupDetails | undefined>(undefined)
   const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>([])
   const [archivedGroups, setArchivedGroups] = useState<CommunityGroup[]>([])
-  const [infoById, setInfoById] = useState<Record<string, NonNullable<typeof selectedInfoData>>>({})
+  const [infoById, setInfoById] = useState<Record<string, CommunityGroupDetails>>({})
 
   const generateCommunityId = () => `CG-${Date.now()}`
 

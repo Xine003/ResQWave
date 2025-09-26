@@ -1,24 +1,14 @@
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
-export type CloseCreateDialogProps = {
-  open: boolean
-  onOpenChange?: (open: boolean) => void
-  onCancel?: () => void
-  onDiscard: () => void
-  title?: string
-  description?: string
-  cancelLabel?: string
-  discardLabel?: string
-}
+import type { CloseCreateDialogProps } from "../types"
 
 export function CloseCreateDialog({
   open,

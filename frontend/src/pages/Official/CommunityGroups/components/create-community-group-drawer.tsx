@@ -5,37 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { MapPin, Plus, RefreshCcw, Trash, Upload, X } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
+import type { CommunityGroupDrawerProps } from "../types"
 import { CloseCreateDialog } from "./close-create-dialog"
-
-interface CommunityGroupDrawerProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSave?: (infoData: {
-    name: string
-    terminalId: string
-    communityId: string
-    individuals: number
-    families: number
-    kids: number
-    seniors: number
-    pwds: number
-    pregnantWomen: number
-    notableInfo: string[]
-    focalPerson: {
-      name: string
-      photo?: string
-      contactNumber: string
-      email: string
-      houseAddress: string
-      coordinates: string
-    }
-    alternativeFocalPerson: {
-      name: string
-      contactNumber: string
-      email: string
-    }
-  }) => void
-}
 
 export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGroupDrawerProps) {
   const initialFormData = useMemo(

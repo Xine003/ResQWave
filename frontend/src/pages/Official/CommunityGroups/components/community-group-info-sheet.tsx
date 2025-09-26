@@ -2,36 +2,7 @@
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { ExpandIcon } from "lucide-react"
-
-interface CommunityGroupInfoSheetProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  communityData?: {
-    name: string
-    terminalId: string
-    communityId: string
-    individuals: number
-    families: number
-    kids: number
-    seniors: number
-    pwds: number
-    pregnantWomen: number
-    notableInfo: string[]
-    focalPerson: {
-      name: string
-      photo?: string
-      contactNumber: string
-      email: string
-      houseAddress: string
-      coordinates: string
-    }
-    alternativeFocalPerson: {
-      name: string
-      contactNumber: string
-      email: string
-    }
-  }
-}
+import type { CommunityGroupInfoSheetProps } from "../types"
 
 export function CommunityGroupInfoSheet({
   open,
