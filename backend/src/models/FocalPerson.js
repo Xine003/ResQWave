@@ -19,7 +19,7 @@ module.exports = new EntitySchema ({
             nullable: false,
         },
         photo: {
-            type: "blob",
+            type: "longblob",
             nullable: true,
         },
         name: {
@@ -42,7 +42,7 @@ module.exports = new EntitySchema ({
             nullable: false
         },
         alternativeFPImage: {
-            type: "blob",
+            type: "longblob",
             nullable: true,
         },
         alternativeFPContactNumber: {

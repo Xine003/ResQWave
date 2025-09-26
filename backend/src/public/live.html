@@ -39,58 +39,76 @@
     </table>
 
     <script>
-      const statusEl = document.getElementById("status");
-      const rowsEl = document.getElementById("rows");
-      const tokenEl = document.getElementById("token");
-      const connectBtn = document.getElementById("connectBtn");
+    const statusEl = document.getElementById("status");
+    const rowsEl = document.getElementById("rows");
+    const tokenEl = document.getElementById("token");
+    const connectBtn = document.getElementById("connectBtn");
 
-      let socket;
+    let socket;
 
-      function addRow(a) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${a.terminalId || ""}</td>
-          <td>${a.alertId || ""}</td>
-          <td>${a.communityGroup ? a.communityGroup.name : ""}</td>
-          <td>${a.alertType || ""}</td>
-          <td>${a.status || ""}</td>
-          <td>${a.lastSignalTime ? new Date(a.lastSignalTime).toLocaleString() : ""}</td>
-          <td>${a.address || ""}</td>
-        `;
-        // newest on top
-        rowsEl.insertBefore(tr, rowsEl.firstChild);
+    function addRow(a) {
+      const tr = document.createElement("tr");
+      tr.setAttribute("data-alert-id", a.alertId || a.id); // ✅ store alertId in row for easy update
+      tr.innerHTML = `
+        <td>${a.terminalId || ""}</td>
+        <td>${a.alertId || a.id || ""}</td>
+        <td>${a.communityGroupName || ""}</td>
+        <td>${a.alertType || ""}</td>
+        <td class="status-cell">${a.status || ""}</td>
+        <td>${a.lastSignalTime ? new Date(a.lastSignalTime).toLocaleString() : ""}</td>
+        <td>${a.address || ""}</td>
+      `;
+      // newest on top
+      rowsEl.insertBefore(tr, rowsEl.firstChild);
+    }
+
+    // ✅ update existing row instead of adding new one
+    function updateRowStatus(alertID, newStatus) {
+      const row = rowsEl.querySelector(`tr[data-alert-id="${alertID}"]`);
+      if (row) {
+        const statusCell = row.querySelector(".status-cell");
+        if (statusCell) statusCell.textContent = newStatus;
+      } else {
+        console.warn("Row not found for alertID:", alertID);
       }
+    }
 
-      connectBtn.onclick = () => {
-        const token = tokenEl.value.trim();
-        if (!token) {
-          alert("Please paste a JWT token first.");
-          return;
-        }
-        // Close previous connection if any
-        if (socket) socket.disconnect();
+    connectBtn.onclick = () => {
+      const token = tokenEl.value.trim();
+      if (!token) {
+        alert("Please paste a JWT token first.");
+        return;
+      }
+      if (socket) socket.disconnect();
 
-        // Connect to the same origin (backend serves this page)
-        socket = io("/", { auth: { token } });
+      socket = io("/", { auth: { token } });
 
-        socket.on("connect", () => {
-          statusEl.textContent = "Connected: " + socket.id;
-          statusEl.style.color = "green";
-        });
+      socket.on("connect", () => {
+        fetch("/alerts", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then((res) => res.json())
+          .then((alerts) => {
+            rowsEl.innerHTML = ""; // clear table before refill
+            alerts.forEach(addRow);
+          });
+      });
 
-        socket.on("connect_error", (e) => {
-          statusEl.textContent = "Connect error: " + e.message;
-          statusEl.style.color = "red";
-        });
+      socket.on("connect_error", (e) => {
+        statusEl.textContent = "Connect error: " + e.message;
+        statusEl.style.color = "red";
+      });
 
-        // Listen to the exact event your server emits
-        socket.on("liveReport:new", (data) => {
-          addRow(data);
-        });
+      socket.on("liveReport:new", (data) => addRow(data));
+      socket.on("alert:new", (data) => addRow(data));
 
-        // Optional: legacy alias if you still emit it somewhere
-        socket.on("alert:new", (data) => addRow(data));
-      };
-    </script>
+      // ✅ Listen for realtime status updates
+      socket.on("alertStatusUpdated", (data) => {
+        console.log("Realtime status update received:", data);
+        updateRowStatus(data.alertID, data.newStatus);
+      });
+    };
+  </script>
+
   </body>
 </html>

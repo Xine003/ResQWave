@@ -5,7 +5,7 @@ const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 // CREATE FocalPerson 
 const createFocalPerson = async (req, res) => {
     try {
-        const { communityGroupID, name, email, contactNumber, address, alternativeFP, alternativeFPEmail ,alternativeFPContactNumber, password } = req.body;
+        const { communityGroupID, name, email, contactNumber, address, alternativeFP, alternativeFPEmail , alternativeFPContactNumber, password } = req.body;
 
         if (!communityGroupID) {
             return res.status(400).json({ message: "communityGroupID is required" });
@@ -30,6 +30,11 @@ const createFocalPerson = async (req, res) => {
         // Hashed Password
         const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
+        // Optional files (present only if request is multipart/form-data)
+        const files = req.files || {};
+        const main = files.photo?.[0];
+        const alt = files.alternativeFPImage?.[0];
+
         const focalPerson = focalPersonRepo.create({
             id: newID,
             communityGroupID,
@@ -42,6 +47,9 @@ const createFocalPerson = async (req, res) => {
             alternativeFPContactNumber,
             createdBy: req.user && req.user.id ? req.user.id : null,
             password: hashedPassword,
+            // Optional Blobs
+            ...(main?.buffer ? {photo: main.buffer} : {}),
+            ...(alt?.buffer ? {alternativeFPImage: alt.buffer}: {})
         });
 
         await focalPersonRepo.save(focalPerson);
@@ -84,6 +92,70 @@ const getFocalPerson = async (req, res) => {
     }
 };
 
+const updateFocalPhotos = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const fp = await focalPersonRepo.findOne({where: {id} });
+        if (!fp) return res.status(404).json({message: "Focal Person Not Found"});
+
+        const files = req.files || {};
+        const main = files.photo?.[0];
+        const alt = files.alternativeFPImage?.[0];
+
+        console.log("Files:", req.files);
+        console.log("Body:", req.body);
+
+        if (!main && !alt) {
+            return res.status(400).json({message: "No Files Uploaded"});
+        }
+
+        // Save Buffers into BLOB 
+        if (main?.buffer) fp.photo = main.buffer;
+        if (alt?.buffer) fp.alternativeFPImage = alt.buffer
+
+        await focalPersonRepo.save(fp);
+
+        // Do not include raw blobs in JSON response
+        return res.json({message: "Focal Person Photos Updated", id: fp.id});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({message: "Server Error"})
+    }
+};
+
+
+// Stream Main Photo (Blob) to Client
+const getFocalPhoto = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const fp = await focalPersonRepo.findOne({where: {id} });
+        if (!fp || !fp.photo) return res.status(404).send("Photo Not Found");
+
+        // Without a mime column, fallback to a generic type
+        res.setHeader("Content-Type", "application/octect-stream");
+        return res.send(fp.photo);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send("Server Error");
+    }
+};
+
+
+// Stream Alt Photo
+const getAlternativeFocalPhoto = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const fp = await focalPersonRepo.findOne({where: {id} });
+        if (!fp || !fp.alternativeFPImage) return res.status(404).send("Alternative Photo Not Found");
+
+        res.setHeader("Content-Type", "application/octet-stream");
+        return res.send(fp.alternativeFPImage);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send("Server Error");
+    }
+};
+
 // UPDATE Focal Person
 const updateFocalPerson = async (req, res) => {
     try {
@@ -115,5 +187,8 @@ module.exports = {
     createFocalPerson,
     getFocalPersons,
     getFocalPerson,
-    updateFocalPerson
-}
+    updateFocalPerson,
+    updateFocalPhotos,
+    getFocalPhoto,
+    getAlternativeFocalPhoto
+};
