@@ -10,7 +10,7 @@ declare global {
 
 import { Landing, LoginFocal } from '../pages/Focal';
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/ForgotPassword';
-import VerificationSignin from '../pages/Focal/LoginFocal/VerificationSignin';
+import VerificationSignin from '../pages/Focal/LoginFocal/verificationSignin';
 import {
   Dashboard,
   ForgotPasswordPageDispatcher,
