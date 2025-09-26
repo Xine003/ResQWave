@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { MapPin, Plus, Upload, X } from "lucide-react"
+import { MapPin, Plus, RefreshCcw, Trash, Upload, X } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { CloseCreateDialog } from "./closeCreateDialog"
 
@@ -132,7 +132,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
     onUpload: (file: File) => void
     onDelete: () => void
   }) => (
-    <div className="bg-[#262626] hover:bg-[#302F2F] rounded-[5px] p-8 text-center">
+    <div className="bg-[#262626] hover:bg-[#302F2F] rounded-[5px] p-8 text-center relative">
       {photo ? (
         <div className="space-y-4">
           <img
@@ -140,23 +140,28 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
             alt="Uploaded"
             className="w-20 h-20 rounded-full mx-auto object-cover"
           />
-          <div className="flex gap-2 justify-center">
+          <div className="absolute bottom-3 right-3 flex gap-0">
             <Button
               variant="outline"
-              size="sm"
-              onClick={onDelete}
-              className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
-            >
-              Delete
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
+              size="icon"
               onClick={() => document.getElementById("photo-upload")?.click()}
-              className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+              aria-label="Change photo"
+              title="Change photo"
+              className="bg-white border-[#2a2a2a] text-black hover:bg-white rounded-none w-8 h-8"
             >
-              Change Photo
+              <RefreshCcw className="w-4 h-4 text-black" />
             </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onDelete}
+              aria-label="Delete photo"
+              title="Delete photo"
+              className="bg-white border-[#2a2a2a] text-red-500 hover:bg-white rounded-none w-8 h-8"
+            >
+              <Trash className="w-4 h-4 text-red-500" />
+            </Button>
+            
           </div>
         </div>
       ) : (

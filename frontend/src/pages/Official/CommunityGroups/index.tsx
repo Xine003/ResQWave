@@ -3,8 +3,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { ArchiveRestore, Info, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { createColumns, type CommunityGroup } from "./components/columns"
-import { CommunityGroupDrawer } from "./components/community-group-drawer"
 import { CommunityGroupInfoSheet } from "./components/community-group-info-sheet"
+import { CommunityGroupDrawer } from "./components/create-community-group-drawer"
 import { DataTable } from "./components/data-table"
 
 // active groups are now managed in state (initially empty)
