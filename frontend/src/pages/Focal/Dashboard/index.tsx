@@ -3,16 +3,17 @@ import mapboxgl from "mapbox-gl";
 import { flyToSignal, cinematicMapEntrance } from './utils/flyingEffects';
 import Header from "./components/Header";
 import MapControls from './components/MapControls';
-import SignalPopup from './components/SignalPopover';
+import SignalPopup from './components/SignalPopup';
 import useSignals from './hooks/useSignals';
 import type { DashboardSignals } from './types/signals';
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { createDraw, ensureSquareGreenImage, changeToDrawPolygon, makeUpdateCanSave } from './utils/drawMapBoundary';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
-import DashboardAlerts from './components/DashboardAlerts';
+import Alert, { AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle2Icon, Info } from 'lucide-react';
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
-
+import { CircleAlert } from 'lucide-react';
 
 
 mapboxgl.accessToken = "pk.eyJ1Ijoicm9kZWxsbCIsImEiOiJjbWU0OXNvb2gwYnM0MnpvbXNueXo2dzhxIn0.Ep43_IxVhaPhEqWBaAuuyA";
@@ -26,14 +27,69 @@ export default function Dashboard() {
     const { otherSignals, ownCommunitySignal: OwnCommunitySignal, editBoundaryOpen, setEditBoundaryOpen, popover, setPopover, infoBubble, setInfoBubble, infoBubbleVisible, setInfoBubbleVisible, setSavedGeoJson, canSave, setCanSave, getDistressCoord } = signals as unknown as DashboardSignals;
     const distressCoord: [number, number] = getDistressCoord();
 
-    // moved alert state and timers into DashboardAlerts component
-    const [savedTrigger, setSavedTrigger] = useState(0);
-    const alertsRef = useRef<{ hideValidAlert?: () => void } | null>(null);
+    // transient bottom-centered alert when entering edit mode
+    const [showEditAlert, setShowEditAlert] = useState(false);
+    const editAlertTimer = useRef<number | null>(null);
+    // transient alert when drawn boundary becomes valid
+    const [showValidAlert, setShowValidAlert] = useState(false);
+    const validAlertTimer = useRef<number | null>(null);
+    // transient alert shown after user clicks Save
+    const [showSavedAlert, setShowSavedAlert] = useState(false);
+    const savedAlertTimer = useRef<number | null>(null);
 
     // keep a ref to the latest popover so map event handlers inside the load callback
     // (which are attached once) can see the current value and update its screen coords
     const popoverRef = useRef<typeof popover>(popover);
     useEffect(() => { popoverRef.current = popover; }, [popover]);
+
+    useEffect(() => {
+        // when editBoundaryOpen becomes true, show the transient alert
+        if (editBoundaryOpen) {
+            // clear any previous timer
+            if (editAlertTimer.current) {
+                window.clearTimeout(editAlertTimer.current);
+            }
+            setShowEditAlert(true);
+            editAlertTimer.current = window.setTimeout(() => {
+                setShowEditAlert(false);
+                editAlertTimer.current = null;
+            }, 3000);
+        }
+
+        return () => {
+            if (editAlertTimer.current) {
+                window.clearTimeout(editAlertTimer.current);
+                editAlertTimer.current = null;
+            }
+        };
+    }, [editBoundaryOpen]);
+
+    // show a transient success alert when the drawn boundary becomes savable/valid
+    useEffect(() => {
+        if (canSave) {
+            // clear any previous timer
+            if (validAlertTimer.current) {
+                window.clearTimeout(validAlertTimer.current);
+            }
+            setShowValidAlert(true);
+            console.debug('[Dashboard] canSave -> true: showing valid alert');
+            validAlertTimer.current = window.setTimeout(() => {
+                console.debug('[Dashboard] valid alert timeout: hiding');
+                setShowValidAlert(false);
+                // note: do NOT reset canSave here so the Save button remains enabled until explicit save/exit
+                validAlertTimer.current = null;
+            }, 2500);
+        }
+
+        return () => {
+            if (validAlertTimer.current) {
+                window.clearTimeout(validAlertTimer.current);
+                validAlertTimer.current = null;
+            }
+        };
+    }, [canSave]);
+
+
 
     // addCustomLayers moved to utils/mapHelpers and imported above
     useEffect(() => {
@@ -315,8 +371,7 @@ export default function Dashboard() {
 
 
     const handleSave = () => {
-        // hide the valid alert imperatively via the alerts component
-        try { alertsRef.current?.hideValidAlert?.(); } catch (e) { }
+        setShowValidAlert(false)
         const draw = drawRef.current as MapboxDraw;
         if (!draw) return;
         const data = draw.getAll();
@@ -456,8 +511,15 @@ export default function Dashboard() {
         } catch (e) {
             console.warn('[Dashboard] could not programmatically show saved boundary popover', e);
         }
-        // notify DashboardAlerts that a save occurred
-        setSavedTrigger((s) => s + 1);
+        // show saved alert (transient with View Logs button)
+        if (savedAlertTimer.current) {
+            window.clearTimeout(savedAlertTimer.current);
+        }
+        setShowSavedAlert(true);
+        savedAlertTimer.current = window.setTimeout(() => {
+            setShowSavedAlert(false);
+            savedAlertTimer.current = null;
+        }, 4500);
         // after saving, clear canSave so future edits re-trigger the valid alert
         setCanSave(false);
         setEditBoundaryOpen(false);
@@ -496,8 +558,57 @@ export default function Dashboard() {
             <SignalPopup popover={popover} setPopover={setPopover} setEditBoundaryOpen={setEditBoundaryOpen} infoBubble={infoBubble} infoBubbleVisible={infoBubbleVisible} />
 
             <MapControls mapRef={mapRef} mapLoaded={mapLoaded} makeTooltip={makeTooltip} addCustomLayers={(m) => addCustomLayers(m, otherSignals, OwnCommunitySignal)} editBoundaryOpen={editBoundaryOpen} handleDeleteBoundary={handleDeleteBoundary} />
-           
-            <DashboardAlerts ref={alertsRef} editBoundaryOpen={editBoundaryOpen} canSave={canSave} savedTrigger={savedTrigger} onViewLogs={() => console.log('View Logs clicked')} />
+
+            {/* Display saved GeoJSON */}
+            {/* {savedGeoJson && (
+                <div style={{ position: "absolute", top: 150, right: 20, zIndex: 50, background: "#fff", padding: "10px", borderRadius: 8 }}>
+                    <div style={{ fontWeight: "bold", marginBottom: 5 }}>Saved GeoJSON:</div>
+                    <pre style={{ maxHeight: 200, overflow: "auto" }}>{JSON.stringify(savedGeoJson, null, 2)}</pre>
+                </div>
+            )} */}
+            {/* Transient bottom-centered alert that slides up when editing community markers */}
+            {/* Boundaries valid success alert (shown briefly when polygon is closed) */}
+            <div style={{ position: 'absolute', left: '50%', bottom: 30, transform: `translateX(-50%) translateY(${showValidAlert ? '0' : '80px'})`, transition: 'transform 220ms cubic-bezier(.2,.9,.2,1), opacity 220ms linear', opacity: showValidAlert ? 1 : 0, pointerEvents: showValidAlert ? 'auto' : 'none', zIndex: 62 }}>
+                <div style={{ minWidth: 160, maxWidth: 320 }}>
+                    <Alert iconBoxVariant="success">
+                        <CheckCircle2Icon color="#22c55e" />
+                        <div>
+                            <AlertDescription><b>Note:</b> Boundaries set are valid!</AlertDescription>
+                        </div>
+                    </Alert>
+                </div>
+            </div>
+
+            {/* Transient bottom-centered alert that slides up when editing community markers */}
+            <div style={{ position: 'absolute', left: '50%', bottom: 30, transform: `translateX(-50%) translateY(${showEditAlert ? '0' : '120px'})`, transition: 'transform 320ms cubic-bezier(.2,.9,.2,1)', zIndex: 60 }}>
+                <div style={{ minWidth: 520, maxWidth: 570, background: "#000", borderRadius: 7 }}>
+                    <Alert iconBoxVariant="note">
+                        <Info color="#3B82F6" />
+                        <div>
+                            <AlertDescription>
+                                <b>Note:</b> Click on the map to mark the corners of your community boundary. The border will connect automatically.
+                            </AlertDescription>
+                        </div>
+                    </Alert>
+                </div>
+            </div>
+
+            {/* Saved confirmation alert with View Logs button */}
+            <div style={{ position: 'absolute', left: 30, bottom: 30, transform: `translateX(${showSavedAlert ? '0' : '-180px'})`, transition: 'transform 320ms cubic-bezier(.2,.9,.2,1), opacity 220ms linear', opacity: showSavedAlert ? 1 : 0, pointerEvents: showSavedAlert ? 'auto' : 'none', zIndex: 70 }}>
+                <div style={{ minWidth: 220, maxWidth: 520 }}>
+                    <Alert iconBoxVariant="success">
+                        <CheckCircle2Icon color="#22c55e" />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                            <div style={{ minWidth: 290 }}>
+                                <AlertDescription>Your New Community Boundary is now set!</AlertDescription>
+                            </div>
+                            <div>
+                                <button onClick={() => console.log('View Logs clicked')} style={{ background: '#3B82F6', fontSize: "13px", color: '#fff', padding: '8px 14px', borderRadius: 4, border: 'none', cursor: 'pointer' }}>View Logs</button>
+                            </div>
+                        </div>
+                    </Alert>
+                </div>
+            </div>
 
 
         </div>
