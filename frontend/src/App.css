@@ -7,7 +7,44 @@ body, html {
 }
 
 .header-navs{
-    color: #707070;
+  color: #707070;
+  display: flex;
+  gap: 2.75rem; /* gap-11 */
+  font-size: 16px;
+}
+
+.header-navs a {
+  color: #fff;
+  font-weight: 300;
+  transition: color 0.3s, font-weight 0.3s;
+  text-underline-offset: 6px;
+  position: relative;
+}
+
+.header-navs a.importance-link .underline-effect {
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 2px;
+  background: #4987f1;
+  border-radius: 1px;
+  opacity: 0.7;
+  width: 0;
+  transition: width 0.2s ease-in;
+}
+
+.header-navs a.importance-link:hover .underline-effect {
+  width: 100%;
+}
+
+.header-navs a:hover {
+  color: #4283F1;
+  font-weight: 400;
+  text-decoration: underline;
+}
+
+.header-navs a.importance-link:hover {
+  text-decoration: none;
 }
 
 .global-radial-gradient {
@@ -31,3 +68,4 @@ body, html {
   pointer-events: none;
   filter: blur(50px);
 }
+

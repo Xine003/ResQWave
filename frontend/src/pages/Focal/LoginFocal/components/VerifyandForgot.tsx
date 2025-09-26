@@ -1,5 +1,6 @@
-import { FocalHeader } from "@/components/Focal/FocalHeader";
+import { FocalHeader } from "@/pages/Focal/LoginFocal/components/FocalHeader";
 import { Button } from "@/components/ui/button";
+
 import {
     InputOTP,
     InputOTPGroup,
