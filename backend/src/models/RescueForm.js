@@ -13,6 +13,11 @@ module.exports = new EntitySchema ({
             length: 255,
             nullable: false
         },
+        dispatcherID: {
+            type: "varchar",
+            length: 255,
+            nullable: false,
+        },
         focalUnreachable: {
             type: "boolean",
             default: false
@@ -47,6 +52,11 @@ module.exports = new EntitySchema ({
             length: 255,
             nullable: true,
         },
+        status: {
+            type: "enum",
+            enum: ["Completed", "Pending"],
+            default: "Pending"
+        }
     },
 
     relations: {
@@ -58,5 +68,13 @@ module.exports = new EntitySchema ({
             },
             inverseSide: "rescueForms"
         },
+        dispatcher: {
+            type: "many-to-one",
+            target: "Dispatcher",
+            joinColumn: {
+                name: "dispatcherID"
+            },
+            inverseSide: "rescueForms"
+        }
     },
 });

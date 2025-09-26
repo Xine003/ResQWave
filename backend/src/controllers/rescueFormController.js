@@ -53,9 +53,16 @@ const createRescueForm = async (req, res) => {
             }
         }
 
+        // Get Logged-In Dispatcher
+        const dispatcherID = req.user?.id;
+        if (!dispatcherID) {
+          return res.status(401).json({message: "Unauthorized: Dispatcher Not Found"});
+        }
+
         const newForm = rescueFormRepo.create({
             id: newID,
             emergencyID: alert.id,
+            dispatcherID,
             focalUnreachable,
             waterLevel: waterLevel || null,
             urgencyOfEvacuation: urgencyOfEvacuation || null,
@@ -88,7 +95,7 @@ const getRescueForm = async (req, res) => {
         "form.communityGroup",
         "CommunityGroup",
         "cg",
-        "cg.terminalID = alert.terminalID"
+        "cg.terminalID = terminal.id"
       )
       .where("form.id = :id", { id: formID })
       .getOne();
