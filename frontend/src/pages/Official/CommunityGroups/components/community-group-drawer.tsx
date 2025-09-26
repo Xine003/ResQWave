@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { MapPin, Plus, Upload, X } from "lucide-react"
-import { useState } from "react"
+import { useCallback, useMemo, useState } from "react"
+import { CloseCreateDialog } from "./closeCreateDialog"
 
 interface CommunityGroupDrawerProps {
   open: boolean
@@ -12,51 +13,90 @@ interface CommunityGroupDrawerProps {
 }
 
 export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawerProps) {
-  const [formData, setFormData] = useState({
-    assignedTerminal: "",
-    communityGroupName: "",
-    totalIndividuals: 0,
-    totalFamilies: 0,
-    totalKids: 0,
-    totalSeniorCitizen: 0,
-    totalPregnantWomen: 0,
-    totalPWDs: 0,
-    focalPersonPhoto: null as File | null,
-    focalPersonName: "",
-    focalPersonContact: "",
-    focalPersonEmail: "",
-    focalPersonAddress: "",
-    focalPersonCoordinates: "",
-    altFocalPersonPhoto: null as File | null,
-    altFocalPersonName: "",
-    altFocalPersonContact: "",
-    altFocalPersonEmail: "",
-  })
+  const initialFormData = useMemo(
+    () => ({
+      assignedTerminal: "",
+      communityGroupName: "",
+      totalIndividuals: 0,
+      totalFamilies: 0,
+      totalKids: 0,
+      totalSeniorCitizen: 0,
+      totalPregnantWomen: 0,
+      totalPWDs: 0,
+      focalPersonPhoto: null as File | null,
+      focalPersonName: "",
+      focalPersonContact: "",
+      focalPersonEmail: "",
+      focalPersonAddress: "",
+      focalPersonCoordinates: "",
+      altFocalPersonPhoto: null as File | null,
+      altFocalPersonName: "",
+      altFocalPersonContact: "",
+      altFocalPersonEmail: "",
+    }),
+    []
+  )
+
+  const [formData, setFormData] = useState(initialFormData)
 
   const [notableInfoInputs, setNotableInfoInputs] = useState<string[]>([])
+  const [isDirty, setIsDirty] = useState(false)
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+
+  const resetForm = useCallback(() => {
+    setFormData(initialFormData)
+    setNotableInfoInputs([])
+    setIsDirty(false)
+  }, [initialFormData])
 
   const handleNumberChange = (field: string, value: string) => {
     const numValue = Number.parseInt(value) || 0
     setFormData((prev) => ({ ...prev, [field]: numValue }))
+    setIsDirty(true)
   }
 
   const handleFileUpload = (field: "focalPersonPhoto" | "altFocalPersonPhoto", file: File | null) => {
     setFormData((prev) => ({ ...prev, [field]: file }))
+    setIsDirty(true)
   }
 
   const addNotableInfoInput = () => {
-    setNotableInfoInputs((prev) => [...prev, ""])
+    setNotableInfoInputs((prev) => [...prev, ""]) 
+    setIsDirty(true)
   }
 
   const updateNotableInfoInput = (index: number, value: string) => {
     setNotableInfoInputs((prev) => prev.map((item, i) => (i === index ? value : item)))
+    setIsDirty(true)
   }
 
   const removeNotableInfoInput = (index: number) => {
     if (notableInfoInputs.length > 1) {
       setNotableInfoInputs((prev) => prev.filter((_, i) => i !== index))
+      setIsDirty(true)
     }
   }
+
+  // Centralized handler when an attempt is made to close the sheet
+  const requestClose = useCallback(() => {
+    if (isDirty) {
+      setShowCloseConfirm(true)
+    } else {
+      onOpenChange(false)
+    }
+  }, [isDirty, onOpenChange])
+
+  // Intercept Sheet's open change (overlay click, ESC, programmatic)
+  const handleSheetOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) {
+        requestClose()
+      } else {
+        onOpenChange(true)
+      }
+    },
+    [onOpenChange, requestClose]
+  )
 
   const PhotoUploadArea = ({
     photo,
@@ -67,7 +107,7 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
     onUpload: (file: File) => void
     onDelete: () => void
   }) => (
-    <div className="bg-[#262626] rounded-[5px] p-8 text-center">
+    <div className="bg-[#262626] hover:bg-[#302F2F] rounded-[5px] p-8 text-center">
       {photo ? (
         <div className="space-y-4">
           <img
@@ -96,7 +136,7 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="w-12 h-12 mx-auto bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto bg-blue-600/25 rounded-lg flex items-center justify-center">
             <Upload className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -114,6 +154,8 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
         type="file"
         accept="image/*"
         className="hidden"
+        aria-label="Upload photo"
+        title="Upload photo"
         onChange={(e) => {
           const file = e.target.files?.[0]
           if (file) onUpload(file)
@@ -123,7 +165,7 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
   )
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleSheetOpenChange}>
       <SheetContent
         side="right"
         className="w-full sm:w-[500px] md:w-[540px] bg-[#171717] border-[#2a2a2a] text-white p-0 overflow-y-auto rounded-[5px]"
@@ -140,7 +182,10 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
             <Label className="text-white text-xs">Assigned Terminal</Label>
             <Select
               value={formData.assignedTerminal}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, assignedTerminal: value }))}
+              onValueChange={(value) => {
+                setFormData((prev) => ({ ...prev, assignedTerminal: value }))
+                setIsDirty(true)
+              }}
             >
               <SelectTrigger className="w-full bg-[#171717] border-[#2a2a2a] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600">
                 <SelectValue placeholder="Select a Terminal" />
@@ -162,9 +207,12 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
           {/* Community Group Name */}
           <div className="space-y-2">
             <Label className="text-white text-xs">Community Group Name</Label>
-            <Input
-              value={formData.communityGroupName}
-              onChange={(e) => setFormData((prev) => ({ ...prev, communityGroupName: e.target.value }))}
+              <Input
+                value={formData.communityGroupName}
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, communityGroupName: e.target.value }))
+                  setIsDirty(true)
+                }}
               className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
             />
           </div>
@@ -292,6 +340,8 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
                 type="file"
                 accept="image/*"
                 className="hidden"
+                aria-label="Upload focal person photo"
+                title="Upload focal person photo"
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   if (file) handleFileUpload("focalPersonPhoto", file)
@@ -302,8 +352,11 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
             <div className="space-y-2">
               <Label className="text-white text-xs">Name</Label>
               <Input
-                value={formData.focalPersonName}
-                onChange={(e) => setFormData((prev) => ({ ...prev, focalPersonName: e.target.value }))}
+                  value={formData.focalPersonName}
+                  onChange={(e) => {
+                    setFormData((prev) => ({ ...prev, focalPersonName: e.target.value }))
+                    setIsDirty(true)
+                  }}
                 className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
               />
             </div>
@@ -311,18 +364,24 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-white text-xs">Contact Number</Label>
-                <Input
-                  value={formData.focalPersonContact}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, focalPersonContact: e.target.value }))}
+                  <Input
+                    value={formData.focalPersonContact}
+                    onChange={(e) => {
+                      setFormData((prev) => ({ ...prev, focalPersonContact: e.target.value }))
+                      setIsDirty(true)
+                    }}
                   className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-white text-xs">Email</Label>
-                <Input
-                  type="email"
-                  value={formData.focalPersonEmail}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, focalPersonEmail: e.target.value }))}
+                  <Input
+                    type="email"
+                    value={formData.focalPersonEmail}
+                    onChange={(e) => {
+                      setFormData((prev) => ({ ...prev, focalPersonEmail: e.target.value }))
+                      setIsDirty(true)
+                    }}
                   className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
                 />
               </div>
@@ -333,7 +392,10 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
               <div className="relative">
                 <Input
                   value={formData.focalPersonAddress}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, focalPersonAddress: e.target.value }))}
+                  onChange={(e) => {
+                    setFormData((prev) => ({ ...prev, focalPersonAddress: e.target.value }))
+                    setIsDirty(true)
+                  }}
                   className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 pr-10 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
                 />
                 <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -344,7 +406,10 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
               <Label className="text-white text-xs">Coordinates *</Label>
               <Input
                 value={formData.focalPersonCoordinates}
-                onChange={(e) => setFormData((prev) => ({ ...prev, focalPersonCoordinates: e.target.value }))}
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, focalPersonCoordinates: e.target.value }))
+                  setIsDirty(true)
+                }}
                 className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
               />
             </div>
@@ -365,6 +430,8 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
                 type="file"
                 accept="image/*"
                 className="hidden"
+                aria-label="Upload alternative focal person photo"
+                title="Upload alternative focal person photo"
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   if (file) handleFileUpload("altFocalPersonPhoto", file)
@@ -376,7 +443,10 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
               <Label className="text-white text-xs">Name</Label>
               <Input
                 value={formData.altFocalPersonName}
-                onChange={(e) => setFormData((prev) => ({ ...prev, altFocalPersonName: e.target.value }))}
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, altFocalPersonName: e.target.value }))
+                  setIsDirty(true)
+                }}
                 className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
               />
             </div>
@@ -386,7 +456,10 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
                 <Label className="text-white text-xs">Contact Number</Label>
                 <Input
                   value={formData.altFocalPersonContact}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, altFocalPersonContact: e.target.value }))}
+                  onChange={(e) => {
+                    setFormData((prev) => ({ ...prev, altFocalPersonContact: e.target.value }))
+                    setIsDirty(true)
+                  }}
                   className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
                 />
               </div>
@@ -395,7 +468,10 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
                 <Input
                   type="email"
                   value={formData.altFocalPersonEmail}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, altFocalPersonEmail: e.target.value }))}
+                  onChange={(e) => {
+                    setFormData((prev) => ({ ...prev, altFocalPersonEmail: e.target.value }))
+                    setIsDirty(true)
+                  }}
                   className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
                 />
               </div>
@@ -408,7 +484,7 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
           <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={requestClose}
               className="flex-1 bg-transparent border-[#2a2a2a] text-white hover:text-white hover:bg-[#262626]  rounded-[5px]"
             >
               Discard
@@ -417,6 +493,7 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
               onClick={() => {
                 // Handle save logic here
                 console.log("Saving community group:", formData, "Notable info:", notableInfoInputs)
+                resetForm()
                 onOpenChange(false)
               }}
               className="flex-1 bg-[#4285f4] hover:bg-[#3367d6] text-white rounded-[5px]"
@@ -425,6 +502,18 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
             </Button>
           </div>
         </div>
+
+        {/* Close Confirmation Dialog */}
+        <CloseCreateDialog
+          open={showCloseConfirm}
+          onOpenChange={setShowCloseConfirm}
+          onCancel={() => setShowCloseConfirm(false)}
+          onDiscard={() => {
+            setShowCloseConfirm(false)
+            resetForm()
+            onOpenChange(false)
+          }}
+        />
       </SheetContent>
     </Sheet>
   )
