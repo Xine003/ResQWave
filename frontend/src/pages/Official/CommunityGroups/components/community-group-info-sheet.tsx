@@ -67,9 +67,9 @@ export function CommunityGroupInfoSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:w-[500px] bg-[#171717] border-gray-800 text-white p-0 overflow-y-auto rounded-[5px]"
+        className="w-full sm:w-[500px] bg-[#171717] border-[#2a2a2a] text-white p-0 overflow-y-auto rounded-[5px]"
       >
-        <SheetHeader className="px-6 py-4 border-b border-gray-800">
+        <SheetHeader className="px-6 py-4 border-b border-[#2a2a2a]">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-white text-lg font-medium">More information</SheetTitle>
           </div>
@@ -87,14 +87,14 @@ export function CommunityGroupInfoSheet({
               <span className="text-white text-[10px] font-medium">TERMINAL ID</span>
               <span className="text-white text-[10px]">{communityData.terminalId}</span>
             </div>
-            <div className="border-t border-gray-700"></div>
+            <div className="border-t border-[#2a2a2a]"></div>
             <div className="flex justify-between items-center">
               <span className="text-white text-[10px] font-medium">COMMUNITY ID</span>
               <span className="text-white text-[10px]">{communityData.communityId}</span>
             </div>
           </div>
 
-          <div className="border-t border-gray-700"></div>
+          <div className="border-t border-[#2a2a2a]"></div>
 
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-[#262626] px-4 py-3 rounded-[5px] text-center">
@@ -137,7 +137,7 @@ export function CommunityGroupInfoSheet({
             </div>
           )}
 
-          <div className="border-t border-gray-700"></div>
+          <div className="border-t border-[#2a2a2a]"></div>
 
           {/* Focal Persons Section */}
           <div className="space-y-4">
@@ -174,39 +174,39 @@ export function CommunityGroupInfoSheet({
                 <span className="text-white text-[10px] font-medium">NAME</span>
                 <span className="text-white text-[10px]">{communityData.focalPerson.name}</span>
               </div>
-              <div className="border-t border-gray-700"></div>
+              <div className="border-t border-[#2a2a2a]"></div>
               <div className="flex justify-between items-center">
                 <span className="text-white text-[10px] font-medium">CONTACT NO.</span>
                 <span className="text-white text-[10px]">{communityData.focalPerson.contactNumber}</span>
               </div>
-              <div className="border-t border-gray-700"></div>
+              <div className="border-t border-[#2a2a2a]"></div>
               <div className="flex justify-between items-center">
                 <span className="text-white text-[10px] font-medium">EMAIL</span>
                 <span className="text-white text-[10px]">{communityData.focalPerson.email}</span>
               </div>
-              <div className="border-t border-gray-700"></div>
+              <div className="border-t border-[#2a2a2a]"></div>
               <div className="flex justify-between items-center">
                 <span className="text-white text-[10px] font-medium">HOUSE ADDRESS</span>
                 <span className="text-white text-[10px] text-right">{communityData.focalPerson.houseAddress}</span>
               </div>
-              <div className="border-t border-gray-700"></div>
+              <div className="border-t border-[#2a2a2a]"></div>
               <div className="flex justify-between items-center">
                 <span className="text-white text-[10px] font-medium">COORDINATES</span>
                 <span className="text-white text-[10px]">{communityData.focalPerson.coordinates}</span>
               </div>
 
-              <div className="border-t border-gray-700"></div>
+              <div className="border-t border-[#2a2a2a]"></div>
 
               <div className="flex justify-between items-center">
                 <span className="text-white text-[10px] font-medium">ALTERNATIVE FOCAL PERSON</span>
                 <span className="text-white text-[10px]">{communityData.alternativeFocalPerson.name}</span>
               </div>
-              <div className="border-t border-gray-700"></div>
+              <div className="border-t border-[#2a2a2a]"></div>
               <div className="flex justify-between items-center">
                 <span className="text-white text-[10px] font-medium">CONTACT NO.</span>
                 <span className="text-white text-[10px]">{communityData.alternativeFocalPerson.contactNumber}</span>
               </div>
-              <div className="border-t border-gray-700"></div>
+              <div className="border-t border-[#2a2a2a]"></div>
               <div className="flex justify-between items-center">
                 <span className="text-white text-[10px] font-medium">EMAIL</span>
                 <span className="text-white text-[10px]">{communityData.alternativeFocalPerson.email}</span>
