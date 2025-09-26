@@ -1,91 +1,21 @@
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ArchiveRestore, Info, Trash2 } from "lucide-react"
-import { useState } from "react"
-import { columns as activeColumns, type CommunityGroup } from "./components/columns"
+import { useMemo, useState } from "react"
+import { createColumns, type CommunityGroup } from "./components/columns"
 import { CommunityGroupDrawer } from "./components/community-group-drawer"
+import { CommunityGroupInfoSheet } from "./components/community-group-info-sheet"
 import { DataTable } from "./components/data-table"
 
-const activeGroups: CommunityGroup[] = [
-  {
-    id: "CG-008",
-    name: "Riverside Community",
-    status: "ONLINE",
-    focalPerson: "Juan Dela Cruz",
-    contactNumber: "0928 456 7891",
-    address: "Block 5, Lot 14, Riverside Rd, 1423",
-    registeredAt: "August 30, 2025",
-  },
-  {
-    id: "CG-007",
-    name: "Maligaya Homes",
-    status: "OFFLINE",
-    focalPerson: "Kristine Lopez",
-    contactNumber: "0908 765 4321",
-    address: "Block 3, Lot 8, Maligaya Rd, 1411",
-    registeredAt: "August 30, 2025",
-  },
-  {
-    id: "CG-006",
-    name: "San Jose Compound",
-    status: "OFFLINE",
-    focalPerson: "Roberto Reyes",
-    contactNumber: "0945 123 9876",
-    address: "Block 7, Lot 22, Sto. Niño Rd, 1420",
-    registeredAt: "September 1, 2025",
-  },
-  {
-    id: "CG-005",
-    name: "Paraiso Homes",
-    status: "OFFLINE",
-    focalPerson: "Angela Cruz",
-    contactNumber: "0967 123 0987",
-    address: "Block 2, Lot 19, San Jose Rd, 1409",
-    registeredAt: "September 3, 2025",
-  },
-  {
-    id: "CG-004",
-    name: "Harmony Residences",
-    status: "ONLINE",
-    focalPerson: "Michael Tan",
-    contactNumber: "0918 345 6729",
-    address: "Block 18, Lot 22, Maligaya Rd, 1425",
-    registeredAt: "September 5, 2025",
-  },
-  {
-    id: "CG-003",
-    name: "Sampaguita Heights",
-    status: "ONLINE",
-    focalPerson: "Jessa Villanueva",
-    contactNumber: "0956 123 0984",
-    address: "Block 6, Lot 12, Sampaguita Rd, 1417",
-    registeredAt: "September 7, 2025",
-  },
-  {
-    id: "CG-002",
-    name: "Tatalon Court",
-    status: "OFFLINE",
-    focalPerson: "Carlo Mendoza",
-    contactNumber: "0978 234 5610",
-    address: "Block 4, Lot 9, Riverside Rd, 1421",
-    registeredAt: "September 8, 2025",
-  },
-]
+// active groups are now managed in state (initially empty)
 
-const archivedGroups: CommunityGroup[] = [
-  {
-    id: "CG-001",
-    name: "Archived Group Example",
-    status: "N/A",
-    focalPerson: "Maria Santos",
-    contactNumber: "0917 000 0000",
-    address: "Block 1, Lot 1, Archive Rd, 1400",
-    registeredAt: "August 1, 2025",
-  },
-]
+// Archived groups are also managed in state (start empty)
 
-const archivedColumns = [
-  ...activeColumns.slice(0, -1), 
+const makeArchivedColumns = (
+  onMoreInfo: (g: CommunityGroup) => void,
+  onDeletePermanent?: (g: CommunityGroup) => void
+) => [
+  ...createColumns({ onMoreInfo }).slice(0, -1), 
   {
     id: "actions",
     enableHiding: false,
@@ -108,7 +38,10 @@ const archivedColumns = [
         align="start" side="left" sideOffset={2}
         className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-35 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
       >
-        <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+        <DropdownMenuItem
+          onClick={(e) => { e.stopPropagation(); onMoreInfo(row.original) }}
+          className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+        >
           <Info className="mr-2 h-4 w-4 text-white" />
           <span className="text-sm">More Info</span>
         </DropdownMenuItem>
@@ -118,6 +51,7 @@ const archivedColumns = [
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-[#404040]" />
         <DropdownMenuItem
+          onClick={(e) => { e.stopPropagation(); onDeletePermanent && onDeletePermanent(row.original) }}
           className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000] text-sm"
         >
           <Trash2 className="mr-2 h-4 w-4 text-[#FF0000]" />
@@ -132,12 +66,93 @@ const archivedColumns = [
 export function CommunityGroups() {
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active")
    const [drawerOpen, setDrawerOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
+  const [selectedInfoData, setSelectedInfoData] = useState<{
+    name: string
+    terminalId: string
+    communityId: string
+    individuals: number
+    families: number
+    kids: number
+    seniors: number
+    pwds: number
+    pregnantWomen: number
+    notableInfo: string[]
+    focalPerson: {
+      name: string
+      photo?: string
+      contactNumber: string
+      email: string
+      houseAddress: string
+      coordinates: string
+    }
+    alternativeFocalPerson: {
+      name: string
+      contactNumber: string
+      email: string
+    }
+  } | undefined>(undefined)
+  const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>([])
+  const [archivedGroups, setArchivedGroups] = useState<CommunityGroup[]>([])
+  const [infoById, setInfoById] = useState<Record<string, NonNullable<typeof selectedInfoData>>>({})
+
+  const generateCommunityId = () => `CG-${Date.now()}`
+
+  const handleMoreInfo = (group: CommunityGroup) => {
+    const detailed = infoById[group.id]
+    if (detailed) {
+      setSelectedInfoData(detailed)
+    } else {
+      // Fallback mapping if detailed info is not available
+      setSelectedInfoData({
+        name: group.name,
+        terminalId: group.id.replace("CG-", "RSQW-"),
+        communityId: group.id,
+        individuals: 0,
+        families: 0,
+        kids: 0,
+        seniors: 0,
+        pwds: 0,
+        pregnantWomen: 0,
+        notableInfo: [],
+        focalPerson: {
+          name: group.focalPerson,
+          contactNumber: group.contactNumber,
+          email: "",
+          houseAddress: group.address,
+          coordinates: "",
+        },
+        alternativeFocalPerson: {
+          name: "",
+          contactNumber: "",
+          email: "",
+        },
+      })
+    }
+    setInfoOpen(true)
+  }
+
+  const handleArchive = (group: CommunityGroup) => {
+    setActiveGroups((prev) => prev.filter((g) => g.id !== group.id))
+    setArchivedGroups((prev) => [group, ...prev])
+  }
+
+  const handleDeletePermanent = (group: CommunityGroup) => {
+    setArchivedGroups((prev) => prev.filter((g) => g.id !== group.id))
+    setInfoById((prev) => {
+      const { [group.id]: _omit, ...rest } = prev
+      return rest
+    })
+  }
+
+  const activeColumns = useMemo(() => createColumns({ onMoreInfo: handleMoreInfo, onArchive: handleArchive }), [infoById])
+  const archivedColumns = useMemo(() => makeArchivedColumns(handleMoreInfo, handleDeletePermanent), [infoById])
 
   const tableData = activeTab === "active" ? activeGroups : archivedGroups
   const tableColumns = activeTab === "active" ? activeColumns : archivedColumns
 
   return (
-    <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col" style={{height: 'calc(100vh - 73px)'}}>
+    <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col h-[calc(100vh-73px)]">
       <div className="w-full max-w-9xl mx-auto flex-1 flex flex-col min-h-0">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
@@ -182,14 +197,46 @@ export function CommunityGroups() {
               </svg>
               Add New Community Group
             </Button>
-            <CommunityGroupDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+            <CommunityGroupDrawer
+              open={drawerOpen}
+              onOpenChange={setDrawerOpen}
+              onSave={(infoData) => {
+                // Add to table with a generated ID and show the info sheet
+                const newId = generateCommunityId()
+                const row: CommunityGroup = {
+                  id: newId,
+                  name: infoData.name,
+                  status: "OFFLINE",
+                  focalPerson: infoData.focalPerson.name,
+                  contactNumber: infoData.focalPerson.contactNumber,
+                  address: infoData.focalPerson.houseAddress,
+                  registeredAt: new Date().toLocaleDateString(),
+                }
+                setActiveGroups((prev) => [row, ...prev])
+                const fullInfo = { ...infoData, communityId: newId }
+                setInfoById((prev) => ({ ...prev, [newId]: fullInfo }))
+                setSelectedInfoData(fullInfo)
+                setInfoOpen(true)
+              }}
+            />
           </div>
         </div>
 
         <div className="flex-1 min-h-0 overflow-auto">
-          <DataTable columns={tableColumns} data={tableData} />
+          <DataTable
+            columns={tableColumns}
+            data={tableData}
+            onRowClick={(row) => handleMoreInfo(row as CommunityGroup)}
+          />
         </div>
       </div>
+
+      {/* Info Sheet */}
+      <CommunityGroupInfoSheet
+        open={infoOpen}
+        onOpenChange={setInfoOpen}
+        communityData={selectedInfoData}
+      />
     </div>
   )
 }

@@ -15,7 +15,7 @@ export type CommunityGroup = {
   registeredAt: string
 }
 
-export const columns: ColumnDef<CommunityGroup>[] = [
+export const createColumns = (opts: { onMoreInfo: (group: CommunityGroup) => void; onArchive?: (group: CommunityGroup) => void }): ColumnDef<CommunityGroup>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -24,6 +24,7 @@ export const columns: ColumnDef<CommunityGroup>[] = [
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
         className="data-[state=checked]:bg-[#4285f4] data-[state=checked]:border-[#4285f4]"
+        onClick={(e) => e.stopPropagation()}
       />
     ),
     cell: ({ row }) => (
@@ -32,6 +33,7 @@ export const columns: ColumnDef<CommunityGroup>[] = [
         onCheckedChange={(value) => row.toggleSelected(!!value)}
         aria-label="Select row"
         className="border-white data-[state=checked]:bg-[#4285f4] data-[state=checked]:border-[#4285f4] data-[state=unchecked]:border-white"
+        onClick={(e) => e.stopPropagation()}
       />
     ),
     enableSorting: false,
@@ -154,7 +156,11 @@ export const columns: ColumnDef<CommunityGroup>[] = [
   return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0 text-[#a1a1a1] hover:text-white hover:bg-[#262626]">
+            <Button
+              variant="ghost"
+              className="h-8 w-8 p-0 text-[#a1a1a1] hover:text-white hover:bg-[#262626]"
+              onClick={(e) => e.stopPropagation()}
+            >
               <span className="sr-only">Open menu</span>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -170,7 +176,13 @@ export const columns: ColumnDef<CommunityGroup>[] = [
         align="start" side="left" sideOffset={2}
         className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
       >
-        <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+        <DropdownMenuItem
+          onClick={(e) => {
+            e.stopPropagation()
+            opts.onMoreInfo(row.original)
+          }}
+          className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+        >
           <Info className="mr-2 h-4 w-4 text-white" />
           <span>More Info</span>
         </DropdownMenuItem>
@@ -180,6 +192,10 @@ export const columns: ColumnDef<CommunityGroup>[] = [
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-[#404040]" />
         <DropdownMenuItem
+          onClick={(e) => {
+            e.stopPropagation()
+            opts.onArchive?.(row.original)
+          }}
           className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000]"
         >
           <Archive className="mr-2 h-4 w-4 text-[#FF0000]" />

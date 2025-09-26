@@ -10,9 +10,34 @@ import { CloseCreateDialog } from "./closeCreateDialog"
 interface CommunityGroupDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSave?: (infoData: {
+    name: string
+    terminalId: string
+    communityId: string
+    individuals: number
+    families: number
+    kids: number
+    seniors: number
+    pwds: number
+    pregnantWomen: number
+    notableInfo: string[]
+    focalPerson: {
+      name: string
+      photo?: string
+      contactNumber: string
+      email: string
+      houseAddress: string
+      coordinates: string
+    }
+    alternativeFocalPerson: {
+      name: string
+      contactNumber: string
+      email: string
+    }
+  }) => void
 }
 
-export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawerProps) {
+export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGroupDrawerProps) {
   const initialFormData = useMemo(
     () => ({
       assignedTerminal: "",
@@ -493,6 +518,32 @@ export function CommunityGroupDrawer({ open, onOpenChange }: CommunityGroupDrawe
               onClick={() => {
                 // Handle save logic here
                 console.log("Saving community group:", formData, "Notable info:", notableInfoInputs)
+                const infoData = {
+                  name: formData.communityGroupName || "Untitled Community",
+                  terminalId: formData.assignedTerminal || "",
+                  communityId: "",
+                  individuals: formData.totalIndividuals,
+                  families: formData.totalFamilies,
+                  kids: formData.totalKids,
+                  seniors: formData.totalSeniorCitizen,
+                  pwds: formData.totalPWDs,
+                  pregnantWomen: formData.totalPregnantWomen,
+                  notableInfo: notableInfoInputs.filter((s) => s && s.trim().length > 0),
+                  focalPerson: {
+                    name: formData.focalPersonName,
+                    photo: formData.focalPersonPhoto ? URL.createObjectURL(formData.focalPersonPhoto) : undefined,
+                    contactNumber: formData.focalPersonContact,
+                    email: formData.focalPersonEmail,
+                    houseAddress: formData.focalPersonAddress,
+                    coordinates: formData.focalPersonCoordinates,
+                  },
+                  alternativeFocalPerson: {
+                    name: formData.altFocalPersonName,
+                    contactNumber: formData.altFocalPersonContact,
+                    email: formData.altFocalPersonEmail,
+                  },
+                }
+                onSave?.(infoData)
                 resetForm()
                 onOpenChange(false)
               }}
