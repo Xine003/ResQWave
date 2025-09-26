@@ -15,36 +15,37 @@ module.exports = new EntitySchema ({
         },
         focalUnreachable: {
             type: "boolean",
+            default: false
         },
         waterLevel: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         urgencyOfEvacuation: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         hazardPresent: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         accessibility: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         resourceNeeds: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         otherInformation: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
     },
 

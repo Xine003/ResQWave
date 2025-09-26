@@ -49,76 +49,108 @@
     </table>
 
     <script>
-      const tokenEl = document.getElementById("token");
-      const connectBtn = document.getElementById("connectBtn");
-      const statusEl = document.getElementById("status");
+    const tokenEl = document.getElementById("token");
+    const connectBtn = document.getElementById("connectBtn");
+    const statusEl = document.getElementById("status");
 
-      const unassignedEl = document.getElementById("unassigned");
-      const waitlistEl = document.getElementById("waitlist");
+    const unassignedEl = document.getElementById("unassigned");
+    const waitlistEl = document.getElementById("waitlist");
 
-      let socket;
+    let socket;
 
-      function addRow(tableEl, a) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${a.communityGroupName || ""}</td>
-          <td>${a.alertType || ""}</td>
-          <td>${a.timeSent ? new Date(a.timeSent).toLocaleString() : ""}</td>
-          <td>${a.address || ""}</td>
-        `;
-       tableEl.insertBefore(tr, tableEl.firstChild);
+    function addRow(tableEl, a) {
+      const tr = document.createElement("tr");
+      tr.setAttribute("data-alert-id", a.alertID || a.id); // ✅ match backend casing
+      tr.innerHTML = `
+        <td>${a.communityGroupName || ""}</td>
+        <td>${a.alertType || ""}</td>
+        <td>${a.timeSent ? new Date(a.timeSent).toLocaleString() : ""}</td>
+        <td>${a.address || ""}</td>
+      `;
+      tableEl.insertBefore(tr, tableEl.firstChild);
+    }
+
+    function removeRow(alertID) {
+      const row = document.querySelector(`tr[data-alert-id="${alertID}"]`);
+      if (row) row.remove();
+    }
+
+    connectBtn.onclick = () => {
+      const token = tokenEl.value.trim();
+      if (!token) {
+        alert("Please paste a JWT token first.");
+        return;
       }
+      if (socket) socket.disconnect();
 
+      socket = io("/", { auth: { token } });
 
-      connectBtn.onclick = () => {
-        const token = tokenEl.value.trim();
-        if (!token) {
-          alert("Please paste a JWT token first.");
-          return;
+      socket.on("connect", () => {
+        statusEl.textContent = "Connected";
+        statusEl.style.color = "green";
+
+        // Initial load
+        Promise.all([
+          fetch("/alerts/map/unassigned", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+          fetch("/alerts/map/waitlisted", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
+        ]).then(([unassigned, waitlist]) => {
+          unassignedEl.innerHTML = "";
+          waitlistEl.innerHTML = "";
+          unassigned.forEach(a => addRow(unassignedEl, a));
+          waitlist.forEach(a => addRow(waitlistEl, a));
+        });
+      });
+
+      socket.on("connect_error", (e) => {
+        statusEl.textContent = "Connect error: " + e.message;
+        statusEl.style.color = "red";
+      });
+
+      // New alerts
+      socket.on("liveReport:new", (a) => {
+        const mapped = {
+          alertID: a.alertID,
+          communityGroupName: a.communityGroupName || "",
+          alertType: a.alertType,
+          timeSent: a.lastSignalTime,
+          address: a.address,
+          status: a.status
+        };
+
+        if (mapped.status === "Unassigned") {
+          addRow(unassignedEl, mapped);
+        } else if (mapped.status === "Waitlist") {
+          addRow(waitlistEl, mapped);
         }
-        if (socket) socket.disconnect();
+      });
 
-        socket = io("/", { auth: { token } });
+      // Status updates
+      socket.on("alertStatusUpdated", async (data) => {
+        console.log("Status update received:", data);
 
-        socket.on("connect", () => {
-          statusEl.textContent = "Connected";
-          statusEl.style.color = "green";
+        // ✅ Remove old row
+        removeRow(data.alertID);
 
-          // Initial load
-          Promise.all([
-            fetch("/alerts/map/unassigned", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-            fetch("/alerts/map/waitlisted", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
-          ]).then(([unassigned, waitlist]) => {
-            unassignedEl.innerHTML = "";
-            waitlistEl.innerHTML = "";
-            unassigned.forEach(a => addRow(unassignedEl, a));
-            waitlist.forEach(a => addRow(waitlistEl, a));
+        try {
+          // ✅ Fetch full alert info
+          const res = await fetch(`/alerts/${data.alertID}`, {
+            headers: { Authorization: `Bearer ${token}` }
           });
-        });
+          const alert = await res.json();
 
-        socket.on("connect_error", (e) => {
-          statusEl.textContent = "Connect error: " + e.message;
-          statusEl.style.color = "red";
-        });
-
-        // Realtime update
-        socket.on("liveReport:new", (a) => {
-          // Map livePayload → map alert schema
-          const mapped = {
-            communityGroupName: a.communityGroupName || "",
-            alertType: a.alertType,
-            timeSent: a.lastSignalTime,   // align to controller's `timeSent`
-            address: a.address,
-            status: a.status
-          };
-
-          if (mapped.status === "Unassigned") {
-            addRow(unassignedEl, mapped);
-          } else if (mapped.status === "Waitlist") {
-            addRow(waitlistEl, mapped);
+          // ✅ Reinsert in correct table
+          if (alert.status === "Unassigned") {
+            addRow(unassignedEl, alert);
+          } else if (alert.status === "Waitlist") {
+            addRow(waitlistEl, alert);
           }
-        });
-      };
+        } catch (err) {
+          console.error("Failed to fetch updated alert:", err);
+        }
+      });
+    };
     </script>
+
+
   </body>
 </html>

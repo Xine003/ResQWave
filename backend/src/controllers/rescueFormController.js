@@ -5,18 +5,18 @@ const alertRepo = AppDataSource.getRepository("Alert");
 // CREATE Rescue Form
 const createRescueForm = async (req, res) => {
     try {
-        const {alertID} = req.params;
+        const { alertID } = req.params;
 
-        // Check if the Alert Exist
+        // Check if the Alert exists
         const alert = await alertRepo.findOne({ where: { id: alertID } });
         if (!alert) {
-            return res.status(404).json({message: "Alert Not Found"})
+            return res.status(404).json({ message: "Alert Not Found" });
         }
 
-        // Prevent Duplication Form
-        const existing = await rescueFormRepo.findOne({where: {emergencyID: alertID} });
+        // Prevent Duplicate Form
+        const existing = await rescueFormRepo.findOne({ where: { emergencyID: alertID } });
         if (existing) {
-            return res.status(400).json({message: "Rescue Form Already Existing"});
+            return res.status(400).json({ message: "Rescue Form Already Exists" });
         }
 
         // Generate Custom ID
@@ -25,12 +25,7 @@ const createRescueForm = async (req, res) => {
             .orderBy("rescueform.id", "DESC")
             .getOne();
 
-        let newNumber = 1;
-        if (lastForm) {
-            const lastNumber = parseInt(lastForm.id.replace("RF", ""), 10);
-            newNumber = lastNumber + 1;
-        }
-
+        const newNumber = lastForm ? parseInt(lastForm.id.replace("RF", ""), 10) + 1 : 1;
         const newID = "RF" + String(newNumber).padStart(3, "0");
 
         const {
@@ -43,16 +38,31 @@ const createRescueForm = async (req, res) => {
             otherInformation
         } = req.body;
 
-        const newForm = await rescueFormRepo.create({
+        //  Validation: if focal is reachable, all fields are required
+        if (focalUnreachable === false) {
+            if (
+                !waterLevel ||
+                !urgencyOfEvacuation ||
+                !hazardPresent ||
+                !accessibility ||
+                !resourceNeeds
+            ) {
+                return res.status(400).json({
+                    message: "All rescue details are required when focal is reachable."
+                });
+            }
+        }
+
+        const newForm = rescueFormRepo.create({
             id: newID,
-            emergencyID: alert.id,            
+            emergencyID: alert.id,
             focalUnreachable,
-            waterLevel,
-            urgencyOfEvacuation,
-            hazardPresent,
-            accessibility,
-            resourceNeeds,
-            otherInformation
+            waterLevel: waterLevel || null,
+            urgencyOfEvacuation: urgencyOfEvacuation || null,
+            hazardPresent: hazardPresent || null,
+            accessibility: accessibility || null,
+            resourceNeeds: resourceNeeds || null,
+            otherInformation: otherInformation || null
         });
 
         await rescueFormRepo.save(newForm);
@@ -60,38 +70,49 @@ const createRescueForm = async (req, res) => {
         res.status(201).json(newForm);
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error"});
+        res.status(500).json({ message: "Server Error" });
     }
 };
+
 
 // READ RESCUE FORM
-const getRescueForm= async (req, res) => {
-    try {
-        const { formID } = req.params;
+const getRescueForm = async (req, res) => {
+  try {
+    const { formID } = req.params;
 
-        const form = await rescueFormRepo
-            .createQueryBuilder("form")
-            .leftJoinAndSelect("form.alert", "alert")
-            .leftJoinAndSelect("alert.terminal", "terminal")
-            .leftJoinAndMapOne(
-                "terminal.communityGroups",
-                "communityGroups",
-                "cg",
-                "cg.terminalID = terminal.id"
-            )
-            .where("form.id = :id", {id: formID})
-            .getOne();
+    const form = await rescueFormRepo
+      .createQueryBuilder("form")
+      .leftJoinAndSelect("form.alert", "alert")
+      .leftJoinAndSelect("alert.terminal", "terminal")
+      .leftJoinAndMapOne(
+        "form.communityGroup",
+        "CommunityGroup",
+        "cg",
+        "cg.terminalID = alert.terminalID"
+      )
+      .where("form.id = :id", { id: formID })
+      .getOne();
 
-        if (!form) {
-            return res.status(404).json({message: "Rescue Form Not Found"});
-        }
-
-        res.json(form);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({message: "Server Error"});
+    if (!form) {
+      return res.status(404).json({ message: "Rescue Form Not Found" });
     }
+
+    res.json({
+      communityGroupName: form.communityGroup?.communityGroupName || null,
+      focalUnreachable: form.focalUnreachable,
+      waterLevel: form.waterLevel,
+      urgencyOfEvacuation: form.urgencyOfEvacuation,
+      hazardPresent: form.hazardPresent,
+      accessibility: form.accessibility,
+      resourceNeeds: form.resourceNeeds,
+      otherInformation: form.otherInformation,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
 };
+
 
 module.exports = {
     createRescueForm,
