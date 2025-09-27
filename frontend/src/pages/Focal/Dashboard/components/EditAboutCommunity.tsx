@@ -122,7 +122,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
 
                 <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
 
-                    <div style={{ overflow: 'hidden' }}>
+                    <div style={{ overflow: 'visible' }}>
                         <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Community Group Name</div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ flex: 1, marginTop: 2 }}>
@@ -133,33 +133,33 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                         <div style={{ display: 'flex', gap: 12 }}>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total No. of Individuals</div>
-                                <Input value={individuals} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setIndividuals(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={individuals} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setIndividuals(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total No. of Families</div>
-                                <Input value={families} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setFamilies(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={families} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setFamilies(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: 12 }}>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total No. of Babies</div>
-                                <Input value={kids} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setKids(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={kids} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setKids(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total No. of Senior Citizen</div>
-                                <Input value={seniors} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setSeniors(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={seniors} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setSeniors(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: 12 }}>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total No. of Pregnant Women</div>
-                                <Input value={pregnant} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setPregnant(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={pregnant} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setPregnant(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total no. of PWDs</div>
-                                <Input value={pwds} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setPwds(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={pwds} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setPwds(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                         </div>
 
