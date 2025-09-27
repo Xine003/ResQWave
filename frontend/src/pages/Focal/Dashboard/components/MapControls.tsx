@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import Tooltip from '@/components/ui/tooltip';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import Tooltip from '@/components/ui/tooltip-focal';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover-focal';
 import { Layers, Locate, Minus, Plus, Trash2 } from 'lucide-react';
 import type { MapControlsProps } from '../types/controls';
 

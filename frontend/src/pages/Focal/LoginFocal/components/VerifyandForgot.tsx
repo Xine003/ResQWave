@@ -6,7 +6,7 @@ import {
     InputOTPGroup,
     InputOTPSeparator,
     InputOTPSlot,
-} from "@/components/ui/input-otp";
+} from "@/components/ui/input-otp-focal";
 import resqwave_logo from '/Landing/resqwave_logo.png';
 
 export function ForgotPasswordVerification({

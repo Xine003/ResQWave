@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import Alert, { AlertDescription } from '@/components/ui/alert';
+import Alert, { AlertDescription } from '@/components/ui/alert-focal';
 import { CheckCircle2Icon, Info } from 'lucide-react';
 import type { DashboardAlertsProps } from '../types/alerts';
 

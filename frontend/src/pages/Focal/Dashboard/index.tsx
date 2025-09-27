@@ -3,6 +3,7 @@ import mapboxgl from "mapbox-gl";
 import { flyToSignal, cinematicMapEntrance } from './utils/flyingEffects';
 import Header from "./components/Header";
 import AboutCommunity from "./components/AboutCommunity";
+import EditAboutCommunity from "./components/EditAboutCommunity";
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
@@ -500,6 +501,7 @@ export default function Dashboard() {
     // About modal state (opened when user clicks "About Your Community" tab)
     const [aboutOpen, setAboutOpen] = useState(false);
     const [aboutCenter, setAboutCenter] = useState<{ x: number; y: number } | null>(null);
+    const [editAboutOpen, setEditAboutOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('community');
     const openAbout = () => {
         // compute map container center in viewport coords so modal sits over the map
@@ -521,6 +523,18 @@ export default function Dashboard() {
     const handleTabChange = (value: string) => {
         setActiveTab(value);
         if (value === 'community') closeAbout();
+    };
+
+    // When About's Edit button is clicked we close About and open the edit modal
+    const handleOpenEditAbout = () => {
+        setAboutOpen(false);
+        setEditAboutOpen(true);
+    };
+
+    const handleCloseEditAbout = () => {
+        setEditAboutOpen(false);
+        // reopen about modal to show updated info (optional)
+        setAboutOpen(true);
     };
 
     return (
@@ -549,7 +563,9 @@ export default function Dashboard() {
 
             <MapControls mapRef={mapRef} mapLoaded={mapLoaded} makeTooltip={makeTooltip} addCustomLayers={(m) => addCustomLayers(m, otherSignals, OwnCommunitySignal)} editBoundaryOpen={editBoundaryOpen} handleDeleteBoundary={handleDeleteBoundary} />
 
-            <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={() => console.log('Edit About')} center={aboutCenter} />
+            <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
+
+            <EditAboutCommunity open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(data) => console.log('Saved about data', data)} center={aboutCenter} />
 
             {/* Transient bottom-centered alert that slides up when editing community markers */}
             {/* centralized dashboard alerts (edit/valid/saved) */}

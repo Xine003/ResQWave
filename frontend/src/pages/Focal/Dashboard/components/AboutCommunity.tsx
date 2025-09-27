@@ -239,19 +239,19 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                 <div style={{ marginTop: 30, display: 'flex', justifyContent: 'center' }}>
                     <button
                         onClick={() => onEdit && onEdit()}
-                        style={{
-                            width: '100%',
-                            maxWidth: 660,
-                            background: 'linear-gradient(to top, #3B82F6, #70A6FF)',
-                            color: '#fff',
-                            padding: '12px 18px',
-                            borderRadius: 6,
-                            fontWeight: 500,
-                            fontSize: 15,
-                            letterSpacing: 0.6,
-                            border: 'none',
-                            cursor: onEdit ? 'pointer' : 'default'
-                        }}
+                        className={`
+                            w-full max-w-[660px] 
+                            bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
+                            text-white 
+                            py-3 px-4.5 
+                            rounded-md 
+                            font-medium text-[15px] tracking-[0.6px] 
+                            border-0 
+                            transition-colors duration-150
+                            hover:from-[#2563eb] hover:to-[#60a5fa] 
+                            ${onEdit ? 'cursor-pointer' : 'cursor-default'}
+                        `}
+
                     >
                         EDIT INFORMATION
                     </button>

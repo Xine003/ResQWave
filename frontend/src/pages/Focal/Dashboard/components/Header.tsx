@@ -1,7 +1,7 @@
 // React import not required directly here
 import resqwave_logo from '/Landing/resqwave_logo.png';
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover-focal";
 import { LogOut, User, BookOpen } from "lucide-react";
 import type { HeaderProps } from '../types/header';
 
