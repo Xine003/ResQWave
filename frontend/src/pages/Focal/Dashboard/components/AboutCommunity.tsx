@@ -195,36 +195,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                         </div>
                     ) : null}
 
-                    {/* Alternative focal photo (if present) */}
-                    {data?.focal?.altPhoto ? (
-                        <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center', marginTop: 8 }}>
-                            <div style={{ width: '100%', maxWidth: '100%', height: 160, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
-                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${data.focal.altPhoto})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(12px) brightness(0.55)', transform: 'scale(1.1)' }} />
-                                <img src={data.focal.altPhoto || ''} alt="Alt Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
-                                <button
-                                    aria-label="Expand"
-                                    onClick={() => openViewer(data.focal.altPhoto!)}
-                                    style={{
-                                        position: 'absolute',
-                                        right: 15,
-                                        bottom: 12,
-                                        width: 36,
-                                        height: 36,
-                                        borderRadius: 4,
-                                        background: '#fff',
-                                        border: 'none',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
-                                    }}
-                                >
-                                    <Expand size={14} color="#111" />
-                                </button>
-                            </div>
-                        </div>
-                    ) : null}
+                    {/* altPhoto intentionally not shown in About modal */}
 
                 </div>
 
