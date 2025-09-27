@@ -1,11 +1,13 @@
 // React import not required directly here
 import resqwave_logo from '/Landing/resqwave_logo.png';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover-focal";
 import { LogOut, User, BookOpen } from "lucide-react";
 import type { HeaderProps } from '../types/header';
 
 export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community' }: HeaderProps) {
+    const navigate = useNavigate();
     // When editing is active, render the editing header UI (previously inline in index.tsx)
     if (editBoundaryOpen) {
         return (
@@ -25,8 +27,8 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                 }}
             >
                 <div style={{ display: "flex", alignItems: "center", gap: "1.2rem" }}>
-                    <img src={resqwave_logo} alt="ResQWave Logo" style={{ height: 32 }} />
-                    <span style={{ fontWeight: 700, fontSize: "1.25rem", letterSpacing: 1 }}>ResQWave</span>
+                    <img src={resqwave_logo} alt="ResQWave Logo" onClick={() => navigate('/')} style={{ height: 32, cursor: 'pointer' }} />
+                    <span onClick={() => navigate('/')} style={{ fontWeight: 700, fontSize: "1.25rem", letterSpacing: 1, cursor: 'pointer' }}>ResQWave</span>
                     <span style={{ fontWeight: 300, fontSize: "1.13rem", color: "#BABABA", marginLeft: 12, letterSpacing: 0.5 }}>
                         Editing Community Boundary ...
                     </span>
@@ -99,8 +101,8 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
         >
             <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                    <img src={resqwave_logo} alt="ResQWave Logo" style={{ height: 32 }} />
-                    <span style={{ fontWeight: 700, fontSize: "1.25rem", letterSpacing: 1 }}>ResQWave</span>
+                    <img src={resqwave_logo} alt="ResQWave Logo" onClick={() => navigate('/')} style={{ height: 32, cursor: 'pointer' }} />
+                    <span onClick={() => navigate('/')} style={{ fontWeight: 700, fontSize: "1.25rem", letterSpacing: 1, cursor: 'pointer' }}>ResQWave</span>
                 </div>
                 <Tabs value={activeTab} defaultValue="community" style={{ background: "transparent" }} onValueChange={(v) => {
                     // If user is editing, request discard confirmation instead of navigating directly
