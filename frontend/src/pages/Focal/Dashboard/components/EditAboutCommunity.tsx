@@ -10,7 +10,7 @@ import {
     AlertDialogDescription,
     AlertDialogAction,
     AlertDialogCancel,
-} from '@/components/ui/alert-dialog';
+} from '@/components/ui/alert-dialog-focal';
 import useCommunityData from '../hooks/useCommunityData';
 
 type EditAboutProps = {
