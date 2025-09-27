@@ -9,8 +9,8 @@ declare global {
 }
 import { OfficialLayout } from '@/components/Official/officialLayout';
 import { Landing, LoginFocal } from '../pages/Focal';
-import ForgotPasswordVerification from '../pages/Focal/LoginFocal/ForgotPassword';
-import VerificationSignin from '../pages/Focal/LoginFocal/verificationSignin';
+import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/ForgotPassword';
+import VerificationSignin from '../pages/Focal/LoginFocal/pages/VerificationSignin';
 import {
   CommunityGroups,
   ForgotPasswordPageDispatcher,
