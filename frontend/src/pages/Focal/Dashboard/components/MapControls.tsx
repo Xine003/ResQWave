@@ -136,12 +136,16 @@ export default function MapControls({ mapRef, mapLoaded, makeTooltip, addCustomL
             {/* Delete/Reset button for boundary only when editing, now in its own row below layers */}
             {editBoundaryOpen && (
                 <div>
-                    <Tooltip content={"Delete boundary"} side="left">
-                        <div style={{ width: 50, height: 50, borderRadius: 7, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 12px rgba(2,6,23,0.21)" }}>
+                    <Tooltip content={makeTooltip('Delete boundary')} side="left">
+                        <div
+                            style={{ width: 50, height: 50, borderRadius: 7, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(2,6,23,0.21)', transition: 'background 0.18s' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#EEEEEE')}
+                            onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+                        >
                             <button
                                 aria-label="Delete boundary"
                                 onClick={handleDeleteBoundary}
-                                style={{ background: "transparent", border: "none", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}
+                                style={{ background: 'transparent', border: 'none', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}
                             >
                                 <Trash2 size={21} />
                             </button>
