@@ -72,11 +72,7 @@ export const router = createBrowserRouter([
     element: <LoginDispatcher />,
   },
   {
-    path: '/dashboard',
-    element: <Dashboard />,
-  },
-  {
-    path: '/forgot-password-dispatcher',
+    path: '/forgot-passwo rd-dispatcher',
     element: <ForgotPasswordPageDispatcher />,
   },
   {
