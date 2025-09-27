@@ -66,6 +66,17 @@ export interface CommunityGroupDetails {
   pwds: number
   pregnantWomen: number
   notableInfo: string[]
+  // Frontend-only persisted map selections
+  // Top-level address from the Setting Location flow
+  address?: string
+  // [lng, lat] for pinned terminal location
+  coordinates?: number[]
+  // GeoJSON Feature for boundary (LineString)
+  boundary?: {
+    type: "Feature"
+    properties: Record<string, unknown>
+    geometry: { type: "LineString"; coordinates: number[][] }
+  }
   focalPerson: FocalPerson
   alternativeFocalPerson: AlternativeFocalPerson
 }

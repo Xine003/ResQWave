@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ArchiveRestore, Info, Trash2 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { createColumns, type CommunityGroup } from "./components/columns"
 import { CommunityGroupInfoSheet } from "./components/community-group-info-sheet"
 import { CommunityGroupDrawer } from "./components/create-community-group-drawer"
@@ -128,6 +128,22 @@ export function CommunityGroups() {
   const tableData = activeTab === "active" ? activeGroups : archivedGroups
   const tableColumns = activeTab === "active" ? activeColumns : archivedColumns
 
+  // Reopen the drawer automatically if we return from the map flow
+  useEffect(() => {
+    const maybeReopen = () => {
+      try {
+        const flag = sessionStorage.getItem("cg_reopen_sheet")
+        if (flag === "1") {
+          setDrawerOpen(true)
+          // Do not clear here; let the drawer clear when saving/closing intentionally
+        }
+      } catch {}
+    }
+    maybeReopen()
+    window.addEventListener("focus", maybeReopen)
+    return () => window.removeEventListener("focus", maybeReopen)
+  }, [])
+
   return (
     <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col h-[calc(100vh-73px)]">
       <div className="w-full max-w-9xl mx-auto flex-1 flex flex-col min-h-0">
@@ -186,7 +202,7 @@ export function CommunityGroups() {
                   status: "OFFLINE",
                   focalPerson: infoData.focalPerson.name,
                   contactNumber: infoData.focalPerson.contactNumber,
-                  address: infoData.focalPerson.houseAddress,
+                  address: infoData.address || infoData.focalPerson.houseAddress,
                   registeredAt: new Date().toLocaleDateString(),
                 }
                 setActiveGroups((prev) => [row, ...prev])

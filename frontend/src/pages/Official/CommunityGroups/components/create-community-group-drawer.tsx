@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { MapPin, Plus, RefreshCcw, Trash, Upload, X } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import type { CommunityGroupDrawerProps } from "../types"
 import { CloseCreateDialog } from "./close-create-dialog"
 
@@ -29,6 +30,8 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
       altFocalPersonName: "",
       altFocalPersonContact: "",
       altFocalPersonEmail: "",
+      // map selections
+      boundaryGeoJSON: "",
     }),
     []
   )
@@ -38,6 +41,38 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
   const [notableInfoInputs, setNotableInfoInputs] = useState<string[]>([])
   const [isDirty, setIsDirty] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const navigate = useNavigate()
+
+  // Persist current form state before navigating to the map so we can restore it afterwards
+  const persistFormSnapshot = useCallback(() => {
+    try {
+      // Avoid serializing File objects; store them as null in the snapshot
+      const { focalPersonPhoto: _fp, altFocalPersonPhoto: _afp, ...rest } = formData as any
+      const safeForm = { ...rest, focalPersonPhoto: null, altFocalPersonPhoto: null }
+      const snapshot = JSON.stringify({ formData: safeForm, notableInfoInputs })
+      sessionStorage.setItem("cg_form_snapshot", snapshot)
+      sessionStorage.setItem("cg_reopen_sheet", "1")
+    } catch {}
+  }, [formData, notableInfoInputs])
+
+  const openAddressPicker = () => {
+    persistFormSnapshot()
+    navigate("/community-groups/setting-location")
+  }
+  const openCoordinatesDrawer = () => {
+    persistFormSnapshot()
+    navigate("/community-groups/setting-location")
+  }
+
+  const summarizeBoundary = useMemo(() => {
+    try {
+      const f = JSON.parse(formData.boundaryGeoJSON)
+      if (f?.type === "Feature" && f.geometry?.type === "LineString") {
+        return `LineString (${f.geometry.coordinates.length} pts)`
+      }
+    } catch {}
+    return formData.boundaryGeoJSON ? "Custom geometry set" : "Tap to draw"
+  }, [formData.boundaryGeoJSON])
 
   const resetForm = useCallback(() => {
     setFormData(initialFormData)
@@ -55,6 +90,68 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
     setFormData((prev) => ({ ...prev, [field]: file }))
     setIsDirty(true)
   }
+
+  // Restore form snapshot and consume map pick result after returning from SettingLocation
+  useEffect(() => {
+    const restoreAndConsume = () => {
+      try {
+        // Restore snapshot first (one-time)
+        const snapRaw = sessionStorage.getItem("cg_form_snapshot")
+        if (snapRaw) {
+          const snap = JSON.parse(snapRaw)
+          if (snap?.formData) setFormData((prev) => ({ ...prev, ...snap.formData }))
+          if (Array.isArray(snap?.notableInfoInputs)) setNotableInfoInputs(snap.notableInfoInputs)
+          setIsDirty(true)
+          // Clear snapshot so it won't overwrite again unintentionally
+          sessionStorage.removeItem("cg_form_snapshot")
+        }
+
+        // Then consume any pick result
+        const raw = sessionStorage.getItem("cg_pick_result")
+        if (raw) {
+          sessionStorage.removeItem("cg_pick_result")
+          const parsed = JSON.parse(raw)
+          if (parsed?.type === "both") {
+            const point = parsed?.data?.point
+            const line = parsed?.data?.line
+            if (point?.lng != null && point?.lat != null && point?.address) {
+              setFormData((prev) => ({
+                ...prev,
+                focalPersonAddress: point.address,
+                focalPersonCoordinates: `${point.lng},${point.lat}`,
+              }))
+            }
+            if (line?.geojson) {
+              setFormData((prev) => ({ ...prev, boundaryGeoJSON: line.geojson }))
+            }
+            setIsDirty(true)
+          } else if (parsed?.type === "point") {
+            const { lng, lat, address } = parsed.data || {}
+            if (lng != null && lat != null && address) {
+              setFormData((prev) => ({
+                ...prev,
+                focalPersonAddress: address,
+                focalPersonCoordinates: `${lng},${lat}`,
+              }))
+              setIsDirty(true)
+            }
+          } else if (parsed?.type === "line") {
+            const { geojson } = parsed.data || {}
+            if (geojson) {
+              setFormData((prev) => ({ ...prev, boundaryGeoJSON: geojson }))
+              setIsDirty(true)
+            }
+          }
+        }
+      } catch {
+        // ignore malformed session data
+      }
+    }
+
+    restoreAndConsume()
+    window.addEventListener("focus", restoreAndConsume)
+    return () => window.removeEventListener("focus", restoreAndConsume)
+  }, [])
 
   const addNotableInfoInput = () => {
     setNotableInfoInputs((prev) => [...prev, ""]) 
@@ -78,6 +175,12 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
     if (isDirty) {
       setShowCloseConfirm(true)
     } else {
+      // Clear any pending reopen flags/snapshots when closing without changes
+      try {
+        sessionStorage.removeItem("cg_reopen_sheet")
+        sessionStorage.removeItem("cg_form_snapshot")
+        sessionStorage.removeItem("cg_pick_result")
+      } catch {}
       onOpenChange(false)
     }
   }, [isDirty, onOpenChange])
@@ -391,28 +494,28 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
             <div className="space-y-2">
               <Label className="text-white text-xs">Address</Label>
               <div className="relative">
-                <Input
-                  value={formData.focalPersonAddress}
-                  onChange={(e) => {
-                    setFormData((prev) => ({ ...prev, focalPersonAddress: e.target.value }))
-                    setIsDirty(true)
-                  }}
-                  className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 pr-10 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
-                />
-                <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <button
+                  type="button"
+                  onClick={openAddressPicker}
+                  className="w-full text-left bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 pr-10 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600 border px-3 py-2"
+                  title="Pick address on map"
+                >
+                  {formData.focalPersonAddress || "Pick on map"}
+                </button>
+                <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label className="text-white text-xs">Coordinates *</Label>
-              <Input
-                value={formData.focalPersonCoordinates}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, focalPersonCoordinates: e.target.value }))
-                  setIsDirty(true)
-                }}
-                className="bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
-              />
+              <button
+                type="button"
+                onClick={openCoordinatesDrawer}
+                className="w-full text-left bg-[#171717] border-[#2a2a2a] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600 border px-3 py-2"
+                title="Draw LineString on map"
+              >
+                {summarizeBoundary}
+              </button>
             </div>
           </div>
 
@@ -494,6 +597,21 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
               onClick={() => {
                 // Handle save logic here
                 console.log("Saving community group:", formData, "Notable info:", notableInfoInputs)
+                // Derive address, coordinates array, and boundary object for frontend-only persistence
+                const address = formData.focalPersonAddress || ""
+                let coordinatesArr: number[] = []
+                if (formData.focalPersonCoordinates && formData.focalPersonCoordinates.includes(",")) {
+                  const [lngStr, latStr] = formData.focalPersonCoordinates.split(",")
+                  const lng = Number(lngStr)
+                  const lat = Number(latStr)
+                  if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
+                    coordinatesArr = [lng, lat]
+                  }
+                }
+                let boundaryObj: any = undefined
+                try {
+                  if (formData.boundaryGeoJSON) boundaryObj = JSON.parse(formData.boundaryGeoJSON)
+                } catch {}
                 const infoData = {
                   name: formData.communityGroupName || "Untitled Community",
                   terminalId: formData.assignedTerminal || "",
@@ -505,6 +623,9 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
                   pwds: formData.totalPWDs,
                   pregnantWomen: formData.totalPregnantWomen,
                   notableInfo: notableInfoInputs.filter((s) => s && s.trim().length > 0),
+                  address: address || undefined,
+                  coordinates: coordinatesArr.length === 2 ? coordinatesArr : undefined,
+                  boundary: boundaryObj,
                   focalPerson: {
                     name: formData.focalPersonName,
                     photo: formData.focalPersonPhoto ? URL.createObjectURL(formData.focalPersonPhoto) : undefined,
@@ -520,6 +641,12 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
                   },
                 }
                 onSave?.(infoData)
+                // Clear session flags after successful save
+                try {
+                  sessionStorage.removeItem("cg_reopen_sheet")
+                  sessionStorage.removeItem("cg_form_snapshot")
+                  sessionStorage.removeItem("cg_pick_result")
+                } catch {}
                 resetForm()
                 onOpenChange(false)
               }}
@@ -537,6 +664,11 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
           onCancel={() => setShowCloseConfirm(false)}
           onDiscard={() => {
             setShowCloseConfirm(false)
+            try {
+              sessionStorage.removeItem("cg_reopen_sheet")
+              sessionStorage.removeItem("cg_form_snapshot")
+              sessionStorage.removeItem("cg_pick_result")
+            } catch {}
             resetForm()
             onOpenChange(false)
           }}

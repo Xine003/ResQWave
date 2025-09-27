@@ -11,6 +11,7 @@ import {
   Tabular,
   Visualization
 } from '../pages/Official';
+import SettingLocationPage from "../pages/Official/CommunityGroups/components/SettingLocationPage";
 
 
 export const router = createBrowserRouter([
@@ -59,5 +60,9 @@ export const router = createBrowserRouter([
         element: <Tabular />
       },
     ]
-  }
+  },
+  {
+    path: 'community-groups/setting-location',
+    element: <SettingLocationPage />
+  },
 ]);
