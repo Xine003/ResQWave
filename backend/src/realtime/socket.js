@@ -1,15 +1,16 @@
 const jwt = require("jsonwebtoken");
 const { Server } = require("socket.io");
 const { AppDataSource } = require("../config/dataSource");
+const alertRepo = AppDataSource.getRepository("Alert");
+const terminalRepo = AppDataSource.getRepository("Terminal");
+const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
+
+let io;
 
 function setupSocket(server, options = {}) {
-  const io = new Server(server, {
+  io = new Server(server, {
     cors: { origin: options.origin || "http://localhost:5173", credentials: true },
   });
-
-  const alertRepo = AppDataSource.getRepository("Alert");
-  const terminalRepo = AppDataSource.getRepository("Terminal");
-  const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
 
   // JWT auth for sockets
   io.use((socket, next) => {
@@ -43,6 +44,7 @@ function setupSocket(server, options = {}) {
     const user = socket.data.user;
     console.log("[socket] connected", socket.id, { role: user?.role, id: user?.id });
 
+    // ✅ Every admin/dispatcher joins the alerts room
     if (user?.role === "admin" || user?.role === "dispatcher") {
       socket.join("alerts:all");
       console.log("[socket] joined room alerts:all");
@@ -64,7 +66,6 @@ function setupSocket(server, options = {}) {
         const terminal = await terminalRepo.findOne({ where: { id: terminalId } });
         if (!terminal) throw new Error(`Terminal ${terminalId} not found`);
 
-        // generateAlertId() assumed present above
         const id = await generateAlertId();
         const entity = alertRepo.create({
           id,
@@ -74,7 +75,7 @@ function setupSocket(server, options = {}) {
         });
         const saved = await alertRepo.save(entity);
 
-        // Minimal, safe enrichment (avoid simple-json parse issues)
+        // Minimal, safe enrichment
         const group = await communityGroupRepo
           .createQueryBuilder("cg")
           .select(["cg.id", "cg.communityGroupName", "cg.terminalID", "cg.address"])
@@ -84,22 +85,28 @@ function setupSocket(server, options = {}) {
         const livePayload = {
           alertId: saved.id,
           terminalId,
-          communityGroup: group ? { id: group.id, name: group.communityGroupName } : null,
+          communityGroupName: group?.communityGroupName || null,
           alertType,
           status,
           lastSignalTime: saved.dateTimeSent || saved.createdAt || new Date(),
-          address: group?.address || null
+          address: group?.address || null,
+        };
+
+        const mapPayload = {
+          communityGroupName: group?.communityGroupName || null,
+          alertType,
+          timeSent: saved.dateTimeSent || saved.createdAt || new Date(),
+          address: group?.address || null,
+          status,
         };
 
         console.log("[socket] broadcasting liveReport:new", livePayload);
 
-        // REMOVE global emit to avoid duplicates
-        // io.emit("liveReport:new", livePayload);
-
-        // Emit to dashboards room
+        // Emit to dashboards
         io.to("alerts:all").emit("liveReport:new", livePayload);
+        io.to("alerts:all").emit("mapReport:new", mapPayload);
 
-        // Emit to terminal-specific room (for terminal clients)
+        // Emit to terminal-specific room
         io.to(`terminal:${terminalId}`).emit("liveReport:new", livePayload);
 
         ack?.({ ok: true, alertId: saved.id });
@@ -116,4 +123,11 @@ function setupSocket(server, options = {}) {
   return io;
 }
 
-module.exports = { setupSocket };
+function getIO() {
+  if (!io) {
+    throw new Error("Socket.io not initialized. Call setupSocket(server) first.");
+  }
+  return io;
+}
+
+module.exports = { setupSocket, getIO };

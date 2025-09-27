@@ -212,9 +212,29 @@ const focalLogin = async (req, res) => {
     }
 };
 
+// Logout
+const logout = async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({message: "No Token"});
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Delete the Session
+        await loginVerificationRepo.delete({sessionID: decoded.sessionID});
+
+        res.json({message: "Logged Out Succesfully"});
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({message: "Server Error"});
+    }
+};
+
 module.exports = { 
     register, 
     adminLogin,
     dispatcherLogin,
     focalLogin,
+    logout
 };

@@ -7,14 +7,17 @@ declare global {
     isFocalAuthenticated?: boolean;
   }
 }
-
+import { OfficialLayout } from '@/components/Official/officialLayout';
 import { Landing, LoginFocal } from '../pages/Focal';
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/ForgotPassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/verificationSignin';
 import {
-  Dashboard,
+  CommunityGroups,
   ForgotPasswordPageDispatcher,
-  LoginDispatcher
+  LoginDispatcher,
+  Reports,
+  Tabular,
+  Visualization
 } from '../pages/Official';
 import FocalDashboard from '../pages/Focal/Dashboard';
 
@@ -76,4 +79,26 @@ export const router = createBrowserRouter([
     path: '/forgot-password-dispatcher',
     element: <ForgotPasswordPageDispatcher />,
   },
+  {
+    path: '/',
+    element: <OfficialLayout><Outlet /></OfficialLayout>,
+    children: [
+      {
+        path: 'visualization',
+        element: <Visualization />
+      },
+      {
+        path: 'reports',
+        element: <Reports />
+      },
+      {
+        path: 'community-groups',
+        element: <CommunityGroups />
+      },
+      {
+        path: 'tabular',
+        element: <Tabular />
+      },
+    ]
+  }
 ]);

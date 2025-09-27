@@ -1,3 +1,6 @@
 export { Landing, LoginFocal } from './Focal';
-export { Dashboard, ForgotPasswordPageDispatcher, LoginDispatcher } from './Official';
+export {
+    CommunityGroups, ForgotPasswordPageDispatcher,
+    LoginDispatcher, Reports, Tabular, Visualization
+} from './Official';
 

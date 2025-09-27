@@ -1,0 +1,172 @@
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import type { ColumnDef } from "@tanstack/react-table"
+
+export type CommunityGroup = {
+  id: string
+  name: string
+  status: "ONLINE" | "OFFLINE"
+  focalPerson: string
+  contactNumber: string
+  address: string
+  registeredAt: string
+}
+
+export const columns: ColumnDef<CommunityGroup>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+        className="data-[state=checked]:bg-[#4285f4] data-[state=checked]:border-[#4285f4]"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        className="border-white data-[state=checked]:bg-[#4285f4] data-[state=checked]:border-[#4285f4] data-[state=unchecked]:border-white"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "id",
+    header: "Community ID",
+    cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("id")}</div>,
+  },
+  {
+    accessorKey: "name",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent"
+        >
+          Community Name
+          <svg className="ml-2 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+            />
+          </svg>
+        </Button>
+      )
+    },
+    cell: ({ row }) => <div className="text-white font-medium">{row.getValue("name")}</div>,
+  },
+  {
+    accessorKey: "status",
+    header: "Terminal Status",
+    cell: ({ row }) => {
+      const status = row.getValue("status") as string
+      return (
+        <Badge
+          variant={status === "ONLINE" ? "default" : "secondary"}
+          className={
+            status === "ONLINE"
+              ? "bg-green-500/70 text-green-500 border-green-500 hover:bg-green-500/70"
+              : "bg-gray-500/70 text-gray-500 border-gray-500 hover:bg-gray-500/70"
+          }
+        >
+          {status}
+        </Badge>
+      )
+    },
+  },
+  {
+    accessorKey: "focalPerson",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent"
+        >
+          Focal Person
+          <svg className="ml-2 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+            />
+          </svg>
+        </Button>
+      )
+    },
+    cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("focalPerson")}</div>,
+  },
+  {
+    accessorKey: "contactNumber",
+    header: "Contact Number",
+    cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("contactNumber")}</div>,
+  },
+  {
+    accessorKey: "address",
+    header: "Address",
+    cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("address")}</div>,
+  },
+  {
+    accessorKey: "registeredAt",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent"
+        >
+          Registered At
+          <svg className="ml-2 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+            />
+          </svg>
+        </Button>
+      )
+    },
+    cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("registeredAt")}</div>,
+  },
+  {
+    id: "actions",
+    enableHiding: false,
+    cell: ({ row }) => {
+      const group = row.original
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0 text-[#a1a1a1] hover:text-white hover:bg-[#262626]">
+              <span className="sr-only">Open menu</span>
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zM12 13a1 1 0 110-2 1 1 0 010 2zM12 20a1 1 0 110-2 1 1 0 010 2z"
+                />
+              </svg>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-[#262626] border-[#404040] text-white">
+            <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040]">Edit</DropdownMenuItem>
+            <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040]">Archive</DropdownMenuItem>
+            <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] text-red-400">Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+  },
+]

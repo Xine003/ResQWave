@@ -32,8 +32,28 @@ const verifyDispatcherLogin = async (req, res) => {
         // If Valid
         const dispatcher = await dispatcherRepo.findOne({where: {id: decoded.id} });
         
+        // Create Session
+        const sessionID = crypto.randomUUID();
+        const expiry = new Date(Date.now() + 60 * 60 * 1000);
+
+        const sessionEntry = verificationRepo.create({
+            userID: dispatcher.id,
+            userType: "dispatcher",
+            code: null,
+            sessionID, 
+            expiry
+        });
+
+        await verificationRepo.save(sessionEntry);
+
+        // Issue a Token
         const token = jwt.sign(
-            {id: dispatcher.id, name: dispatcher.name, role:"dispatcher"}, 
+            {
+                id: dispatcher.id, 
+                name: dispatcher.name, 
+                role:"dispatcher",
+                sessionID
+            }, 
             process.env.JWT_SECRET,
             {expiresIn: "1h"}
         );
@@ -73,8 +93,23 @@ const verifyFocalPersonLogin = async (req, res) => {
         // If Valid
         const focalPerson = await focalRepo.findOne({where: {id: decoded.id} });
 
+        // Create Session
+        const sessionID = crypto.randomUUID();
+        const expiry = new Date(Date.now() + 60 * 60 * 1000);
+
+        const sessionEntry = verificationRepo.create({
+            userID: focalPerson.id,
+            userType: "focalPerson",
+            code: null,
+            sessionID,
+            expiry
+        });
+
+        await verificationRepo.save(sessionEntry);
+
+        // Issue a token
         const token = jwt.sign(
-            {id: focalPerson.id, name: focalPerson.name, role:"focalPerson"}, 
+            {id: focalPerson.id, name: focalPerson.name, role:"focalPerson", sessionID}, 
             process.env.JWT_SECRET,
             {expiresIn: "1h"}
         );

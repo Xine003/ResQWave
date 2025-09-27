@@ -12,6 +12,8 @@ const focalPersonRoutes = require("./routes/focalPersonRoutes");
 const communityGroupRoutes = require("./routes/communityGroupRoutes");
 const alertRoutes = require("./routes/alertRoutes");
 const verificationRoutes = require("./routes/verificationRoutes");
+const rescueFormRoutes = require("./routes/rescueFormRoutes");
+const postRescueRoutes = require("./routes/postRescueRoutes");
 const {authMiddleware, requireRole} = require("./middleware/authMiddleware");
 
 // Test For Realtime
@@ -51,6 +53,8 @@ AppDataSource.initialize()
         app.use("/focalperson", focalPersonRoutes);
         app.use("/communitygroup", communityGroupRoutes);
         app.use("/alerts", alertRoutes);
+        app.use("/forms", rescueFormRoutes);
+        app.use("/post", postRescueRoutes);
 
 
         const server = http.createServer(app);

@@ -24,7 +24,7 @@ export function LoginDispatcher() {
       const data = await loginDispatcherApi(payload)
       localStorage.setItem("token", data.token)
       setIsLoading(false)
-      navigate("/dashboard")
+      navigate("/visualization")
     } catch (err: any) {
       setError(err.message || "Login failed")
       setIsLoading(false)

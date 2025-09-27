@@ -16,7 +16,7 @@ module.exports = new EntitySchema ({
         terminalID: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         noOfIndividuals: {
             type: "integer",
@@ -51,6 +51,10 @@ module.exports = new EntitySchema ({
             length: 255,
             nullable: false,
         },
+        boundary: {
+            type: "json",
+            nullable: false,
+        },
         coordinates: {
             // Store array of floats as JSON (e.g., [lat, lng])
             type: "simple-json",
@@ -59,16 +63,30 @@ module.exports = new EntitySchema ({
         archived: {
             type: "boolean",
             default: false,
+        },
+        createdAt: {
+            type: "timestamp",
+            createDate: true,
+            update: false
+        },
+        updatedAt: {
+            type: "timestamp",
+            updateDate: true,
         }
     },
 
     relations: {
         terminal: {
             target: "Terminal",
-            type: "one-to-one",
+            type: "many-to-one",
             joinColumn: {name: "terminalID"},
             inverseSide: "terminals",
-            onDelete: "CASCADE"
+            onDelete: "SET NULL",
+            onUpdate: "CASCADE",
         },
     },
+    indices: [
+        // Each terminal can be linked to at most one group
+    { name: "UQ_communitygroups_terminalID", columns: ["terminalID"], unique: true },
+    ]
 });

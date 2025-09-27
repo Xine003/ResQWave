@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
+const { AppDataSource } = require("../config/dataSource");
+const verificationRepo = AppDataSource.getRepository("LoginVerification");
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     // Get the token from the authorization header: "Bearer <token>"
     const authHeader = req.headers["authorization"]
     const token = authHeader && authHeader.split(" ")[1];
@@ -13,6 +15,19 @@ const authMiddleware = (req, res, next) => {
         // Verify Token
         const secret = process.env.JWT_SECRET;
         const decoded = jwt.verify(token, secret);
+
+        // Check if the session is Enough
+        if (!decoded.sessionID) {
+            return res.status(403).json({message: "Invalid Session"});
+        }
+
+        const session = await verificationRepo.findOne({
+            where: {sessionID: decoded.sessionID},
+        });
+
+        if (!session || new Date() > session.expiry) {
+            return res.status(401).json({ message: "Session expired or logged out" });
+        }
 
         // Attach user info to request (contains id, name, role)
         req.user = decoded;

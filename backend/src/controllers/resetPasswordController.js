@@ -10,14 +10,14 @@ const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 // Step 1: Request Reset 
 const requestPasswordReset = async(req, res) => {
     try {
-        const { userType, userId } = req.body; 
+        const { userType, userID } = req.body; 
         // you can use userId or another unique identifier to look them up
 
         let user;
         if (userType === "dispatcher") {
-            user = await dispatcherRepo.findOne({ where: { id: userId } });
+            user = await dispatcherRepo.findOne({ where: { id: userID } });
         } else if (userType === "focal") {
-            user = await focalPersonRepo.findOne({ where: { id: userId } });
+            user = await focalPersonRepo.findOne({ where: { id: userID } });
         }
 
         if (!user) {
