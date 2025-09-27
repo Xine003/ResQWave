@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { flyToSignal, cinematicMapEntrance } from './utils/flyingEffects';
 import Header from "./components/Header";
-import AboutModal from "./components/AboutModal";
+import AboutCommunity from "./components/AboutCommunity";
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
@@ -466,6 +466,8 @@ export default function Dashboard() {
         // after saving, clear canSave so future edits re-trigger the valid alert
         setCanSave(false);
         setEditBoundaryOpen(false);
+        alertsRef.current?.hideEditAlert?.();
+        alertsRef.current?.hideSavedAlert?.();
     };
 
     const handleDeleteBoundary = () => {
@@ -491,6 +493,8 @@ export default function Dashboard() {
         setEditBoundaryOpen(false);
         // hide any transient valid alert via the alerts component
         alertsRef.current?.hideValidAlert?.();
+        alertsRef.current?.hideEditAlert?.();
+        alertsRef.current?.hideSavedAlert?.();
     };
 
     // About modal state (opened when user clicks "About Your Community" tab)
@@ -525,11 +529,27 @@ export default function Dashboard() {
 
             <div ref={mapContainer} style={{ position: "absolute", top: 85, left: 0, right: 0, bottom: 0, zIndex: 1 }} />
 
-            <SignalPopover popover={popover} setPopover={setPopover} setEditBoundaryOpen={setEditBoundaryOpen} infoBubble={infoBubble} infoBubbleVisible={infoBubbleVisible} />
+            <SignalPopover
+                popover={popover}
+                setPopover={setPopover}
+                setEditBoundaryOpen={setEditBoundaryOpen}
+                infoBubble={infoBubble}
+                infoBubbleVisible={infoBubbleVisible}
+                onClose={() => {
+                    // remove any temporary signal boundary overlay when popover closes
+                    const map = mapRef.current;
+                    if (!map) return;
+                    try {
+                        if (map.getLayer('signal-boundary')) map.removeLayer('signal-boundary');
+                        if (map.getLayer('signal-boundary-line')) map.removeLayer('signal-boundary-line');
+                        if (map.getSource('signal-boundary')) map.removeSource('signal-boundary');
+                    } catch (e) { /* ignore */ }
+                }}
+            />
 
             <MapControls mapRef={mapRef} mapLoaded={mapLoaded} makeTooltip={makeTooltip} addCustomLayers={(m) => addCustomLayers(m, otherSignals, OwnCommunitySignal)} editBoundaryOpen={editBoundaryOpen} handleDeleteBoundary={handleDeleteBoundary} />
 
-            <AboutModal open={aboutOpen} onClose={closeAbout} onEdit={() => console.log('Edit About')} center={aboutCenter} />
+            <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={() => console.log('Edit About')} center={aboutCenter} />
 
             {/* Transient bottom-centered alert that slides up when editing community markers */}
             {/* centralized dashboard alerts (edit/valid/saved) */}

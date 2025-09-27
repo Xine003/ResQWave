@@ -1,6 +1,6 @@
 import type { SignalPopupProps } from '../types/popup';
 
-export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, infoBubble, infoBubbleVisible }: SignalPopupProps) {
+export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, onClose, infoBubble, infoBubbleVisible }: SignalPopupProps) {
     // Render the info bubble when there is no popover open
     if (!popover && infoBubble && infoBubbleVisible) {
         return (
@@ -25,7 +25,10 @@ export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, 
                 <div style={{ backgroundColor: 'rgba(0,0,0,0.88)', color: '#fff', boxShadow: '0 8px 28px rgba(0,0,0,0.45)', padding: '18px 18px 12px 18px', fontFamily: 'inherit', borderRadius: 6 }}>
                     {/* Close button top right */}
                     <button
-                        onClick={() => setPopover(null)}
+                        onClick={() => {
+                            setPopover(null);
+                            onClose?.();
+                        }}
                         style={{ position: 'absolute', top: 10, right: 14, background: 'none', border: 'none', color: '#fff', fontSize: 26, cursor: 'pointer', zIndex: 2, pointerEvents: 'auto' }}
                         aria-label="Close"
                     >
@@ -90,31 +93,25 @@ export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, 
 
                     {/* Action button - only show for the green (online) community signal */}
                     {popover?.status === 'online' ? (
-                        <div style={{ display: 'block', marginTop: 16 }}>
+                        <div className="block mt-4">
                             <button
                                 onClick={() => {
-                                    // open the community boundary editor modal
                                     setPopover(null);
+                                    onClose?.();
                                     setEditBoundaryOpen(true);
                                 }}
-                                style={{
-                                    pointerEvents: 'auto',
-                                    background: 'linear-gradient(to top, #3B82F6 0%, #70A6FF 100%)',
-                                    color: '#fff',
-                                    border: 'none',
-                                    padding: '12px 14px',
-                                    borderRadius: 8,
-                                    fontWeight: 400,
-                                    cursor: 'pointer',
-                                    boxShadow: '0 6px 12px rgba(37,99,235,0.28)',
-                                    width: '100%',
-                                    textAlign: 'center',
-                                    fontSize: "13px"
-                                }}
+                                className="pointer-events-auto w-full text-center text-white font-normal text-[13px] 
+                                    px-3.5 py-3 rounded-lg cursor-pointer 
+                                    bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
+                                    shadow-[0_6px_12px_rgba(37,99,235,0.28)] 
+                                    border-0
+                                    transition-colors duration-150
+                                    hover:from-[#2563eb] hover:to-[#60a5fa] hover:shadow-[0_8px_16px_rgba(37,99,235,0.38)]"
                             >
                                 EDIT MY COMMUNITY MARKERS
                             </button>
                         </div>
+
                     ) : null}
 
                     {/* Downward pointer/arrow */}

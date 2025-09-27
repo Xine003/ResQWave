@@ -18,7 +18,7 @@ export default function VerificationSignin() {
         setTimeout(() => {
             setIsVerifying(false);
             // Dummy: always succeed for demo
-            // navigate('/dashboard');
+            navigate('/focal-dashboard');
             setError("");
         }, 1200);
     }
