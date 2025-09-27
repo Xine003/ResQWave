@@ -10,7 +10,7 @@ declare global {
 import { OfficialLayout } from '@/components/Official/officialLayout';
 import { Landing, LoginFocal } from '../pages/Focal';
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/ForgotPassword';
-import VerificationSignin from '../pages/Focal/LoginFocal/VerificationSignin';
+import VerificationSignin from '../pages/Focal/LoginFocal/verificationSignin';
 import {
   CommunityGroups,
   ForgotPasswordPageDispatcher,
@@ -28,10 +28,12 @@ const FocalProtectedRoute: React.FC = () => {
   // --- PROTECTIVE ROUTE LOGIC ---
   // Uncomment the following block for production to protect focal routes:
   /*
-  if (!isFocalAuthenticated && currentPath === "/login-focal/focal-dashboard") {
+  if (!isFocalAuthenticated && currentPath === "/focal-dashboard") {
     return <Navigate to="/login-focal" replace />;
   }
   */
+
+
   // --- END PROTECTIVE ROUTE LOGIC ---
   return <Outlet />;
 };
@@ -41,29 +43,30 @@ export const router = createBrowserRouter([
     path: '/',
     element: <Landing />,
   },
-  // Focal Routes (protected)
+  // Public login route for focal users
   {
     path: '/login-focal',
+    element: <LoginFocal />,
+  },
+  // Focal Routes (protected)
+  {
     element: <FocalProtectedRoute />,
     children: [
       {
-        path: '',
-        element: <LoginFocal />,
-      },
-      {
-        path: 'forgot-password',
+        path: '/forgot-password-focal',
         element: <ForgotPasswordVerification />,
       },
       {
-        path: 'verification-signin',
+        path: '/verification-signin-focal',
         element: <VerificationSignin />,
       },
       {
-        path: 'focal-dashboard',
+        path: '/focal-dashboard',
         element: <FocalDashboard />,
-      },
+      }
     ],
   },
+
   {
     path: '/login-dispatcher',
     element: <LoginDispatcher />,

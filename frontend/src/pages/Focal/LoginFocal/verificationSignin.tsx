@@ -17,11 +17,9 @@ export default function VerificationSignin() {
         setIsVerifying(true);
         setTimeout(() => {
             setIsVerifying(false);
+            // Dummy: always succeed for demo
+            navigate('/focal-dashboard');
             setError("");
-            // Set dummy auth state
-            window.isFocalAuthenticated = true;
-            // Navigate to dashboard after successful verification
-            navigate('/login-focal/focal-dashboard');
         }, 1200);
     }
 

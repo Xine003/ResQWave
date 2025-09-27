@@ -33,9 +33,7 @@ export function LoginFocal() {
       }
       setError("");
       setIsLoading(false);
-      // Set dummy auth state
-      window.isFocalAuthenticated = true;
-      navigate('verification-signin');
+      navigate('verification-signin-focal');
     }, 1200);
   }
 
@@ -103,8 +101,11 @@ export function LoginFocal() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="text-white py-6 rounded-md font-medium text-base mt-2 hover:brightness-90 transition-all duration-200 flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(0deg, #3B82F6 0%, #70A6FF 100%)', opacity: isLoading ? 0.7 : 1 }}
+            className="text-white py-6 rounded-md font-medium text-base mt-2 flex items-center justify-center gap-2
+             bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
+             hover:from-[#2C64C5] hover:to-[#2C64C5]
+             transition duration-300 cursor-pointer"
+            style={{ opacity: isLoading ? 0.7 : 1 }}
           >
             {isLoading && (
               <span className="inline-block mr-2">
@@ -120,7 +121,7 @@ export function LoginFocal() {
         <div className="text-center mt-4">
           <button
             className="text-[#A3A3A3] hover:text-[#929090] mt-2 text-md bg-transparent border-none cursor-pointer"
-            onClick={() => navigate('forgot-password')}
+            onClick={() => navigate('forgot-password-focal')}
           >
             Forgot Password?
           </button>
