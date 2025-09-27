@@ -58,6 +58,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     const [focalAddress, setFocalAddress] = useState('');
     const [focalCoordinates, setFocalCoordinates] = useState('');
     const [altFocalName, setAltFocalName] = useState('');
+    const [altFocalContact, setAltFocalContact] = useState('');
 
     // initialize local state from shared data when modal opens
     useEffect(() => {
@@ -78,6 +79,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
         setFocalAddress(data.focal?.address ?? '');
         setFocalCoordinates(data.focal?.coordinates ?? '');
         setAltFocalName(data.focal?.altFocal ?? '');
+        setAltFocalContact((data.focal as any)?.altContact ?? '');
         setPhotoUrl(data.focal?.photo ?? null);
         setAltPhotoUrl((data.focal as any)?.altPhoto ?? null);
     }, [open, data]);
@@ -248,8 +250,8 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 16 }}>Address</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                     <div style={{ flex: 1, marginTop: 2, position: 'relative' }}>
-                        <Input value={focalAddress} style={{ padding: '22px 46px 22px 17px', border: '1px solid #404040', borderRadius: 6, background: '#262626', color: '#BABABA', fontSize: 14 }} onChange={(e: any) => setFocalAddress(e.target.value)} className="bg-input/10 text-white" />
-                        <div title="Help: format should be 'Street, Barangay, City, Zip'" onClick={() => {/* optional help action */ }}
+                        <Input value={focalAddress} readOnly style={{ padding: '22px 46px 22px 17px', border: '1px solid #404040', borderRadius: 6, background: '#262626', color: '#BABABA', fontSize: 14, cursor: 'not-allowed' }} onChange={(e: any) => setFocalAddress(e.target.value)} className="bg-input/10 text-white" />
+                        <div title="View-only. Request location update from admin." onClick={() => {/* optional help action */ }}
                             style={{ position: 'absolute', right: 15, top: '50%', transform: 'translateY(-50%)', width: 21, height: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', cursor: 'pointer' }}>
                             <HelpCircle color="#9CA3AF" />
                         </div>
@@ -259,7 +261,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 16 }}>Coordinates</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ flex: 1, marginTop: 2 }}>
-                        <Input value={focalCoordinates} style={{ padding: '22px 17px', border: '1px solid #404040', borderRadius: 6, background: '#262626', color: '#BABABA', fontSize: 14 }} onChange={(e: any) => setFocalCoordinates(e.target.value)} className="bg-input/10 text-white" />
+                        <Input value={focalCoordinates} readOnly style={{ padding: '22px 17px', border: '1px solid #404040', borderRadius: 6, background: '#262626', color: '#BABABA', fontSize: 14, cursor: 'not-allowed' }} onChange={(e: any) => setFocalCoordinates(e.target.value)} className="bg-input/10 text-white" />
                     </div>
                 </div>
 
@@ -316,7 +318,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                     </div>
                     <div style={{ flex: 1, marginTop: 2 }}>
                         <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 17 }}>Contact Number</div>
-                        <Input value={focalContact} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setFocalContact(e.target.value)} className="bg-input/10 text-white" />
+                        <Input value={altFocalContact} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setAltFocalContact(e.target.value)} className="bg-input/10 text-white" />
                     </div>
                 </div>
 
@@ -390,7 +392,9 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                         address: focalAddress,
                                         coordinates: focalCoordinates,
                                         altFocal: altFocalName,
+                                        altContact: altFocalContact,
                                         photo: photoUrl,
+                                        altPhoto: altPhotoUrl,
                                     },
                                     updatedAt: new Date().toLocaleString(),
                                 };

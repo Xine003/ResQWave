@@ -47,9 +47,10 @@ export default function Tooltip({ content, side = "top", children }: TooltipProp
                 aria-hidden={!visible}
                 style={{
                     position: "absolute",
-                    pointerEvents: "none",
+                    // allow the tooltip to appear above modal overlays
+                    pointerEvents: "auto",
                     whiteSpace: "nowrap",
-                    zIndex: 60,
+                    zIndex: 100000,
                     transition: "opacity 140ms cubic-bezier(.2,.9,.3,1), transform 140ms cubic-bezier(.2,.9,.3,1)",
                     opacity: visible ? 1 : 0,
                     transform: visible ? 'translateY(0)' : 'translateY(3px)',
