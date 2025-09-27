@@ -30,23 +30,18 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         setViewerUrl(null);
     }
 
-    function toggleZoom() {
-        setViewerZoom((z) => (z === 1 ? 1.5 : 1));
+    function toggleZoomOut() {
+        setViewerZoom((prev) => Math.max(0.25, prev - 0.25)); // step down, min 0.25
     }
 
-    function rotateOnce() {
-        setViewerRotate((r) => (r + 90) % 360);
+    function resetSize() {
+        setViewerZoom(1); // reset to original
     }
 
-    function downloadImage() {
-        if (!viewerUrl) return;
-        const a = document.createElement('a');
-        a.href = viewerUrl;
-        a.download = 'image.jpg';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+    function toggleZoomIn() {
+        setViewerZoom((prev) => Math.min(3, prev + 0.25)); // step up, max 3x
     }
+
 
     const baseStyle: any = {
         width: 'min(780px, 92%)',
@@ -261,28 +256,20 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
             </div>
             {viewerOpen && viewerUrl && (
                 <div onClick={closeViewer} style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.75)', zIndex: 'calc(var(--z-popover) + 10)' }}>
-                    <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', maxWidth: 'min(98vw, 900px)', maxHeight: '65vh', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img
-                            src={viewerUrl}
-                            alt="viewer"
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'contain',
-                                transform: `scale(${viewerZoom}) rotate(${viewerRotate}deg)`,
-                                maxWidth: '100%',
-                                maxHeight: '100%',
-                            }}
-                        />
+                    <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', maxWidth: 'min(98vw,600px)', maxHeight: '65vh', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={viewerUrl} alt="viewer" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: `scale(${viewerZoom}) rotate(${viewerRotate}deg)`, maxWidth: '100%', maxHeight: '100%' }} />
                     </div>
-                    {/* tool buttons bottom-center */}
-                    <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 70, display: 'flex' }}>
-                        <button onClick={toggleZoom} style={{ background: '#fff', borderRight: '1px solid #e0e0e0', width: 50, height: 50, borderRadius: '4px 0 0 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Zoom"><Minus size={18} /></button>
-                        <button onClick={rotateOnce} style={{ background: '#fff', border: 'none', width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Rotate"><ZoomOut size={18} /></button>
-                        <button onClick={downloadImage} style={{ background: '#fff', borderLeft: '1px solid #e0e0e0', width: 50, height: 50, borderRadius: '0 4px 4px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Download"><Plus size={18} /></button>
+
+                    {/* buttons pinned to bottom of viewport */}
+                    <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', left: '50%', bottom: 40, transform: 'translateX(-50%)', display: 'flex' }}>
+                        <button onClick={toggleZoomOut} style={{ background: '#fff', borderRight: '1px solid #e0e0e0', width: 50, height: 50, borderRadius: '4px 0 0 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Zoom Out"><Minus size={18} /></button>
+                        <button onClick={resetSize} style={{ background: '#fff', border: 'none', width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Reset"><ZoomOut size={18} /></button>
+                        <button onClick={toggleZoomIn} style={{ background: '#fff', borderLeft: '1px solid #e0e0e0', width: 50, height: 50, borderRadius: '0 4px 4px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Zoom In"><Plus size={18} /></button>
                     </div>
                 </div>
             )}
+
+
 
         </div>
     );
