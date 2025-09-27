@@ -1,4 +1,4 @@
-import type { SignalPopover, InfoBubble } from './signals';
+import type { SignalPopover, InfoBubble } from './signalsdata';
 
 export type SignalPopupProps = {
     popover: SignalPopover | null;

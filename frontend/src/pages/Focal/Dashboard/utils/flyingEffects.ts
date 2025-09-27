@@ -1,6 +1,6 @@
 // utils/flyingEffects.ts
 // Utility functions for map flyTo animations and cinematic entrance
-import type { Signal } from '../types/signals';
+import type { Signal } from '../types/signalsdata';
 
 export function flyToSignal(map: any, coord: Signal['coordinates']) {
     map.flyTo({

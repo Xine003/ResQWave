@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Expand, Minus, Plus, ZoomOut } from 'lucide-react';
+import useCommunityData from '../hooks/useCommunityData';
 
 type AboutModalProps = {
     open: boolean;
@@ -72,11 +73,11 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         ? { ...baseStyle, position: 'fixed', left: center.x, top: center.y, transform: 'translate(-50%, -50%)', background: '#171717' }
         : { ...baseStyle, position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#171717' };
 
-    // mock counts (labels are static and handled in the JSX)
-    const statsTop = ['50', '10', '5'];
+    const { data } = useCommunityData();
+    const statsTop = [String(data.stats.individuals), String(data.stats.families), String(data.stats.kids)];
     const statsTopLabels = ['Individuals', 'Families', 'Kids'];
 
-    const statsBottom = ['8', '10', '5'];
+    const statsBottom = [String(data.stats.seniors), String(data.stats.pwds), String(data.stats.pregnant)];
     const statsBottomLabels = ['Seniors', 'PWDs', 'Pregnant Women'];
 
     return (
@@ -88,8 +89,8 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                     <div>
-                        <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: 0.6 }}>PAMAKAI</h2>
-                        <div style={{ marginTop: 6, color: '#fff', fontSize: 13, fontWeight: 300 }}>Registered At: September 10, 2025 <span style={{ fontWeight: 200, opacity: 0.5 }}> &nbsp; | &nbsp; </span> Last Updated At: September 11, 2025</div>
+                        <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: 0.6 }}>{data.groupName}</h2>
+                        <div style={{ marginTop: 6, color: '#fff', fontSize: 13, fontWeight: 300 }}>Registered At: {data.registeredAt} <span style={{ fontWeight: 200, opacity: 0.5 }}> &nbsp; | &nbsp; </span> Last Updated At: {data.updatedAt}</div>
                     </div>
                 </div>
 
@@ -102,11 +103,11 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                     <div style={{ overflow: 'hidden' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                             <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>TERMINAL ID</div>
-                            <div style={{ fontWeight: 200, color: '#fff' }}>RSQW-001</div>
+                            <div style={{ fontWeight: 200, color: '#fff' }}>{data.terminalId}</div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                             <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>COMMUNITY ID</div>
-                            <div style={{ fontWeight: 200, color: '#fff' }}>CG-009</div>
+                            <div style={{ fontWeight: 200, color: '#fff' }}>{data.communityId}</div>
                         </div>
                     </div>
 
@@ -163,7 +164,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                     </div>
 
                     {/* note */}
-                    <div style={{ background: '#262626', padding: '15px 21px', borderRadius: 6, color: '#fff', border: '1px solid #404040', fontSize: 14, fontWeight: 400 }}>• <span>&nbsp;</span>Prone to landslide and tree falling</div>
+                    <div style={{ background: '#262626', padding: '15px 21px', borderRadius: 6, color: '#fff', border: '1px solid #404040', fontSize: 14, fontWeight: 400 }}>• <span>&nbsp;</span>{data.note}</div>
 
                     {/* Focal persons header */}
                     <div style={{ marginTop: 10, background: '#fff', color: '#111', padding: '10px 18px', borderRadius: 6, fontWeight: 600 }}>Focal Persons</div>
@@ -171,8 +172,8 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                     {/* Focal person image-only cards (no text) */}
                     <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center', marginTop: 6 }}>
                         <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
-                            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(https://avatars.githubusercontent.com/u/1?v=4)`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
-                            <img src="https://avatars.githubusercontent.com/u/1?v=4" alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${data.focal.photo})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                            <img src={data.focal.photo || ''} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
                             <button
                                 aria-label="Expand"
                                 onClick={() => openViewer('https://avatars.githubusercontent.com/u/1?v=4')}
@@ -203,31 +204,31 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                 <div style={{ overflow: 'hidden', marginTop: 13 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>NAME</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>GWYNETH UY</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.name}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>CONTACT NO.</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>0905 385 4293</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.contact}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>HOUSE ADDRESS</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>Block 1, Lot 17, Paraiso Rd, 1400</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.address}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>COORDINATES</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>14.774083, 121.042443</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.coordinates}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>ALTERNATIVE FOCAL PERSON</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>Rodel Sustiguer</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.altFocal}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>CONTACT NO.</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>CG-009</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.communityId}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>TERMINAL ID</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>RSQW-001</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.terminalId}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>COMMUNITY ID</div>

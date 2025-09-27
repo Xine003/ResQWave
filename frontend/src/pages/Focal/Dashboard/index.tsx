@@ -7,7 +7,7 @@ import EditAboutCommunity from "./components/EditAboutCommunity";
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
-import type { DashboardSignals } from './types/signals';
+import type { DashboardSignals } from './types/signalsdata';
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { createDraw, ensureSquareGreenImage, changeToDrawPolygon, makeUpdateCanSave } from './utils/drawMapBoundary';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
