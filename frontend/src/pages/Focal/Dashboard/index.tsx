@@ -7,7 +7,7 @@ import EditAboutCommunity from "./components/EditAboutCommunity";
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
-import type { DashboardSignals } from './types/signalsdata';
+import type { DashboardSignals } from './types/signals';
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { createDraw, ensureSquareGreenImage, changeToDrawPolygon, makeUpdateCanSave } from './utils/drawMapBoundary';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
@@ -502,6 +502,7 @@ export default function Dashboard() {
     const [aboutOpen, setAboutOpen] = useState(false);
     const [aboutCenter, setAboutCenter] = useState<{ x: number; y: number } | null>(null);
     const [editAboutOpen, setEditAboutOpen] = useState(false);
+    const editAboutRef = useRef<any>(null);
     const [activeTab, setActiveTab] = useState('community');
     const openAbout = () => {
         // compute map container center in viewport coords so modal sits over the map
@@ -539,7 +540,21 @@ export default function Dashboard() {
 
     return (
         <div style={{ minHeight: "100vh", width: "100%", position: "relative", background: "#222", overflow: "hidden" }}>
-            <Header editBoundaryOpen={editBoundaryOpen} canSave={canSave} onSave={handleSave} onExit={handleExitEdit} onAboutClick={openAbout} onTabChange={handleTabChange} activeTab={activeTab} />
+            <Header
+                editBoundaryOpen={editBoundaryOpen}
+                editAboutOpen={editAboutOpen}
+                canSave={canSave}
+                onSave={handleSave}
+                onExit={handleExitEdit}
+                onAboutClick={openAbout}
+                onRequestDiscard={() => editAboutRef.current?.openDiscardConfirm?.(() => {
+                    // continue action: close edit modal and switch to community tab
+                    setEditAboutOpen(false);
+                    setActiveTab('community');
+                })}
+                onTabChange={handleTabChange}
+                activeTab={activeTab}
+            />
 
             <div ref={mapContainer} style={{ position: "absolute", top: 85, left: 0, right: 0, bottom: 0, zIndex: 1 }} />
 
@@ -565,7 +580,10 @@ export default function Dashboard() {
 
             <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
 
-            <EditAboutCommunity open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(data) => console.log('Saved about data', data)} center={aboutCenter} />
+            <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(data: any) => {
+                // show the centered success alert with a custom message
+                try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch (e) { }
+            }} center={aboutCenter} />
 
             {/* Transient bottom-centered alert that slides up when editing community markers */}
             {/* centralized dashboard alerts (edit/valid/saved) */}

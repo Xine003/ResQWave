@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { CommunityData } from '../types/communitydata';
+import type { CommunityData } from '../types/community';
 
 // module-level mock store so multiple components using the hook share the same data
 let store: CommunityData = {

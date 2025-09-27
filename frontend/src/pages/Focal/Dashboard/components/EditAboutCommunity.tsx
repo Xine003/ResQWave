@@ -1,6 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Input } from '@/components/ui/input';
 import { Trash, Upload, HelpCircle } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogFooter,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogAction,
+    AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import useCommunityData from '../hooks/useCommunityData';
 
 type EditAboutProps = {
@@ -9,10 +19,23 @@ type EditAboutProps = {
     onSave?: (data: any) => void;
     center?: { x: number; y: number } | null;
 };
+export type EditAboutHandle = {
+    openDiscardConfirm: (onContinue?: () => void) => void;
+}
 
-export default function EditAbout({ open, onClose, onSave, center = null }: EditAboutProps) {
+const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, onSave, center = null }, ref) => {
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    // expose imperative method to parent with optional continue callback
+    const pendingContinueRef = useRef<(() => void) | null>(null);
+    useImperativeHandle(ref, () => ({
+        openDiscardConfirm: (onContinue?: () => void) => {
+            pendingContinueRef.current = onContinue ?? null;
+            setConfirmOpen(true);
+        },
+    }));
     // community data hook (shared mock store)
     const { data, setData } = useCommunityData();
 
@@ -88,7 +111,7 @@ export default function EditAbout({ open, onClose, onSave, center = null }: Edit
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 'var(--z-popover)' }}>
             <div style={modalStyle}>
-                <button onClick={onClose} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer' }}>✕</button>
+                <button onClick={() => setConfirmOpen(true)} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer' }}>✕</button>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                     <div>
@@ -242,44 +265,92 @@ export default function EditAbout({ open, onClose, onSave, center = null }: Edit
 
                 <div style={{ marginTop: 30, display: 'flex', gap: 12, width: '100%' }}>
                     <button
-                        onClick={() => {
-                            // merge current changes into the shared store
-                            const next = {
-                                ...data,
-                                groupName: groupName,
-                                stats: {
-                                    individuals,
-                                    families,
-                                    kids,
-                                    seniors,
-                                    pwds,
-                                    pregnant,
-                                },
-                                note: otherInfo,
-                                focal: {
-                                    ...(data.focal || {}),
-                                    name: focalName,
-                                    contact: focalContact,
-                                    email: focalEmail,
-                                    address: focalAddress,
-                                    coordinates: focalCoordinates,
-                                    altFocal: altFocalName,
-                                    photo: photoUrl,
-                                },
-                                updatedAt: new Date().toLocaleString(),
-                            };
-                            try { setData(next); } catch (e) { }
-                            onSave?.(next);
-                            onClose();
-                        }}
+                        onClick={() => setConfirmSaveOpen(true)}
                         className="w-full bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] transition-colors duration-150 cursor-pointer hover:from-[#2563eb] hover:to-[#60a5fa] text-white py-3 px-4.5 rounded-md font-medium text-[15px] tracking-[0.6px] border-0"
                         style={{ width: '100%' }}
                     >
                         SAVE CHANGES
                     </button>
                 </div>
+
+                {/* Alert dialog for confirming leaving without saving */}
+                <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>This action cannot be undone. This will permanently discard your changes.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setConfirmOpen(false)} className="px-4 py-2 mt-3 bg-[#1b1b1b] text-white border border-[#3E3E3E] cursor-pointer transition duration-175 hover:bg-[#222222]" style={{ borderRadius: 8, fontSize: 15 }}>
+                                Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction onClick={() => {
+                                setConfirmOpen(false);
+                                // If parent supplied a continue action (e.g. navigate), call it.
+                                if (pendingContinueRef.current) {
+                                    try { pendingContinueRef.current(); } catch (e) { }
+                                    pendingContinueRef.current = null;
+                                } else {
+                                    onClose();
+                                }
+                            }} className="px-4 py-2 mt-3 bg-[#fff] text-black hover:bg-[#e2e2e2] rounded cursor-pointer transition duration-175" style={{ borderRadius: 8, fontSize: 15 }}>
+                                Continue
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                {/* Save confirmation dialog */}
+                <AlertDialog open={confirmSaveOpen} onOpenChange={setConfirmSaveOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Save changes?</AlertDialogTitle>
+                            <AlertDialogDescription>Do you want to save your changes to the community information? This will update the community data.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setConfirmSaveOpen(false)} className="px-4 py-2 mt-3 bg-[#1b1b1b] text-white border border-[#3E3E3E] cursor-pointer transition duration-175 hover:bg-[#222222]" style={{ borderRadius: 8, fontSize: 15 }}>
+                                Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction onClick={() => {
+                                // merge current changes into the shared store
+                                const next = {
+                                    ...data,
+                                    groupName: groupName,
+                                    stats: {
+                                        individuals,
+                                        families,
+                                        kids,
+                                        seniors,
+                                        pwds,
+                                        pregnant,
+                                    },
+                                    note: otherInfo,
+                                    focal: {
+                                        ...(data.focal || {}),
+                                        name: focalName,
+                                        contact: focalContact,
+                                        email: focalEmail,
+                                        address: focalAddress,
+                                        coordinates: focalCoordinates,
+                                        altFocal: altFocalName,
+                                        photo: photoUrl,
+                                    },
+                                    updatedAt: new Date().toLocaleString(),
+                                };
+                                try { setData(next); } catch (e) { }
+                                onSave?.(next);
+                                setConfirmSaveOpen(false);
+                                onClose();
+                            }} className="px-4 py-2 mt-3  bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] text-white hover:from-[#2563eb] hover:to-[#60a5fa] cursor-pointer transition duration-175" style={{ borderRadius: 8, fontSize: 15 }}>
+                                Continue
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
 
         </div>
     );
-}
+});
+
+export default EditAbout;

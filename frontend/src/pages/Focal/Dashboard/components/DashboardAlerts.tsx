@@ -10,6 +10,9 @@ const DashboardAlerts = forwardRef(function DashboardAlerts({ editBoundaryOpen, 
 	const [showValidAlert, setShowValidAlert] = useState(false);
 	const validAlertTimer = useRef<number | null>(null);
 
+	// message shown inside the valid alert; default kept for boundaries
+	const [validAlertMessage, setValidAlertMessage] = useState<string>('Boundaries set are valid!');
+
 	const [showSavedAlert, setShowSavedAlert] = useState(false);
 	const savedAlertTimer = useRef<number | null>(null);
 
@@ -55,6 +58,19 @@ const DashboardAlerts = forwardRef(function DashboardAlerts({ editBoundaryOpen, 
 		};
 	}, [canSave]);
 
+	// function to programmatically show the valid alert with custom text
+	const showValidAlertWithMessage = (msg?: string) => {
+		if (validAlertTimer.current) {
+			window.clearTimeout(validAlertTimer.current);
+		}
+		if (msg) setValidAlertMessage(msg);
+		setShowValidAlert(true);
+		validAlertTimer.current = window.setTimeout(() => {
+			setShowValidAlert(false);
+			validAlertTimer.current = null;
+		}, 2500);
+	};
+
 	// Show saved alert when savedTrigger increments (only when non-null)
 	useEffect(() => {
 		if (savedTrigger == null) return;
@@ -81,18 +97,20 @@ const DashboardAlerts = forwardRef(function DashboardAlerts({ editBoundaryOpen, 
 	useImperativeHandle(ref, () => ({
 		hideValidAlert: () => setShowValidAlert(false),
 		hideEditAlert: () => setShowEditAlert(false),
-		hideSavedAlert: () => setShowSavedAlert(false)
+		hideSavedAlert: () => setShowSavedAlert(false),
+		// show valid alert with optional custom message
+		showValidAlert: (msg?: string) => showValidAlertWithMessage(msg),
 	}), []);
 
 	return (
 		<>
 			{/* Boundaries valid success alert (shown briefly when polygon is closed) */}
-			<div style={{ position: 'absolute', left: '50%', bottom: 30, transform: `translateX(-50%) translateY(${showValidAlert ? '0' : '80px'})`, transition: 'transform 220ms cubic-bezier(.2,.9,.2,1), opacity 220ms linear', opacity: showValidAlert ? 1 : 0, pointerEvents: showValidAlert ? 'auto' : 'none', zIndex: 62 }}>
+			<div style={{ position: 'absolute', left: '50%', bottom: 30, transform: `translateX(-50%) translateY(${showValidAlert ? '0' : '80px'})`, transition: 'transform 220ms cubic-bezier(.2,.9,.2,1), opacity 220ms linear', opacity: showValidAlert ? 1 : 0, pointerEvents: showValidAlert ? 'auto' : 'none', zIndex: 100000 }}>
 				<div style={{ minWidth: 160, maxWidth: 320 }}>
 					<Alert iconBoxVariant="success">
 						<CheckCircle2Icon color="#22c55e" />
 						<div>
-							<AlertDescription><b>Note:</b> Boundaries set are valid!</AlertDescription>
+							<AlertDescription><b>Note:</b> {validAlertMessage}</AlertDescription>
 						</div>
 					</Alert>
 				</div>

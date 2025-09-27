@@ -5,7 +5,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { LogOut, User, BookOpen } from "lucide-react";
 import type { HeaderProps } from '../types/header';
 
-export default function Header({ editBoundaryOpen = false, canSave = false, onSave, onExit, onAboutClick, onTabChange, activeTab = 'community' }: HeaderProps) {
+export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community' }: HeaderProps) {
     // When editing is active, render the editing header UI (previously inline in index.tsx)
     if (editBoundaryOpen) {
         return (
@@ -102,7 +102,15 @@ export default function Header({ editBoundaryOpen = false, canSave = false, onSa
                     <img src={resqwave_logo} alt="ResQWave Logo" style={{ height: 32 }} />
                     <span style={{ fontWeight: 700, fontSize: "1.25rem", letterSpacing: 1 }}>ResQWave</span>
                 </div>
-                <Tabs value={activeTab} defaultValue="community" style={{ background: "transparent" }} onValueChange={(v) => { onTabChange && onTabChange(v); if (v === 'about') onAboutClick && onAboutClick(); }}>
+                <Tabs value={activeTab} defaultValue="community" style={{ background: "transparent" }} onValueChange={(v) => {
+                    // If user is editing, request discard confirmation instead of navigating directly
+                    if ((editBoundaryOpen || editAboutOpen) && onRequestDiscard) {
+                        onRequestDiscard();
+                        return;
+                    }
+                    onTabChange && onTabChange(v);
+                    if (v === 'about') onAboutClick && onAboutClick();
+                }}>
                     <TabsList
                         style={{
                             background: "#222",
@@ -115,6 +123,14 @@ export default function Header({ editBoundaryOpen = false, canSave = false, onSa
                     >
                         <TabsTrigger
                             value="community"
+                            onClick={(e) => {
+                                // clicking the already-active tab does not fire onValueChange,
+                                // so handle it here: if editing, request discard confirmation.
+                                if (editBoundaryOpen && onRequestDiscard) {
+                                    e.preventDefault();
+                                    onRequestDiscard();
+                                }
+                            }}
                             style={{
                                 color: "#fff",
                                 fontSize: "1rem",

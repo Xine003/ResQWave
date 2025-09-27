@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Signal, SignalPopover, InfoBubble } from '../types/signalsdata';
+import type { Signal, SignalPopover, InfoBubble } from '../types/signals';
 
 const initialOtherSignals: Signal[] = [
     {
