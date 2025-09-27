@@ -164,34 +164,36 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                     {/* Focal persons header */}
                     <div style={{ marginTop: 10, background: '#fff', color: '#111', padding: '10px 18px', borderRadius: 6, fontWeight: 600 }}>Focal Persons</div>
 
-                    {/* Focal person image-only cards (no text) */}
-                    <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center', marginTop: 6 }}>
-                        <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
-                            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${data.focal.photo})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
-                            <img src={data.focal.photo || ''} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
-                            <button
-                                aria-label="Expand"
-                                onClick={() => openViewer('https://avatars.githubusercontent.com/u/1?v=4')}
-                                style={{
-                                    position: 'absolute',
-                                    right: 15,
-                                    bottom: 15,
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 4,
-                                    background: '#fff',
-                                    border: 'none',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
-                                }}
-                            >
-                                <Expand size={15} color="#111" />
-                            </button>
+                    {/* Focal person image-only cards (no text) - render only when photo exists */}
+                    {data?.focal?.photo ? (
+                        <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center', marginTop: 6 }}>
+                            <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${data.focal.photo})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                                <img src={data.focal.photo || ''} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                                <button
+                                    aria-label="Expand"
+                                    onClick={() => openViewer(data.focal.photo!)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: 15,
+                                        bottom: 15,
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: 4,
+                                        background: '#fff',
+                                        border: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                                    }}
+                                >
+                                    <Expand size={15} color="#111" />
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    ) : null}
 
                 </div>
 

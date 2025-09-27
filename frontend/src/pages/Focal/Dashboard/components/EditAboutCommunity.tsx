@@ -27,7 +27,9 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+    const [altPhotoUrl, setAltPhotoUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const mainFileInputRef = useRef<HTMLInputElement | null>(null);
     // expose imperative method to parent with optional continue callback
     const pendingContinueRef = useRef<(() => void) | null>(null);
     useImperativeHandle(ref, () => ({
@@ -77,6 +79,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
         setFocalCoordinates(data.focal?.coordinates ?? '');
         setAltFocalName(data.focal?.altFocal ?? '');
         setPhotoUrl(data.focal?.photo ?? null);
+        setAltPhotoUrl((data.focal as any)?.altPhoto ?? null);
     }, [open, data]);
 
     // revoke object URLs when photo changes / on unmount
@@ -174,18 +177,52 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                     <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 15, fontWeight: 600, marginTop: 15 }}>Focal Person’s Information</div>
 
 
-                    <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center' }}>
-                        <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
-                            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${photoUrl ?? ''})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
-                            <img src={photoUrl ?? ''} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
-                            <button
-                                aria-label="Delete"
-                                onClick={() => { setPhotoUrl(null); }}
-                                style={{ position: 'absolute', right: 15, bottom: 15, width: 36, height: 36, borderRadius: 1, background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
-                                <Trash size={15} color="red" strokeWidth={3} />
-                            </button>
+                    {photoUrl ? (
+                        <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center' }}>
+                            <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${photoUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                                <img src={photoUrl} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                                <button
+                                    aria-label="Delete"
+                                    onClick={() => {
+                                        // revoke blob URL if needed, then clear
+                                        if (photoUrl && photoUrl.startsWith('blob:')) {
+                                            try { URL.revokeObjectURL(photoUrl); } catch (e) { }
+                                        }
+                                        setPhotoUrl(null);
+                                    }}
+                                    style={{ position: 'absolute', right: 15, bottom: 15, width: 36, height: 36, borderRadius: 1, background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
+                                    <Trash size={15} color="red" strokeWidth={3} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        // when empty: render a standalone dashed upload panel (no outer dark card)
+                        <div style={{ marginTop: 6 }}>
+                            <div onClick={() => mainFileInputRef.current?.click()} role="button" tabIndex={0} onKeyDown={() => mainFileInputRef.current?.click()} style={{ cursor: 'pointer', background: '#262626', padding: '28px', borderRadius: 8, border: '1px dashed #404040', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                                <div style={{ background: '#1f2937', width: 48, height: 48, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Upload color="#60A5FA" />
+                                </div>
+                                <div style={{ color: '#fff', fontWeight: 700 }}>Upload photo</div>
+                                <div style={{ color: '#9ca3af', fontSize: 12 }}>Drag and drop or click to upload</div>
+                                <div style={{ color: '#9ca3af', fontSize: 12 }}>JPG and PNG, file size no more than 10MB</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* hidden file input for main focal photo (kept outside so it's always present) */}
+                    <input ref={mainFileInputRef} type="file" accept="image/png,image/jpeg" style={{ display: 'none' }} onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        try {
+                            const url = URL.createObjectURL(f);
+                            // revoke previous blob url if any
+                            if (photoUrl && photoUrl.startsWith('blob:')) {
+                                try { URL.revokeObjectURL(photoUrl); } catch (e) { }
+                            }
+                            setPhotoUrl(url);
+                        } catch (err) { }
+                    }} />
 
 
                 </div>
@@ -229,25 +266,45 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 15, fontWeight: 600, marginTop: 35 }}>Alternative Focal Person’s Information</div>
 
                 <div style={{ marginTop: 8 }}>
-                    <div onClick={() => fileInputRef.current?.click()} role="button" tabIndex={0} onKeyDown={() => fileInputRef.current?.click()} style={{ cursor: 'pointer', background: '#262626', padding: '28px', borderRadius: 8, border: '1px dashed #404040', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                        <div style={{ background: '#1f2937', width: 48, height: 48, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Upload color="#60A5FA" />
+                    {altPhotoUrl ? (
+                        <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center' }}>
+                            <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${altPhotoUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                                <img src={altPhotoUrl} alt="Alt Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                                <button
+                                    aria-label="Delete"
+                                    onClick={() => {
+                                        if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
+                                            try { URL.revokeObjectURL(altPhotoUrl); } catch (e) { }
+                                        }
+                                        setAltPhotoUrl(null);
+                                    }}
+                                    style={{ position: 'absolute', right: 15, bottom: 15, width: 36, height: 36, borderRadius: 1, background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
+                                    <Trash size={15} color="red" strokeWidth={3} />
+                                </button>
+                            </div>
                         </div>
-                        <div style={{ color: '#fff', fontWeight: 700 }}>Upload photo</div>
-                        <div style={{ color: '#9ca3af', fontSize: 12 }}>Drag and drop or click to upload</div>
-                        <div style={{ color: '#9ca3af', fontSize: 12 }}>JPG and PNG, file size no more than 10MB</div>
-                        {/* {photoUrl ? <img src={photoUrl} alt="preview" style={{ marginTop: 12, maxWidth: 160, borderRadius: 6 }} /> : null} */}
-                    </div>
+                    ) : (
+                        <div onClick={() => fileInputRef.current?.click()} role="button" tabIndex={0} onKeyDown={() => fileInputRef.current?.click()} style={{ cursor: 'pointer', background: '#262626', padding: '28px', borderRadius: 8, border: '1px dashed #404040', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                            <div style={{ background: '#1f2937', width: 48, height: 48, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Upload color="#60A5FA" />
+                            </div>
+                            <div style={{ color: '#fff', fontWeight: 700 }}>Upload photo</div>
+                            <div style={{ color: '#9ca3af', fontSize: 12 }}>Drag and drop or click to upload</div>
+                            <div style={{ color: '#9ca3af', fontSize: 12 }}>JPG and PNG, file size no more than 10MB</div>
+                        </div>
+                    )}
+
                     <input ref={fileInputRef} type="file" accept="image/png,image/jpeg" style={{ display: 'none' }} onChange={(e) => {
                         const f = e.target.files?.[0];
                         if (!f) return;
                         try {
                             const url = URL.createObjectURL(f);
-                            // revoke previous blob url if any
-                            if (photoUrl && photoUrl.startsWith('blob:')) {
-                                try { URL.revokeObjectURL(photoUrl); } catch (e) { }
+                            // revoke previous alt blob url if any
+                            if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
+                                try { URL.revokeObjectURL(altPhotoUrl); } catch (e) { }
                             }
-                            setPhotoUrl(url);
+                            setAltPhotoUrl(url);
                         } catch (err) { }
                     }} />
                 </div>
