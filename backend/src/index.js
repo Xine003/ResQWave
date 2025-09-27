@@ -14,6 +14,7 @@ const alertRoutes = require("./routes/alertRoutes");
 const verificationRoutes = require("./routes/verificationRoutes");
 const rescueFormRoutes = require("./routes/rescueFormRoutes");
 const postRescueRoutes = require("./routes/postRescueRoutes");
+const graphRoutes = require("./routes/graphRoutes");
 const {authMiddleware, requireRole} = require("./middleware/authMiddleware");
 
 // Test For Realtime
@@ -55,6 +56,7 @@ AppDataSource.initialize()
         app.use("/alerts", alertRoutes);
         app.use("/forms", rescueFormRoutes);
         app.use("/post", postRescueRoutes);
+        app.use("/", graphRoutes);
 
 
         const server = http.createServer(app);
