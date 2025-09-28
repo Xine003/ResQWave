@@ -7,7 +7,7 @@ import { MapPin, Plus, RefreshCcw, Trash, Upload, X } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import type { CommunityGroupDrawerProps } from "../types"
-import { CloseCreateDialog } from "./close-create-dialog"
+import { CloseCreateDialog } from "./CloseCreateDialog"
 
 export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGroupDrawerProps) {
   const initialFormData = useMemo(

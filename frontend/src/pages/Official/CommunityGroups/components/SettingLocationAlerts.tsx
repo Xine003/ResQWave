@@ -1,5 +1,5 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle2Icon, Info } from "lucide-react"
+import { CheckCircle2Icon, Info, MapPin } from "lucide-react"
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
 
 export type SettingLocationAlertsHandle = {
@@ -57,7 +57,7 @@ export default forwardRef<SettingLocationAlertsHandle, {}>(function SettingLocat
 			savedTimer.current = window.setTimeout(() => {
 				setShowSaved(false)
 				savedTimer.current = null
-			}, 4000)
+			}, 2000)
 		},
 		showBoundaryHint: () => {
 			// persist until boundary Save; no auto-dismiss
@@ -87,33 +87,47 @@ export default forwardRef<SettingLocationAlertsHandle, {}>(function SettingLocat
 
 		return (
 			<>
-				<div className={`absolute left-1/2 bottom-[30px] -translate-x-1/2 z-[100000] transition-all duration-200 ease-out ${showPin ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}`}>
-					<Alert className="min-w-[220px] max-w-[560px] bg-black border border-[#2a2a2a] text-white rounded-md">
-						<Info color="#3B82F6" />
-						<AlertDescription className="text-[13px] leading-tight whitespace-pre-wrap">{pinText}</AlertDescription>
+				<div className={`absolute left-1/2 min-h-5 bottom-[30px] p-3 -translate-x-1/2 z-[100000] transition-all duration-200 ease-out ${showPin ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}`}>
+					<Alert className="min-w-[220px] max-w-[560px] bg-[#171717]  border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+						<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-600/25">
+							<MapPin className="size-5 text-[#3B82F6]" />
+						</div>
+						<AlertDescription className="text-[13px] leading-tight whitespace-pre-wrap">
+							<span>{pinText}</span>
+						</AlertDescription>
 					</Alert>
 				</div>
 
 				<div className={`absolute left-1/2 bottom-[30px] -translate-x-1/2 z-[100000] transition-transform duration-300 ease-out ${showHint ? "translate-y-0" : "translate-y-28"}`}>
-					<Alert className="min-w-[420px] max-w-[600px] bg-black border border-[#2a2a2a] text-white rounded-md">
-						<Info color="#3B82F6" />
+					<Alert className="min-w-[420px] max-w-[600px] bg-[#171717]  border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+						<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-600/25">
+							<Info className="size-5 text-[#3B82F6]" />
+						</div>
 						<AlertDescription className="text-[13px] leading-snug">
-							<b>Note:</b> Click on the map to mark the corners of your community boundary. The border will connect automatically.
+							<span><b>Note:</b> Click on the map to mark the corners of your community boundary. The border will connect automatically.</span>
 						</AlertDescription>
 					</Alert>
 				</div>
 
 				<div className={`absolute left-1/2 bottom-[30px] -translate-x-1/2 z-[100000] transition-all duration-200 ease-out ${showValid ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}`}>
-					<Alert className="min-w-[220px] max-w-[360px] bg-black border border-[#2a2a2a] text-white rounded-md">
-						<CheckCircle2Icon color="#22c55e" />
-						<AlertDescription className="text-[13px] leading-tight"><b>Note:</b> {validMsg}</AlertDescription>
+					<Alert className="min-w-[220px] max-w-[360px] bg-[#171717]  border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+						<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-green-600/25">
+							<CheckCircle2Icon className="size-5 text-[#22c55e]" />
+						</div>
+						<AlertDescription className="text-[13px] leading-tight">
+							<span><b>Note:</b> {validMsg}</span>
+						</AlertDescription>
 					</Alert>
 				</div>
 
 				<div className={`absolute left-[30px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showSaved ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
-					<Alert className="min-w-[260px] max-w-[520px] bg-black border border-[#2a2a2a] text-white rounded-md">
-						<CheckCircle2Icon color="#22c55e" />
-						<AlertDescription className="text-[13px] leading-tight">Location set successfully! This is now the terminal's location.</AlertDescription>
+					<Alert className="min-w-[260px] max-w-[520px] bg-[#171717]  border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+						<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-green-600/25">
+							<CheckCircle2Icon className="size-5 text-[#22c55e]" />
+						</div>
+						<AlertDescription className="text-[13px] leading-tight">
+							<span>Location set successfully! This is now the terminal's location.</span>
+						</AlertDescription>
 					</Alert>
 				</div>
 			</>
