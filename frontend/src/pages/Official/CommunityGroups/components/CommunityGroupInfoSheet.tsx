@@ -1,41 +1,76 @@
-"use client"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { ExpandIcon } from "lucide-react"
+import { ExpandIcon, Minus, Plus, ZoomOut } from "lucide-react"
+import { useState } from "react"
 import type { CommunityGroupInfoSheetProps } from "../types"
 
 export function CommunityGroupInfoSheet({
   open,
   onOpenChange,
-  communityData = {
-    name: "Sicat Residence",
-    terminalId: "RSQW-001",
-    communityId: "COMGROUP-01",
-    individuals: 50,
-    families: 10,
-    kids: 5,
-    seniors: 50,
-    pwds: 10,
-    pregnantWomen: 5,
-    notableInfo: ["Prone to landslide and tree falling"],
-    focalPerson: {
-      name: "Gwyneth Uy",
-      photo:
-        "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-09-26%20174543-9whXfzMpPpWdgMCm7BU4C2kfRMU7dv.png",
-      contactNumber: "0905 3854 2034",
-      email: "uy.gwynethfabul@gmail.com",
-      houseAddress: "Block 1, Lot 17, Paraiso Rd, 1400",
-      coordinates: "14.774083, 121.042443",
-    },
-    alternativeFocalPerson: {
-      name: "Rodel Sustiguer",
-      contactNumber: "(+63) 905 3854 2034",
-      email: "sustiguer.rodel@gmail.com",
-    },
-  },
+  communityData,
 }: CommunityGroupInfoSheetProps) {
+  // Image viewer state
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null)
+
+  // Discrete zoom steps and class mappings (no inline styles)
+  const zoomSteps = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3] as const
+  type Zoom = (typeof zoomSteps)[number]
+  const [viewerZoom, setViewerZoom] = useState<Zoom>(1)
+  const zoomClassMap: Record<Zoom, string> = {
+    0.5: "scale-[0.5]",
+    0.75: "scale-[0.75]",
+    1: "scale-100",
+    1.25: "scale-[1.25]",
+    1.5: "scale-[1.5]",
+    1.75: "scale-[1.75]",
+    2: "scale-[2]",
+    2.5: "scale-[2.5]",
+    3: "scale-[3]",
+  }
+
+  function openViewer(url: string) {
+    setViewerUrl(url)
+    setViewerZoom(1)
+    setViewerOpen(true)
+  }
+  function closeViewer() {
+    setViewerOpen(false)
+    setViewerUrl(null)
+  }
+  function zoomIn() {
+    setViewerZoom((z) => {
+      const idx = zoomSteps.findIndex((s) => s === z)
+      return zoomSteps[Math.min(zoomSteps.length - 1, idx + 1)]
+    })
+  }
+  function zoomOut() {
+    setViewerZoom((z) => {
+      const idx = zoomSteps.findIndex((s) => s === z)
+      return zoomSteps[Math.max(0, idx - 1)]
+    })
+  }
+  function resetZoomAndClose() {
+    setViewerZoom(1)
+    setViewerOpen(false)
+    setViewerUrl(null)
+  }
+
+  // No data yet: don't render static fallback
+  if (!communityData) return null
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        // If the sheet tries to close while the viewer is open (e.g., outside click/Escape),
+        // close the viewer instead and keep the sheet open.
+        if (!next && viewerOpen) {
+          setViewerOpen(false)
+          return
+        }
+        onOpenChange(next)
+      }}
+    >
       <SheetContent
         side="right"
         className="w-full sm:w-[500px] bg-[#171717] border-[#2a2a2a] text-white p-0 overflow-y-auto rounded-[5px]"
@@ -116,29 +151,37 @@ export function CommunityGroupInfoSheet({
               <h3 className="font-medium text-xs">Focal Persons</h3>
             </div>
 
-            <Dialog>
-              <DialogTrigger asChild>
-                <div className="relative bg-gray-800 rounded-[5px] overflow-hidden cursor-pointer group">
-                  <img
-                    src={communityData.focalPerson.photo || "/placeholder.svg?height=200&width=400"}
-                    alt="Focal Person"
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute bottom-3 right-3 bg-white bg-opacity-20 group-hover:bg-opacity-30 p-2 rounded-[5px] transition-colors">
-                    <ExpandIcon className="w-4 h-4 text-white" />
-                  </div>
-                </div>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-black border-none">
-                <div className="relative w-full h-full flex items-center justify-center p-4">
-                  <img
-                    src={communityData.focalPerson.photo || "/placeholder.svg?height=600&width=800"}
-                    alt="Focal Person - Full Screen"
-                    className="max-w-[90vw] max-h-[80vh] w-auto h-auto object-contain rounded-[5px]"
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
+            {/* Image card with blurred background and expand button */}
+            <div className="bg-[#0b0b0b] rounded-[6px] flex justify-center mt-1">
+              <div className="relative w-full max-w-full h-60 rounded-[8px] overflow-hidden bg-[#111]">
+                {/* Blurred backdrop as image */}
+                <img
+                  src={communityData.focalPerson.photo || "/placeholder.svg?height=200&width=400"}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 w-full h-full object-cover filter blur-[18px] brightness-50 scale-[1.2]"
+                />
+                {/* Foreground image */}
+                <img
+                  src={communityData.focalPerson.photo || "/placeholder.svg?height=200&width=400"}
+                  alt="Focal Person"
+                  className="relative w-auto h-full max-w-[60%] m-auto block object-contain"
+                />
+                {/* Expand button */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    openViewer(
+                      communityData.focalPerson.photo || "/placeholder.svg?height=600&width=800"
+                    )
+                  }
+                  aria-label="Expand image"
+                  className="absolute right-3 bottom-3 w-9 h-9 rounded-[5px] bg-white text-black flex items-center justify-center shadow hover:bg-gray-100 active:scale-[0.98]"
+                >
+                  <ExpandIcon className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
 
             <div className="space-y-4">
               <div className="flex justify-between items-center">
@@ -185,6 +228,67 @@ export function CommunityGroupInfoSheet({
             </div>
           </div>
         </div>
+        {/* Fullscreen image viewer overlay (keeps sheet open) */}
+        {viewerOpen && viewerUrl && (
+          <div
+            onClick={closeViewer}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[100] bg-black/75 flex items-center justify-center"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="relative w-full h-full max-w-[900px] max-h-[70vh] flex items-center justify-center px-4"
+            >
+              <img
+                src={viewerUrl!}
+                alt="viewer"
+                className={`w-full h-full object-contain select-none transition-transform duration-150 ${zoomClassMap[viewerZoom]}`}
+                draggable={false}
+              />
+
+            </div>
+            {/* Toolbar: Zoom controls only */}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute left-1/2 -translate-x-1/2 bottom-16 flex items-center gap-3"
+            >
+              <div className="flex shadow-lg">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    zoomOut()
+                  }}
+                  className="bg-white text-black w-12 h-12 flex items-center justify-center border-r border-gray-200 rounded-l-md hover:bg-gray-50"
+                  aria-label="Zoom out"
+                >
+                  <Minus className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    resetZoomAndClose()
+                  }}
+                  className="bg-white text-black min-w-12 h-12 px-4 flex items-center justify-center border-x border-gray-200 hover:bg-gray-50 text-sm font-medium"
+                  aria-label="Reset zoom and close"
+                >
+                <ZoomOut className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    zoomIn()
+                  }}
+                  className="bg-white text-black w-12 h-12 flex items-center justify-center border-l border-gray-200 rounded-r-md hover:bg-gray-50"
+                  aria-label="Zoom in"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   )
