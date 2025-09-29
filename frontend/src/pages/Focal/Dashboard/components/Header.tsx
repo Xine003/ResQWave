@@ -188,7 +188,7 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                         />
                     </PopoverTrigger>
                     <PopoverContent align="end" sideOffset={13}>
-                        <PopoverItem icon={<User size={16} />}>
+                        <PopoverItem icon={<User size={16} />} onClick={() => { setPopoverOpen(false); onAccountSettingsClick?.(); }}>
                             Account Settings
                         </PopoverItem>
                         <PopoverItem icon={<BookOpen size={16} />}>
@@ -198,20 +198,6 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                         <PopoverItem destructive icon={<LogOut size={16} />}>
                             Logout
                         </PopoverItem>
-
-                    <PopoverContent align="end" style={{ background: "#181818", color: "#fff", minWidth: 200, borderRadius: 5, boxShadow: "0 4px 24px rgba(0,0,0,0.18)", padding: "1rem 0", marginTop: 13 }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                            <button onClick={() => { setPopoverOpen(false); onAccountSettingsClick?.(); }} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", color: "#fff", fontSize: 16, padding: "0.5rem 1.5rem", cursor: "pointer" }}>
-                                <User size={18} /> Account Settings
-                            </button>
-                            <button style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", color: "#fff", fontSize: 16, padding: "0.5rem 1.5rem", cursor: "pointer" }}>
-                                <BookOpen size={18} /> Logs
-                            </button>
-                            <hr style={{ border: "none", borderTop: "1px solid #222", margin: "0.5rem 0" }} />
-                            <button style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", color: "#F92626", fontSize: 16, padding: "0.5rem 1.5rem", cursor: "pointer", fontWeight: 500 }}>
-                                <LogOut size={18} /> Logout
-                            </button>
-                        </div>
                     </PopoverContent>
                 </Popover>
                 {/* Account modal is rendered by parent (Dashboard) to allow correct centering over map */}
