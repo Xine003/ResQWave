@@ -31,8 +31,8 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
         setPasswordsMatch(v.passwordsMatch);
     }, [newPassword, confirmPassword]);
 
-    // Clear all form fields and validation flags, then call parent's onClose
-    const handleClose = () => {
+    // form reset helper (run when fully unmounted)
+    const resetForm = () => {
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
@@ -45,30 +45,35 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
         setHasNumber(false);
         setHasSpecial(false);
         setPasswordsMatch(false);
-        try {
-            onClose && onClose();
-        } catch (e) {
-            // ignore
-        }
     };
 
-    // Also clear the form whenever the modal is closed via prop changes
+    // When user clicks the close button inside the modal, tell parent to close.
+    // Parent's change to `open` drives the exit animation below.
+    const handleClose = () => {
+        try { onClose && onClose(); } catch (e) { }
+    };
+
+    // Animation mount/show state
+    const ANIM_MS = 220;
+    const [mounted, setMounted] = useState(open);
+    const [visible, setVisible] = useState(open);
+
     useEffect(() => {
-        if (!open) {
-            // run same reset as handleClose but avoid calling onClose again
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-            setShowCurrent(false);
-            setShowNew(false);
-            setShowConfirm(false);
-            setHasMinLength(false);
-            setHasUpper(false);
-            setHasLower(false);
-            setHasNumber(false);
-            setHasSpecial(false);
-            setPasswordsMatch(false);
+        let t: any;
+        if (open) {
+            setMounted(true);
+            // next frame to allow CSS transition
+            requestAnimationFrame(() => setVisible(true));
+        } else {
+            // start exit animation
+            setVisible(false);
+            t = setTimeout(() => {
+                setMounted(false);
+                // only reset the form after we've finished animating out
+                resetForm();
+            }, ANIM_MS + 20);
         }
+        return () => { if (t) clearTimeout(t); };
     }, [open]);
 
     // expose dirty-check to parent via optional ref
@@ -77,7 +82,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
         isDirtyRef.current = () => isAccountFormDirty(currentPassword, newPassword, confirmPassword);
     }, [currentPassword, newPassword, confirmPassword, isDirtyRef]);
 
-    if (!open) return null;
+    if (!mounted) return null;
 
     // match History modal sizing: fixed height (85vh) and inner scroll area
     const baseStyle: any = {
@@ -99,9 +104,24 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
 
     const allRulesSatisfied = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial && passwordsMatch;
 
+    const overlayStyle: any = {
+        position: 'fixed', inset: 0, zIndex: 'var(--z-popover)',
+        background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
+        transition: `background ${ANIM_MS}ms ease`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+    };
+
+    const animatedModalStyle = {
+        ...modalStyle,
+        transition: `transform ${ANIM_MS}ms cubic-bezier(.2,.9,.3,1), opacity ${ANIM_MS}ms ease`,
+        transform: visible ? modalStyle.transform + ' scale(1)' : (modalStyle.transform + ' translateY(-8px) scale(0.98)'),
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? 'auto' : 'none',
+    };
+
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 'var(--z-popover)' }}>
-            <div style={modalStyle}>
+        <div style={overlayStyle}>
+            <div style={animatedModalStyle}>
                 <button onClick={handleClose} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer', transition: 'color 0.18s, transform 0.18s' }}>✕</button>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, zIndex: 2 }}>

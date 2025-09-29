@@ -572,9 +572,12 @@ export default function Dashboard() {
     }, [activeTab]);
 
     // When About's Edit button is clicked we close About and open the edit modal
+    // Wait for About's exit animation to finish before opening EditAbout so the fade-out is visible
+    const ANIM_MS = 220;
     const handleOpenEditAbout = () => {
         setAboutOpen(false);
-        setEditAboutOpen(true);
+        // open edit modal after about's exit animation completes
+        setTimeout(() => setEditAboutOpen(true), ANIM_MS + 15);
     };
 
     const handleCloseEditAbout = () => {

@@ -24,6 +24,19 @@ export type EditAboutHandle = {
 }
 
 const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, onSave, center = null }, ref) => {
+    const ANIM_MS = 220;
+    const [mounted, setMounted] = useState<boolean>(open);
+    const [visible, setVisible] = useState<boolean>(open);
+    useEffect(() => {
+        if (open) {
+            setMounted(true);
+            requestAnimationFrame(() => setVisible(true));
+        } else {
+            setVisible(false);
+            const t = setTimeout(() => setMounted(false), ANIM_MS);
+            return () => clearTimeout(t);
+        }
+    }, [open]);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -111,11 +124,28 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     const modalStyle: any = center
         ? { ...baseStyle, position: 'fixed', left: center.x, top: center.y, transform: 'translate(-50%, -50%)', background: '#171717' }
         : { ...baseStyle, position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#171717' };
-    if (!open) return null;
+    if (!mounted) return null;
+
+    const overlayStyle: any = {
+        position: 'fixed', inset: 0,
+        background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
+        zIndex: 'var(--z-popover)',
+        transition: `background ${ANIM_MS}ms ease`,
+        pointerEvents: visible ? 'auto' : 'none',
+    };
+
+    const animatedModalStyle: any = {
+        ...modalStyle,
+        opacity: visible ? 1 : 0,
+        transform: center
+            ? `translate(-50%, -50%) translateY(${visible ? '0' : '-8px'})`
+            : `${visible ? 'translateY(0)' : 'translateY(-8px)'}`,
+        transition: `opacity ${ANIM_MS}ms ease, transform ${ANIM_MS}ms cubic-bezier(.2,.9,.2,1)`,
+    };
 
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 'var(--z-popover)' }}>
-            <div style={modalStyle}>
+        <div style={overlayStyle}>
+            <div style={animatedModalStyle}>
                 <button onClick={() => setConfirmOpen(true)} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer' }}>✕</button>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>

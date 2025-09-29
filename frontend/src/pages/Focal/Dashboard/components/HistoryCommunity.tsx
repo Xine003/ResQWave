@@ -21,6 +21,19 @@ type HistoryModalProps = {
 const { sampleReports } = useSampleReports();
 
 export default function HistoryModal({ open, onClose, center = null }: HistoryModalProps) {
+    const ANIM_MS = 220;
+    const [mounted, setMounted] = useState<boolean>(open);
+    const [visible, setVisible] = useState<boolean>(open);
+    useEffect(() => {
+        if (open) {
+            setMounted(true);
+            requestAnimationFrame(() => setVisible(true));
+        } else {
+            setVisible(false);
+            const t = setTimeout(() => setMounted(false), ANIM_MS);
+            return () => clearTimeout(t);
+        }
+    }, [open]);
     const [query, setQuery] = useState('');
     const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
     const [selectedMonth, setSelectedMonth] = useState<string>('Month');
@@ -110,11 +123,16 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
         }
     }
 
-    // If parent changes `open` to false (modal closed), reset filters
+    // If parent changes `open` to false (modal closed), reset filters AFTER exit animation
     useEffect(() => {
+        // when 'open' becomes false, schedule reset after exit animation
         if (!open) {
-            resetFilters();
+            const t = setTimeout(() => {
+                try { resetFilters(); } catch (e) { }
+            }, ANIM_MS + 10);
+            return () => clearTimeout(t);
         }
+        return;
     }, [open]);
 
     // ensure expanded map defaults to open groups when modal opens
@@ -126,7 +144,7 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
         }
     }, [open]);
 
-    if (!open) return null;
+    if (!mounted) return null;
 
     const baseStyle: any = {
         width: 'min(780px, 96%)',
@@ -145,9 +163,26 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
         ? { ...baseStyle, position: 'fixed', left: center.x, top: center.y, transform: 'translate(-50%, -50%)', background: '#171717' }
         : { ...baseStyle, position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#171717' };
 
+    const overlayStyle: any = {
+        position: 'fixed', inset: 0,
+        background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
+        zIndex: 'var(--z-popover)',
+        transition: `background ${ANIM_MS}ms ease`,
+        pointerEvents: visible ? 'auto' : 'none',
+    };
+
+    const animatedModalStyle: any = {
+        ...modalStyle,
+        opacity: visible ? 1 : 0,
+        transform: center
+            ? `translate(-50%, -50%) translateY(${visible ? '0' : '-8px'})`
+            : `${visible ? 'translateY(0)' : 'translateY(-8px)'}`,
+        transition: `opacity ${ANIM_MS}ms ease, transform ${ANIM_MS}ms cubic-bezier(.2,.9,.2,1)`,
+    };
+
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 'var(--z-popover)' }}>
-            <div style={modalStyle}>
+        <div style={overlayStyle}>
+            <div style={animatedModalStyle}>
                 <style>{`
                     .history-modal-list::-webkit-scrollbar{display:none;} 
                     .history-modal-list{ -webkit-overflow-scrolling: touch; }
