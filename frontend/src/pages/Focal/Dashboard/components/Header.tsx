@@ -130,7 +130,7 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                             style={{
                                 color: "#fff",
                                 fontSize: "1rem",
-                                padding: "0.15rem 1.5rem",
+                                padding: "0.5rem 1.5rem",
                                 borderRadius: 4,
                                 transition: "background 0.2s",
                                 cursor: 'pointer'
