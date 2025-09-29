@@ -4,6 +4,7 @@ import { flyToSignal, cinematicMapEntrance } from './utils/flyingEffects';
 import Header from "./components/Header";
 import AboutCommunity from "./components/AboutCommunity";
 import EditAboutCommunity from "./components/EditAboutCommunity";
+import HistoryCommunity from "./components/HistoryCommunity";
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
@@ -502,6 +503,8 @@ export default function Dashboard() {
     const [aboutOpen, setAboutOpen] = useState(false);
     const [aboutCenter, setAboutCenter] = useState<{ x: number; y: number } | null>(null);
     const [editAboutOpen, setEditAboutOpen] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [historyCenter, setHistoryCenter] = useState<{ x: number; y: number } | null>(null);
     const editAboutRef = useRef<any>(null);
     const [activeTab, setActiveTab] = useState('community');
     const openAbout = () => {
@@ -520,11 +523,35 @@ export default function Dashboard() {
         setAboutOpen(true);
         setActiveTab('about');
     };
+    const openHistory = () => {
+        try {
+            const rect = mapContainer.current?.getBoundingClientRect();
+            if (rect) setHistoryCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+            else setHistoryCenter(null);
+        } catch (e) {
+            setHistoryCenter(null);
+        }
+        setAboutOpen(false);
+        setHistoryOpen(true);
+        setActiveTab('history');
+    };
     const closeAbout = () => { setAboutOpen(false); setActiveTab('community'); };
     const handleTabChange = (value: string) => {
         setActiveTab(value);
         if (value === 'community') closeAbout();
     };
+
+    // ensure when history tab is chosen we open the modal (tab component uses onTabChange)
+    useEffect(() => {
+        if (activeTab === 'history') openHistory();
+    }, [activeTab]);
+
+    // close history modal when About or Community tab becomes active
+    useEffect(() => {
+        if (activeTab === 'community' || activeTab === 'about') {
+            setHistoryOpen(false);
+        }
+    }, [activeTab]);
 
     // When About's Edit button is clicked we close About and open the edit modal
     const handleOpenEditAbout = () => {
@@ -580,10 +607,12 @@ export default function Dashboard() {
 
             <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
 
-            <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(data: any) => {
+            <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(_data: any) => {
                 // show the centered success alert with a custom message
                 try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch (e) { }
             }} center={aboutCenter} />
+
+            <HistoryCommunity open={historyOpen} onClose={() => { setHistoryOpen(false); setActiveTab('community'); }} center={historyCenter} />
 
             {/* Transient bottom-centered alert that slides up when editing community markers */}
             {/* centralized dashboard alerts (edit/valid/saved) */}

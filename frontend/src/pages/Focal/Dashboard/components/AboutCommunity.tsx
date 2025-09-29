@@ -79,7 +79,15 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 'var(--z-popover)' }}>
             <div style={modalStyle}>
                 {/* close X */}
-                <button onClick={onClose} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer' }}>✕</button>
+                <button onClick={onClose} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer' }}
+                    onMouseEnter={e => {
+                        e.currentTarget.style.color = '#fff';
+                        e.currentTarget.style.transform = 'scale(1.01)';
+                    }}
+                    onMouseLeave={e => {
+                        e.currentTarget.style.color = '#BABABA';
+                        e.currentTarget.style.transform = 'scale(1)';
+                    }}>✕</button>
 
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
