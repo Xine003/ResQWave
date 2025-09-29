@@ -1,22 +1,75 @@
-# Community Groups Components Refactor
+# Community Groups Components - Clean Architecture
 
-This directory contains the refactored components for the Community Groups feature, improving code organization, maintainability, and functionality.
+This directory contains the clean, simplified Community Groups feature with global state management.
 
 ## 📁 File Structure
 
 ```
 components/
-├── index.ts                              # Component exports
-├── CreateCommunityGroupSheetRefactored.tsx # Main form component (new)
-├── PhotoUploadAreaNew.tsx                # Multi-photo upload component (new)
-├── NumberInputWithSpinner.tsx            # Number input with spinner controls (new)
-├── NotableInfoInputs.tsx                 # Dynamic list inputs component (new)
-├── CreateCommunityGroupSheet.tsx         # Original complex component (legacy)
-└── PhotoUploadArea.tsx                   # Original single-photo component (legacy)
+├── CommunityGroupDrawer.tsx              # Main form component with global store
+├── PhotoUploadArea.tsx                   # Photo upload component
+├── NumberInputWithSpinner.tsx            # Number input with controls
+├── CloseCreateDialog.tsx                 # Confirmation dialog
+├── CommunityGroupInfoSheet.tsx           # Info display component
+├── DataTable.tsx                         # Data table component  
+├── Column.tsx                            # Table column definitions
+├── SettingLocationPage.tsx               # Location setting page
+├── SettingLocationControls.tsx           # Location controls
+└── SettingLocationAlerts.tsx             # Location alerts
 
 hooks/
-└── useFormPersistence.tsx                # Form persistence hook (new)
+├── useFormStore.ts                       # Global store hook
+├── useLocationPickerResults.ts           # Location picker integration
+└── useNotableInfoManagement.ts          # Notable info management
+
+store/
+└── formStore.ts                          # Global form state store
+
+types/
+└── [type definitions]                    # TypeScript type definitions
+
+utils/
+└── [utility functions]                   # Helper functions
 ```
+
+## 🏗️ Architecture
+
+### Global State Store Pattern
+- **`formStore.ts`**: Global JavaScript store that persists form data across navigation
+- **`useFormStore.ts`**: React hook that connects components to the global store
+- **No complex session management**: Data persists in memory during navigation
+
+### Key Benefits
+- ✅ **Form data persists** when navigating to location picker
+- ✅ **Photos remain uploaded** across navigation  
+- ✅ **Simple state management** with global store
+- ✅ **No serialization issues** with File objects
+- ✅ **Clean separation of concerns**
+
+## 🔄 Data Flow
+
+1. User fills form → Data stored in global store
+2. User navigates to location picker → Component unmounts but store persists
+3. User returns → Component remounts and connects to same store
+4. All data including photos are still available
+
+## 🧹 Cleanup Completed
+
+Removed unused files:
+- ❌ `CreateCommunityGroupSheetRefactored.tsx` (old complex version)
+- ❌ `CommunityGroupDrawerSimple.tsx` (context-based version)  
+- ❌ `CommunityGroupDrawerWrapper.tsx` (unnecessary wrapper)
+- ❌ `FormContext.tsx` (replaced by global store)
+- ❌ `useSessionRestore.ts` (no longer needed)
+- ❌ `useFormPersistence.tsx` (replaced by store)
+- ❌ `useFormInitialization.ts` (simplified)
+- ❌ `usePhotoManagement.ts` (moved to store)
+- ❌ `hooks/index.ts` (unused exports)
+- ❌ `context/` directory (no longer needed)
+
+## 🚀 Usage
+
+The main component is now `CommunityGroupDrawer` which uses the global store pattern for reliable form persistence across navigation.
 
 ## 🏗️ Refactored Components
 
