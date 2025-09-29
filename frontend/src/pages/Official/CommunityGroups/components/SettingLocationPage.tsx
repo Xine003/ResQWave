@@ -61,8 +61,8 @@ export default function SettingLocationPage() {
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: `mapbox://styles/mapbox/${baseStyle}`,
-      center: [121.0404, 14.77216],
-      zoom: 12,
+      center: [121.049366, 14.762601],
+      zoom: 13.5,
     })
     mapRef.current = map
     map.addControl(new mapboxgl.NavigationControl(), "top-right")

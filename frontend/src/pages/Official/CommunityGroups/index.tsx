@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { ArchiveRestore, Info, Trash2 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { createColumns, type CommunityGroup } from "./components/Column"
 import { CommunityGroupInfoSheet } from "./components/CommunityGroupInfoSheet"
 import { CommunityGroupDrawer } from "./components/CreateCommunityGroupSheet"
@@ -14,6 +15,7 @@ import type { CommunityGroupDetails } from "./types"
 
 const makeArchivedColumns = (
   onMoreInfo: (g: CommunityGroup) => void,
+  onRestore?: (g: CommunityGroup) => void,
   onDeletePermanent?: (g: CommunityGroup) => void
 ) => [
   ...createColumns({ onMoreInfo }).slice(0, -1), 
@@ -46,7 +48,10 @@ const makeArchivedColumns = (
           <Info className="mr-2 h-4 w-4 text-white" />
           <span className="text-sm">More Info</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+        <DropdownMenuItem 
+          onClick={(e) => { e.stopPropagation(); onRestore && onRestore(row.original) }}
+          className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+        >
           <ArchiveRestore className="mr-2 h-4 w-4 text-white" />
           <span className="text-sm">Restore</span>
         </DropdownMenuItem>
@@ -72,10 +77,14 @@ export function CommunityGroups() {
   const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>([])
   const [archivedGroups, setArchivedGroups] = useState<CommunityGroup[]>([])
   const [infoById, setInfoById] = useState<Record<string, CommunityGroupDetails>>({})
+  const [searchVisible, setSearchVisible] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [editingGroup, setEditingGroup] = useState<CommunityGroup | null>(null)
+  const [editData, setEditData] = useState<CommunityGroupDetails | undefined>(undefined)
 
   const generateCommunityId = () => `CG-${Date.now()}`
 
-  const handleMoreInfo = (group: CommunityGroup) => {
+  const handleMoreInfo = useCallback((group: CommunityGroup) => {
     const detailed = infoById[group.id]
     if (detailed) {
       setSelectedInfoData(detailed)
@@ -100,32 +109,86 @@ export function CommunityGroups() {
           coordinates: "",
         },
         alternativeFocalPerson: {
-          name: "",
-          contactNumber: "",
-          email: "",
+          altName: "",
+          altContactNumber: "",
+          altEmail: "",
         },
       })
     }
     setInfoOpen(true)
-  }
+  }, [infoById])
 
-  const handleArchive = (group: CommunityGroup) => {
+  const handleArchive = useCallback((group: CommunityGroup) => {
     setActiveGroups((prev) => prev.filter((g) => g.id !== group.id))
     setArchivedGroups((prev) => [group, ...prev])
-  }
+  }, [])
 
-  const handleDeletePermanent = (group: CommunityGroup) => {
+  const handleRestore = useCallback((group: CommunityGroup) => {
+    setArchivedGroups((prev) => prev.filter((g) => g.id !== group.id))
+    setActiveGroups((prev) => [group, ...prev])
+  }, [])
+
+  const handleDeletePermanent = useCallback((group: CommunityGroup) => {
     setArchivedGroups((prev) => prev.filter((g) => g.id !== group.id))
     setInfoById((prev) => {
       const { [group.id]: _omit, ...rest } = prev
       return rest
     })
+  }, [])
+
+  const handleEdit = useCallback((group: CommunityGroup) => {
+    setEditingGroup(group)
+    
+    // Get the detailed info for this group, or create default data
+    const detailed = infoById[group.id] || {
+      name: group.name,
+      terminalId: group.id.replace("CG-", "RSQW-"),
+      communityId: group.id,
+      individuals: 0,
+      families: 0,
+      kids: 0,
+      seniors: 0,
+      pwds: 0,
+      pregnantWomen: 0,
+      notableInfo: [],
+      focalPerson: {
+        name: group.focalPerson,
+        contactNumber: group.contactNumber,
+        email: "",
+        houseAddress: group.address,
+        coordinates: "",
+      },
+      alternativeFocalPerson: {
+        name: "",
+        contactNumber: "",
+        email: "",
+      },
+    }
+    
+    setEditData(detailed)
+    setDrawerOpen(true)
+  }, [infoById])
+
+  const activeColumns = useMemo(() => createColumns({ onMoreInfo: handleMoreInfo, onEdit: handleEdit, onArchive: handleArchive }), [handleMoreInfo, handleEdit, handleArchive])
+  const archivedColumns = useMemo(() => makeArchivedColumns(handleMoreInfo, handleRestore, handleDeletePermanent), [handleMoreInfo, handleRestore, handleDeletePermanent])
+
+  // Filter function for search
+  const filterGroups = (groups: CommunityGroup[]) => {
+    if (!searchQuery.trim()) return groups
+    
+    return groups.filter((group) =>
+      group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      group.focalPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      group.contactNumber.includes(searchQuery) ||
+      group.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      group.id.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   }
 
-  const activeColumns = useMemo(() => createColumns({ onMoreInfo: handleMoreInfo, onArchive: handleArchive }), [infoById])
-  const archivedColumns = useMemo(() => makeArchivedColumns(handleMoreInfo, handleDeletePermanent), [infoById])
+  const filteredActiveGroups = filterGroups(activeGroups)
+  const filteredArchivedGroups = filterGroups(archivedGroups)
 
-  const tableData = activeTab === "active" ? activeGroups : archivedGroups
+  const tableData = activeTab === "active" ? filteredActiveGroups : filteredArchivedGroups
   const tableColumns = activeTab === "active" ? activeColumns : archivedColumns
 
   // Reopen the drawer automatically if we return from the map flow
@@ -136,6 +199,28 @@ export function CommunityGroups() {
         if (flag === "1") {
           setDrawerOpen(true)
           // Do not clear here; let the drawer clear when saving/closing intentionally
+          
+          // Also restore edit state if it was persisted
+          const snapshot = sessionStorage.getItem("cg_form_snapshot")
+          if (snapshot) {
+            try {
+              const snap = JSON.parse(snapshot)
+              if (snap?.isEditing && snap?.editData) {
+                setEditingGroup(snap.editData?.communityId ? {
+                  id: snap.editData.communityId,
+                  name: snap.editData.name || "",
+                  status: "OFFLINE" as const,
+                  focalPerson: snap.editData.focalPerson?.name || "",
+                  contactNumber: snap.editData.focalPerson?.contactNumber || "",
+                  address: snap.editData.address || snap.editData.focalPerson?.houseAddress || "",
+                  registeredAt: new Date().toLocaleDateString(),
+                } : null)
+                setEditData(snap.editData)
+              }
+            } catch {
+              // Ignore malformed data
+            }
+          }
         }
       } catch {}
     }
@@ -174,7 +259,27 @@ export function CommunityGroups() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-[#a1a1a1] hover:text-white hover:bg-[#262626]">
+            {searchVisible && (
+              <Input
+                type="text"
+                placeholder="Search community groups..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64 bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4]"
+                autoFocus
+              />
+            )}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={`text-[#a1a1a1] hover:text-white hover:bg-[#262626] ${searchVisible ? 'bg-[#262626] text-white' : ''}`}
+              onClick={() => {
+                setSearchVisible(!searchVisible)
+                if (searchVisible) {
+                  setSearchQuery("")
+                }
+              }}
+            >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -184,7 +289,11 @@ export function CommunityGroups() {
                 />
               </svg>
             </Button>
-            <Button onClick={() => setDrawerOpen(true)} className="bg-[#4285f4] hover:bg-[#3367d6] text-white px-4 py-2 rounded-[5px] flex items-center gap-2">
+            <Button onClick={() => {
+              setEditingGroup(null)
+              setEditData(undefined)
+              setDrawerOpen(true)
+            }} className="bg-[#4285f4] hover:bg-[#3367d6] text-white px-4 py-2 rounded-[5px] flex items-center gap-2">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -192,24 +301,62 @@ export function CommunityGroups() {
             </Button>
             <CommunityGroupDrawer
               open={drawerOpen}
-              onOpenChange={setDrawerOpen}
-              onSave={(infoData) => {
-                // Add to table with a generated ID and show the info sheet
-                const newId = generateCommunityId()
-                const row: CommunityGroup = {
-                  id: newId,
-                  name: infoData.name,
-                  status: "OFFLINE",
-                  focalPerson: infoData.focalPerson.name,
-                  contactNumber: infoData.focalPerson.contactNumber,
-                  address: infoData.address || infoData.focalPerson.houseAddress,
-                  registeredAt: new Date().toLocaleDateString(),
+              onOpenChange={(open) => {
+                setDrawerOpen(open)
+                if (!open) {
+                  // Clear edit state when closing
+                  setEditingGroup(null)
+                  setEditData(undefined)
                 }
-                setActiveGroups((prev) => [row, ...prev])
-                const fullInfo = { ...infoData, communityId: newId }
-                setInfoById((prev) => ({ ...prev, [newId]: fullInfo }))
-                setSelectedInfoData(fullInfo)
-                setInfoOpen(true)
+              }}
+              editData={editData}
+              isEditing={!!editingGroup}
+              onSave={(infoData) => {
+                if (editingGroup) {
+                  // Update existing group
+                  const updatedRow: CommunityGroup = {
+                    ...editingGroup,
+                    name: infoData.name,
+                    focalPerson: infoData.focalPerson.name,
+                    contactNumber: infoData.focalPerson.contactNumber,
+                    address: infoData.address || infoData.focalPerson.houseAddress,
+                  }
+                  
+                  // Update in the appropriate list (active or archived)
+                  setActiveGroups((prev) => 
+                    prev.map((group) => group.id === editingGroup.id ? updatedRow : group)
+                  )
+                  setArchivedGroups((prev) => 
+                    prev.map((group) => group.id === editingGroup.id ? updatedRow : group)
+                  )
+                  
+                  // Update detailed info
+                  const fullInfo = { ...infoData, communityId: editingGroup.id }
+                  setInfoById((prev) => ({ ...prev, [editingGroup.id]: fullInfo }))
+                  setSelectedInfoData(fullInfo)
+                  setInfoOpen(true)
+                  
+                  // Clear edit state
+                  setEditingGroup(null)
+                  setEditData(undefined)
+                } else {
+                  // Add new group (existing logic)
+                  const newId = generateCommunityId()
+                  const row: CommunityGroup = {
+                    id: newId,
+                    name: infoData.name,
+                    status: "OFFLINE",
+                    focalPerson: infoData.focalPerson.name,
+                    contactNumber: infoData.focalPerson.contactNumber,
+                    address: infoData.address || infoData.focalPerson.houseAddress,
+                    registeredAt: new Date().toLocaleDateString(),
+                  }
+                  setActiveGroups((prev) => [row, ...prev])
+                  const fullInfo = { ...infoData, communityId: newId }
+                  setInfoById((prev) => ({ ...prev, [newId]: fullInfo }))
+                  setSelectedInfoData(fullInfo)
+                  setInfoOpen(true)
+                }
               }}
             />
           </div>

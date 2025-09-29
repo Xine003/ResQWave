@@ -108,7 +108,7 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
   {
     accessorKey: "address",
     header: "Address",
-    cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("address")}</div>,
+    cell: ({ row }) => <div className="text-[#a1a1a1] truncate max-w-[200px]">{row.getValue("address")}</div>,
   },
   {
     accessorKey: "registeredAt",
@@ -177,21 +177,36 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
           <Info className="mr-2 h-4 w-4 text-white" />
           <span>More Info</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
-          <Edit className="mr-2 h-4 w-4 text-white" />
-          <span>Edit</span>
-        </DropdownMenuItem>
+        
+        {/* Show Edit only if onEdit callback is provided (typically for archived groups) */}
+        {opts.onEdit && (
+          <DropdownMenuItem 
+            onClick={(e) => {
+              e.stopPropagation()
+              opts.onEdit?.(row.original)
+            }}
+            className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+          >
+            <Edit className="mr-2 h-4 w-4 text-white" />
+            <span>Edit</span>
+          </DropdownMenuItem>
+        )}
+        
         <DropdownMenuSeparator className="bg-[#404040]" />
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.stopPropagation()
-            opts.onArchive?.(row.original)
-          }}
-          className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000]"
-        >
-          <Archive className="mr-2 h-4 w-4 text-[#FF0000]" />
-          <span>Archive</span>
-        </DropdownMenuItem>
+        
+        {/* Show Archive only if onArchive callback is provided (typically for active groups) */}
+        {opts.onArchive && (
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation()
+              opts.onArchive?.(row.original)
+            }}
+            className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000]"
+          >
+            <Archive className="mr-2 h-4 w-4 text-[#FF0000]" />
+            <span>Archive</span>
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
         </DropdownMenu>
       )

@@ -3,13 +3,98 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { ChevronDown, ChevronUp, MapPin, Plus, RefreshCcw, Trash, Upload, X } from "lucide-react"
+import { ChevronDown, ChevronUp, Map, Plus, RefreshCcw, Trash, Upload, X } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import type { CommunityGroupDrawerProps } from "../types"
 import { CloseCreateDialog } from "./CloseCreateDialog"
 
-export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGroupDrawerProps) {
+export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isEditing }: CommunityGroupDrawerProps) {
+  
+  // Add a more explicit restoration function
+  const restoreFromSession = useCallback(async () => {
+    try {
+      const snapRaw = sessionStorage.getItem("cg_form_snapshot")
+      console.log("🔍 Explicit restore check. Found snapshot:", !!snapRaw)
+      
+      if (!snapRaw) return false
+      
+      const snap = JSON.parse(snapRaw)
+      if (!snap?.formData) return false
+      
+      console.log("🔄 Explicitly restoring session data...")
+      
+      // Convert base64 strings back to File objects
+      const convertBase64ToFile = (base64: string, fileName: string): File => {
+        const arr = base64.split(',')
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg'
+        const bstr = atob(arr[1])
+        let n = bstr.length
+        const u8arr = new Uint8Array(n)
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n)
+        }
+        return new File([u8arr], fileName, { type: mime })
+      }
+
+      const restoredFormData = { ...snap.formData }
+      
+      // Handle photo restoration
+      const restoredPhotoUrls = { focalPersonPhoto: null as string | null, altFocalPersonPhoto: null as string | null }
+      
+      // Convert base64 photos back to File objects and create new object URLs for display
+      if (restoredFormData.focalPersonPhoto && typeof restoredFormData.focalPersonPhoto === 'string') {
+        const focalFile = convertBase64ToFile(restoredFormData.focalPersonPhoto, 'focal-person-photo.jpg')
+        restoredFormData.focalPersonPhoto = focalFile
+        // Create a new object URL for display (not the base64 string)
+        restoredPhotoUrls.focalPersonPhoto = URL.createObjectURL(focalFile)
+      }
+      
+      if (restoredFormData.altFocalPersonPhoto && typeof restoredFormData.altFocalPersonPhoto === 'string') {
+        const altFile = convertBase64ToFile(restoredFormData.altFocalPersonPhoto, 'alt-focal-person-photo.jpg')
+        restoredFormData.altFocalPersonPhoto = altFile
+        // Create a new object URL for display (not the base64 string)
+        restoredPhotoUrls.altFocalPersonPhoto = URL.createObjectURL(altFile)
+      }
+
+      setFormData(restoredFormData)
+      
+      // Use the newly created object URLs for display
+      const finalPhotoUrls = {
+        focalPersonPhoto: restoredPhotoUrls.focalPersonPhoto,
+        altFocalPersonPhoto: restoredPhotoUrls.altFocalPersonPhoto
+      }
+      setPhotoUrls(finalPhotoUrls)
+      
+      if (Array.isArray(snap?.notableInfoInputs)) setNotableInfoInputs(snap.notableInfoInputs)
+      if (typeof snap?.isDirty === 'boolean') setIsDirty(snap.isDirty)
+      
+      // Clear snapshot
+      sessionStorage.removeItem("cg_form_snapshot")
+      
+      console.log("✅ Explicit restore completed:", {
+        communityName: restoredFormData.communityGroupName,
+        hasPhotos: !!(finalPhotoUrls.focalPersonPhoto || finalPhotoUrls.altFocalPersonPhoto),
+        photoDetails: {
+          focalPersonPhoto: {
+            hasFile: !!restoredFormData.focalPersonPhoto,
+            hasUrl: !!finalPhotoUrls.focalPersonPhoto,
+            urlType: finalPhotoUrls.focalPersonPhoto?.startsWith('blob:') ? 'blob' : finalPhotoUrls.focalPersonPhoto?.startsWith('data:') ? 'base64' : 'unknown'
+          },
+          altFocalPersonPhoto: {
+            hasFile: !!restoredFormData.altFocalPersonPhoto,
+            hasUrl: !!finalPhotoUrls.altFocalPersonPhoto,
+            urlType: finalPhotoUrls.altFocalPersonPhoto?.startsWith('blob:') ? 'blob' : finalPhotoUrls.altFocalPersonPhoto?.startsWith('data:') ? 'base64' : 'unknown'
+          }
+        }
+      })
+      
+      return true
+    } catch (error) {
+      console.error("❌ Explicit restore failed:", error)
+      return false
+    }
+  }, [])
   const initialFormData = useMemo(
     () => ({
       assignedTerminal: "",
@@ -37,6 +122,13 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
   )
 
   const [formData, setFormData] = useState(initialFormData)
+  const [photoUrls, setPhotoUrls] = useState<{
+    focalPersonPhoto: string | null
+    altFocalPersonPhoto: string | null
+  }>({
+    focalPersonPhoto: null,
+    altFocalPersonPhoto: null
+  })
 
   const [notableInfoInputs, setNotableInfoInputs] = useState<string[]>([])
   const [isDirty, setIsDirty] = useState(false)
@@ -44,23 +136,70 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
   const navigate = useNavigate()
 
   // Persist current form state before navigating to the map so we can restore it afterwards
-  const persistFormSnapshot = useCallback(() => {
+  const persistFormSnapshot = useCallback(async () => {
     try {
-      // Avoid serializing File objects; store them as null in the snapshot
-      const { focalPersonPhoto: _fp, altFocalPersonPhoto: _afp, ...rest } = formData as any
-      const safeForm = { ...rest, focalPersonPhoto: null, altFocalPersonPhoto: null }
-      const snapshot = JSON.stringify({ formData: safeForm, notableInfoInputs })
+      // Convert File objects to base64 strings for serialization
+      const convertFileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+      }
+
+      const focalPersonPhotoBase64 = formData.focalPersonPhoto 
+        ? await convertFileToBase64(formData.focalPersonPhoto)
+        : null
+      
+      const altFocalPersonPhotoBase64 = formData.altFocalPersonPhoto 
+        ? await convertFileToBase64(formData.altFocalPersonPhoto)
+        : null
+
+      const safeForm = {
+        ...formData,
+        focalPersonPhoto: focalPersonPhotoBase64,
+        altFocalPersonPhoto: altFocalPersonPhotoBase64
+      }
+      
+      // Also persist photo URLs and other state
+      const snapshot = JSON.stringify({ 
+        formData: safeForm, 
+        notableInfoInputs,
+        photoUrls: {
+          focalPersonPhoto: photoUrls.focalPersonPhoto,
+          altFocalPersonPhoto: photoUrls.altFocalPersonPhoto
+        },
+        isDirty,
+        isEditing,
+        editData
+      })
+      
       sessionStorage.setItem("cg_form_snapshot", snapshot)
       sessionStorage.setItem("cg_reopen_sheet", "1")
-    } catch {}
-  }, [formData, notableInfoInputs])
+      
+      console.log("✅ Persisted form snapshot with", Object.keys(safeForm).length, "form fields and", notableInfoInputs.length, "notable info inputs")
+      console.log("📋 Snapshot includes:", {
+        hasFormData: !!snapshot.includes('formData'),
+        hasPhotos: !!(focalPersonPhotoBase64 || altFocalPersonPhotoBase64),
+        hasBoundary: !!formData.boundaryGeoJSON,
+        notableInfoCount: notableInfoInputs.length,
+        isEditing,
+        communityName: formData.communityGroupName
+      })
+    } catch (error) {
+      console.error("❌ Failed to persist form snapshot:", error)
+    }
+  }, [formData, notableInfoInputs, photoUrls, isDirty, isEditing, editData])
 
-  const openAddressPicker = () => {
-    persistFormSnapshot()
+  const openAddressPicker = async () => {
+    console.log("Opening address picker, persisting form data...")
+    await persistFormSnapshot()
     navigate("/community-groups/setting-location")
   }
-  const openCoordinatesDrawer = () => {
-    persistFormSnapshot()
+  const openCoordinatesDrawer = async () => {
+    console.log("Opening coordinates drawer, persisting form data...")
+    await persistFormSnapshot()
     navigate("/community-groups/setting-location")
   }
 
@@ -75,10 +214,47 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
   }, [formData.boundaryGeoJSON])
 
   const resetForm = useCallback(() => {
+    // Clean up any existing photo URLs (both blob URLs and object URLs)
+    setPhotoUrls((currentUrls) => {
+      if (currentUrls.focalPersonPhoto && 
+          (currentUrls.focalPersonPhoto.startsWith('blob:') || 
+           (!currentUrls.focalPersonPhoto.startsWith('data:') && currentUrls.focalPersonPhoto.includes('blob')))) {
+        try {
+          URL.revokeObjectURL(currentUrls.focalPersonPhoto)
+          console.log("🧹 Cleaned up focal person photo URL")
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      if (currentUrls.altFocalPersonPhoto && 
+          (currentUrls.altFocalPersonPhoto.startsWith('blob:') || 
+           (!currentUrls.altFocalPersonPhoto.startsWith('data:') && currentUrls.altFocalPersonPhoto.includes('blob')))) {
+        try {
+          URL.revokeObjectURL(currentUrls.altFocalPersonPhoto)
+          console.log("🧹 Cleaned up alt focal person photo URL")
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      return { focalPersonPhoto: null, altFocalPersonPhoto: null }
+    })
+    
     setFormData(initialFormData)
     setNotableInfoInputs([])
     setIsDirty(false)
   }, [initialFormData])
+
+  // Reset form when not editing and drawer opens (but not if there's a session to restore)
+  useEffect(() => {
+    if (open && !isEditing && !hasInitializedRef.current) {
+      // Check if there's a session snapshot that should be restored instead
+      const hasSnapshot = sessionStorage.getItem("cg_form_snapshot")
+      if (!hasSnapshot) {
+        resetForm()
+        hasInitializedRef.current = true
+      }
+    }
+  }, [open, isEditing, resetForm])
 
   const handleNumberChange = useCallback((field: string, value: string) => {
     // Store the raw string value temporarily to allow multi-digit typing
@@ -89,29 +265,92 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
 
   const handleFileUpload = (field: "focalPersonPhoto" | "altFocalPersonPhoto", file: File | null) => {
     setFormData((prev) => ({ ...prev, [field]: file }))
+    
+    // Create and store the photo URL for display
+    if (file) {
+      const url = URL.createObjectURL(file)
+      setPhotoUrls((prev) => ({ ...prev, [field]: url }))
+    } else {
+      // Clean up existing URL and remove it
+      if (photoUrls[field]) {
+        URL.revokeObjectURL(photoUrls[field]!)
+      }
+      setPhotoUrls((prev) => ({ ...prev, [field]: null }))
+    }
+    
     setIsDirty(true)
   }
 
-  // Restore form snapshot and consume map pick result after returning from SettingLocation
+  // Track initialization state to prevent conflicts between session restoration and pre-filling
+  const hasInitializedRef = useRef(false)
+  const sessionRestoredRef = useRef(false)
+  
+  // Primary initialization effect - handles both session restore and pre-fill
   useEffect(() => {
-    const restoreAndConsume = () => {
+    if (!open || hasInitializedRef.current) return
+    
+    console.log("🚀 Primary initialization effect triggered")
+    
+    const initialize = async () => {
+      // First, try to restore from session
+      const restored = await restoreFromSession()
+      
+      if (restored) {
+        sessionRestoredRef.current = true
+        hasInitializedRef.current = true
+        console.log("✅ Initialized via session restoration")
+      } else if (isEditing && editData) {
+        // If no session data and we're editing, pre-fill
+        console.log("📝 No session data, pre-filling edit data")
+        setFormData({
+          assignedTerminal: editData.terminalId || "",
+          communityGroupName: editData.name || "",
+          totalIndividuals: editData.individuals || 0,
+          totalFamilies: editData.families || 0,
+          totalKids: editData.kids || 0,
+          totalSeniorCitizen: editData.seniors || 0,
+          totalPregnantWomen: editData.pregnantWomen || 0,
+          totalPWDs: editData.pwds || 0,
+          focalPersonPhoto: null,
+          focalPersonName: editData.focalPerson?.name || "",
+          focalPersonContact: editData.focalPerson?.contactNumber || "",
+          focalPersonEmail: editData.focalPerson?.email || "",
+          focalPersonAddress: editData.focalPerson?.houseAddress || editData.address || "",
+          focalPersonCoordinates: editData.focalPerson?.coordinates || "",
+          altFocalPersonPhoto: null,
+          altFocalPersonName: editData.alternativeFocalPerson?.altName || "",
+          altFocalPersonContact: editData.alternativeFocalPerson?.altContactNumber || "",
+          altFocalPersonEmail: editData.alternativeFocalPerson?.altEmail || "",
+          boundaryGeoJSON: editData.boundary ? JSON.stringify(editData.boundary) : "",
+        })
+        setNotableInfoInputs(editData.notableInfo?.length > 0 ? editData.notableInfo : [""])
+        setIsDirty(false)
+        hasInitializedRef.current = true
+        console.log("✅ Initialized via pre-fill")
+      } else if (!isEditing) {
+        // If creating new, reset form
+        console.log("🆕 Creating new, resetting form")
+        resetForm()
+        hasInitializedRef.current = true
+        console.log("✅ Initialized via reset")
+      }
+    }
+    
+    initialize()
+  }, [open, isEditing, editData, restoreFromSession, resetForm])
+  
+  // Handle location picker results whenever drawer is open
+  useEffect(() => {
+    if (!open) return
+    
+    const consumePickResult = () => {
       try {
-        // Restore snapshot first (one-time)
-        const snapRaw = sessionStorage.getItem("cg_form_snapshot")
-        if (snapRaw) {
-          const snap = JSON.parse(snapRaw)
-          if (snap?.formData) setFormData((prev) => ({ ...prev, ...snap.formData }))
-          if (Array.isArray(snap?.notableInfoInputs)) setNotableInfoInputs(snap.notableInfoInputs)
-          setIsDirty(true)
-          // Clear snapshot so it won't overwrite again unintentionally
-          sessionStorage.removeItem("cg_form_snapshot")
-        }
-
-        // Then consume any pick result
         const raw = sessionStorage.getItem("cg_pick_result")
         if (raw) {
           sessionStorage.removeItem("cg_pick_result")
           const parsed = JSON.parse(raw)
+          console.log("🗺️ Consuming pick result:", parsed)
+          
           if (parsed?.type === "both") {
             const point = parsed?.data?.point
             const line = parsed?.data?.line
@@ -143,16 +382,29 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
               setIsDirty(true)
             }
           }
+          
+          console.log("✅ Pick result consumed successfully")
         }
-      } catch {
-        // ignore malformed session data
+      } catch (error) {
+        console.error("❌ Failed to consume pick result:", error)
       }
     }
+    
+    consumePickResult()
+    window.addEventListener("focus", consumePickResult)
+    return () => window.removeEventListener("focus", consumePickResult)
+  }, [open])
+  
+  // Reset initialization state when drawer closes
+  useEffect(() => {
+    if (!open) {
+      hasInitializedRef.current = false
+      sessionRestoredRef.current = false
+      console.log("🔄 Reset initialization state (drawer closed)")
+    }
+  }, [open])
 
-    restoreAndConsume()
-    window.addEventListener("focus", restoreAndConsume)
-    return () => window.removeEventListener("focus", restoreAndConsume)
-  }, [])
+
 
   const addNotableInfoInput = () => {
     setNotableInfoInputs((prev) => [...prev, ""]) 
@@ -202,24 +454,58 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
     inputId,
     photo,
     onDelete,
+    photoUrlKey,
   }: {
     inputId: string
     photo: File | null
     onDelete: () => void
+    photoUrlKey: 'focalPersonPhoto' | 'altFocalPersonPhoto'
   }) => {
-    // Memoize the photo URL to prevent re-creation on every render
+    // Use the stored photo URL if available, otherwise create from file
     const photoUrl = useMemo(() => {
-      return photo ? URL.createObjectURL(photo) : null
-    }, [photo])
+      console.log(`🖼️ PhotoUploadArea[${photoUrlKey}] - determining URL:`, {
+        hasStoredUrl: !!photoUrls[photoUrlKey],
+        storedUrlType: photoUrls[photoUrlKey]?.startsWith('blob:') ? 'blob' : photoUrls[photoUrlKey]?.startsWith('data:') ? 'base64' : 'none',
+        hasFile: !!photo,
+        photoUrls: photoUrls[photoUrlKey]
+      })
+      
+      // First priority: use the stored URL (for restored photos or manually set URLs)
+      if (photoUrls[photoUrlKey]) {
+        console.log(`✅ Using stored URL for ${photoUrlKey}:`, photoUrls[photoUrlKey].substring(0, 50) + '...')
+        return photoUrls[photoUrlKey]
+      }
+      
+      // Second priority: create from file (for newly uploaded photos)
+      if (!photo) {
+        console.log(`ℹ️ No photo file or stored URL for ${photoUrlKey}`)
+        return null
+      }
+      
+      try {
+        const newUrl = URL.createObjectURL(photo)
+        console.log(`🆕 Created new object URL for ${photoUrlKey}:`, newUrl)
+        return newUrl
+      } catch (error) {
+        console.error(`❌ Failed to create object URL for ${photoUrlKey}:`, error)
+        return null
+      }
+    }, [photo, photoUrlKey, photoUrls])
 
     // Clean up the object URL when component unmounts or photo changes
     useEffect(() => {
       return () => {
-        if (photoUrl) {
-          URL.revokeObjectURL(photoUrl)
+        if (photoUrl && photoUrl.startsWith('blob:') && !photoUrls[photoUrlKey]) {
+          // Only revoke blob URLs we created temporarily, not the stored URLs
+          try {
+            URL.revokeObjectURL(photoUrl)
+            console.log(`🧹 Cleaned up temporary blob URL for ${photoUrlKey}`)
+          } catch (e) {
+            // Ignore cleanup errors
+          }
         }
       }
-    }, [photoUrl])
+    }, [photoUrl, photoUrlKey, photoUrls])
 
     return (
       <div className="relative">
@@ -510,7 +796,9 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
       >
         <SheetHeader className="px-6 py-4 border-b border-[#2a2a2a]">
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-white text-lg font-medium">New Community Group</SheetTitle>
+            <SheetTitle className="text-white text-lg font-medium">
+              {isEditing ? "Edit Community Group" : "New Community Group"}
+            </SheetTitle>
           </div>
         </SheetHeader>
 
@@ -665,6 +953,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
               inputId="focal-photo-upload"
               photo={formData.focalPersonPhoto}
               onDelete={() => handleFileUpload("focalPersonPhoto", null)}
+              photoUrlKey="focalPersonPhoto"
             />
             <input
               id="focal-photo-upload"
@@ -730,7 +1019,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
                 >
                   {formData.focalPersonAddress}
                 </button>
-                <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <Map className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"/>
               </div>
             </div>
 
@@ -755,6 +1044,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
               inputId="alt-focal-photo-upload"
               photo={formData.altFocalPersonPhoto}
               onDelete={() => handleFileUpload("altFocalPersonPhoto", null)}
+              photoUrlKey="altFocalPersonPhoto"
             />
             <input
               id="alt-focal-photo-upload"
@@ -863,9 +1153,9 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
                     coordinates: formData.focalPersonCoordinates,
                   },
                   alternativeFocalPerson: {
-                    name: formData.altFocalPersonName,
-                    contactNumber: formData.altFocalPersonContact,
-                    email: formData.altFocalPersonEmail,
+                    altName: formData.altFocalPersonName,
+                    altContactNumber: formData.altFocalPersonContact,
+                    altEmail: formData.altFocalPersonEmail,
                   },
                 }
                 onSave?.(infoData)
@@ -880,7 +1170,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave }: CommunityGr
               }}
               className="flex-1 bg-[#4285f4] hover:bg-[#3367d6] text-white rounded-[5px]"
             >
-              Save
+              {isEditing ? "Update" : "Save"}
             </Button>
           </div>
         </div>

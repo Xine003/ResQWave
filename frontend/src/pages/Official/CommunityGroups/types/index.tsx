@@ -17,6 +17,7 @@ export type CommunityGroup = {
 
 export interface CommunityColumnsOptions {
   onMoreInfo: (group: CommunityGroup) => void
+  onEdit?: (group: CommunityGroup) => void
   onArchive?: (group: CommunityGroup) => void
 }
 
@@ -50,9 +51,9 @@ export interface FocalPerson {
 }
 
 export interface AlternativeFocalPerson {
-  name: string
-  contactNumber: string
-  email: string
+  altName: string
+  altContactNumber: string
+  altEmail: string
 }
 
 export interface CommunityGroupDetails {
@@ -85,6 +86,8 @@ export interface CommunityGroupDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSave?: (infoData: CommunityGroupDetails) => void
+  editData?: CommunityGroupDetails // Data to pre-fill when editing
+  isEditing?: boolean // Flag to indicate edit mode
 }
 
 export interface CommunityGroupInfoSheetProps {
