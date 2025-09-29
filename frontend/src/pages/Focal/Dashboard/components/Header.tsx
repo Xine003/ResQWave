@@ -1,4 +1,5 @@
 // React import not required directly here
+import { useState } from 'react';
 import resqwave_logo from '/Landing/resqwave_logo.png';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
@@ -6,8 +7,9 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { LogOut, User, BookOpen } from "lucide-react";
 import type { HeaderProps } from '../types/header';
 
-export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community' }: HeaderProps) {
+export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community', onAccountSettingsClick, accountSettingsOpen = false, onRequestCloseAccountSettings }: HeaderProps) {
     const navigate = useNavigate();
+    const [popoverOpen, setPopoverOpen] = useState(false);
     // When editing is active, render the editing header UI (previously inline in index.tsx)
     if (editBoundaryOpen) {
         return (
@@ -110,6 +112,14 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                         onRequestDiscard();
                         return;
                     }
+                    // If account settings modal is open, ask parent to confirm/cancel before changing tabs
+                    if (accountSettingsOpen && onRequestCloseAccountSettings) {
+                        onRequestCloseAccountSettings(() => {
+                            onTabChange && onTabChange(v);
+                            if (v === 'about') onAboutClick && onAboutClick();
+                        });
+                        return;
+                    }
                     onTabChange && onTabChange(v);
                     if (v === 'about') onAboutClick && onAboutClick();
                 }}>
@@ -125,14 +135,7 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                     >
                         <TabsTrigger
                             value="community"
-                            onClick={(e) => {
-                                // clicking the already-active tab does not fire onValueChange,
-                                // so handle it here: if editing, request discard confirmation.
-                                if (editBoundaryOpen && onRequestDiscard) {
-                                    e.preventDefault();
-                                    onRequestDiscard();
-                                }
-                            }}
+
                             style={{
                                 color: "#fff",
                                 fontSize: "1rem",
@@ -177,7 +180,7 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                 </Tabs>
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                <Popover>
+                <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                     <PopoverTrigger asChild>
                         <img
                             src="https://avatars.githubusercontent.com/u/1?v=4"
@@ -193,7 +196,7 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                     </PopoverTrigger>
                     <PopoverContent align="end" style={{ background: "#181818", color: "#fff", minWidth: 200, borderRadius: 5, boxShadow: "0 4px 24px rgba(0,0,0,0.18)", padding: "1rem 0", marginTop: 13 }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                            <button style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", color: "#fff", fontSize: 16, padding: "0.5rem 1.5rem", cursor: "pointer" }}>
+                            <button onClick={() => { setPopoverOpen(false); onAccountSettingsClick?.(); }} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", color: "#fff", fontSize: 16, padding: "0.5rem 1.5rem", cursor: "pointer" }}>
                                 <User size={18} /> Account Settings
                             </button>
                             <button style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", color: "#fff", fontSize: 16, padding: "0.5rem 1.5rem", cursor: "pointer" }}>
@@ -206,6 +209,8 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                         </div>
                     </PopoverContent>
                 </Popover>
+                {/* Account modal is rendered by parent (Dashboard) to allow correct centering over map */}
+
             </div>
         </header>
     );

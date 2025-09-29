@@ -3,7 +3,7 @@ import Alert, { AlertDescription } from '@/components/ui/alert-focal';
 import { CheckCircle2Icon, Info } from 'lucide-react';
 import type { DashboardAlertsProps } from '../types/alerts';
 
-const DashboardAlerts = forwardRef(function DashboardAlerts({ editBoundaryOpen, canSave, savedTrigger, onViewLogs }: DashboardAlertsProps, ref) {
+const DashboardAlerts = forwardRef(function DashboardAlerts({ editBoundaryOpen, canSave, savedTrigger, savedMessage, onViewLogs }: DashboardAlertsProps, ref) {
 	const [showEditAlert, setShowEditAlert] = useState(false);
 	const editAlertTimer = useRef<number | null>(null);
 
@@ -137,7 +137,7 @@ const DashboardAlerts = forwardRef(function DashboardAlerts({ editBoundaryOpen, 
 						<CheckCircle2Icon color="#22c55e" />
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
 							<div style={{ minWidth: 290 }}>
-								<AlertDescription>Your New Community Boundary is now set!</AlertDescription>
+								<AlertDescription>{savedMessage ?? 'Saved successfully!'}</AlertDescription>
 							</div>
 							<div>
 								<button onClick={() => onViewLogs?.()} style={{ background: '#3B82F6', fontSize: "13px", color: '#fff', padding: '8px 14px', borderRadius: 4, border: 'none', cursor: 'pointer' }}>View Logs</button>
