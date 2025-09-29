@@ -8,41 +8,17 @@ import {
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 
+import type { ReportGroup, ReportItem } from '../types/history';
+import { useSampleReports } from '../hooks/useSampleReports';
+
 type HistoryModalProps = {
     open: boolean;
     onClose: () => void;
     center?: { x: number; y: number } | null;
 };
-
-// Simple sample data for the history list. Replace with real data/props later.
-const SAMPLE_REPORTS = [
-    {
-        monthLabel: 'September 2025',
-        count: 3,
-        items: [
-            { id: 'DOC_EMG_009', date: 'September 17, 2025', type: 'Critical' },
-            { id: 'DOC_EMG_008', date: 'September 10, 2025', type: 'User Initiated' },
-            { id: 'DOC_EMG_007', date: 'September 1, 2025', type: 'Critical' },
-        ],
-    },
-    {
-        monthLabel: 'October 2025',
-        count: 2,
-        items: [
-            { id: 'DOC_EMG_002', date: 'October 2, 2025', type: 'User Initiated' },
-            { id: 'DOC_EMG_001', date: 'October 5, 2025', type: 'Critical' },
-        ],
-    },
-    {
-        monthLabel: 'November 2025',
-        count: 2,
-        items: [
-            { id: 'DOC_EMG_002', date: 'October 2, 2025', type: 'User Initiated' },
-            { id: 'DOC_EMG_001', date: 'October 5, 2025', type: 'Critical' },
-        ],
-    },
-
-];
+// sampleReports is provided by a small hook so sample data can be reused elsewhere
+// and swapped for real data later.
+const { sampleReports } = useSampleReports();
 
 export default function HistoryModal({ open, onClose, center = null }: HistoryModalProps) {
     const [query, setQuery] = useState('');
@@ -70,8 +46,8 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
     const groupedReports = useMemo(() => {
         const q = query.trim().toLowerCase();
 
-        return SAMPLE_REPORTS.map((group) => {
-            const filteredItems = group.items.filter((item) => {
+        return sampleReports.map((group: ReportGroup) => {
+            const filteredItems = group.items.filter((item: ReportItem) => {
                 // search by id
                 if (q && !item.id.toLowerCase().includes(q)) return false;
 
@@ -145,7 +121,7 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
     useEffect(() => {
         if (open) {
             const init: Record<string, boolean> = {};
-            SAMPLE_REPORTS.forEach(g => { init[g.monthLabel] = true; });
+            sampleReports.forEach((g: ReportGroup) => { init[g.monthLabel] = true; });
             setExpandedMap(init);
         }
     }, [open]);
