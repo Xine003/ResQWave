@@ -631,7 +631,7 @@ export default function Dashboard() {
                 activeTab={activeTab}
             />
 
-            <div ref={mapContainer} style={{ position: "absolute", top: 85, left: 0, right: 0, bottom: 0, zIndex: 1 }} />
+            <div ref={mapContainer} style={{ position: "absolute", top: 80, left: 0, right: 0, bottom: 0, zIndex: 1 }} />
 
             <SignalPopover
                 popover={popover}
