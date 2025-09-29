@@ -1,4 +1,6 @@
 import React from 'react';
+// React import not required directly here
+import { useState } from 'react';
 import resqwave_logo from '/Landing/resqwave_logo.png';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
@@ -6,7 +8,7 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverItem, PopoverSeparator 
 import { LogOut, User, BookOpen } from "lucide-react";
 import type { HeaderProps } from '../types/header';
 
-export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community' }: HeaderProps) {
+export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community', onAccountSettingsClick, accountSettingsOpen = false, onRequestCloseAccountSettings }: HeaderProps) {
     const navigate = useNavigate();
     const [popoverOpen, setPopoverOpen] = React.useState(false);
     // When editing is active, render the editing header UI (previously inline in index.tsx)
@@ -111,29 +113,60 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                         onRequestDiscard();
                         return;
                     }
+                    // If account settings modal is open, ask parent to confirm/cancel before changing tabs
+                    if (accountSettingsOpen && onRequestCloseAccountSettings) {
+                        onRequestCloseAccountSettings(() => {
+                            onTabChange && onTabChange(v);
+                            if (v === 'about') onAboutClick && onAboutClick();
+                        });
+                        return;
+                    }
                     onTabChange && onTabChange(v);
                     if (v === 'about') onAboutClick && onAboutClick();
                 }}>
                     <TabsList>
                         <TabsTrigger
                             value="community"
-                            onClick={(e) => {
-                                // clicking the already-active tab does not fire onValueChange,
-                                // so handle it here: if editing, request discard confirmation.
-                                if (editBoundaryOpen && onRequestDiscard) {
-                                    e.preventDefault();
-                                    onRequestDiscard();
-                                }
+                            style={{
+                                color: "#fff",
+                                fontSize: "1rem",
+                                padding: "0.15rem 1.5rem",
+                                borderRadius: 4,
+                                transition: "background 0.2s",
+                                cursor: 'pointer'
                             }}
-                        >
-                            Community Map
-                        </TabsTrigger>
-                        <TabsTrigger value="about">
-                            About Your Community
-                        </TabsTrigger>
-                        <TabsTrigger value="history">
-                            History
-                        </TabsTrigger>
+                            className="tab-trigger"
+                            onMouseEnter={e => (e.currentTarget.style.background = '#333333')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >Community Map</TabsTrigger>
+                        <TabsTrigger
+                            value="about"
+                            style={{
+                                color: "#fff",
+                                fontSize: "1rem",
+                                padding: "0.5rem 1.5rem",
+                                borderRadius: 4,
+                                transition: "background 0.2s",
+                                cursor: 'pointer'
+                            }}
+                            className="tab-trigger"
+                            onMouseEnter={e => (e.currentTarget.style.background = '#333333')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >About Your Community</TabsTrigger>
+                        <TabsTrigger
+                            value="history"
+                            style={{
+                                color: "#fff",
+                                fontSize: "1rem",
+                                padding: "0.5rem 1.5rem",
+                                borderRadius: 4,
+                                transition: "background 0.2s",
+                                cursor: 'pointer'
+                            }}
+                            className="tab-trigger"
+                            onMouseEnter={e => (e.currentTarget.style.background = '#333333')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >History</TabsTrigger>
                     </TabsList>
                 </Tabs>
             </div>
@@ -165,8 +198,24 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                         <PopoverItem destructive icon={<LogOut size={16} />}>
                             Logout
                         </PopoverItem>
+
+                    <PopoverContent align="end" style={{ background: "#181818", color: "#fff", minWidth: 200, borderRadius: 5, boxShadow: "0 4px 24px rgba(0,0,0,0.18)", padding: "1rem 0", marginTop: 13 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                            <button onClick={() => { setPopoverOpen(false); onAccountSettingsClick?.(); }} style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", color: "#fff", fontSize: 16, padding: "0.5rem 1.5rem", cursor: "pointer" }}>
+                                <User size={18} /> Account Settings
+                            </button>
+                            <button style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", color: "#fff", fontSize: 16, padding: "0.5rem 1.5rem", cursor: "pointer" }}>
+                                <BookOpen size={18} /> Logs
+                            </button>
+                            <hr style={{ border: "none", borderTop: "1px solid #222", margin: "0.5rem 0" }} />
+                            <button style={{ display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", color: "#F92626", fontSize: 16, padding: "0.5rem 1.5rem", cursor: "pointer", fontWeight: 500 }}>
+                                <LogOut size={18} /> Logout
+                            </button>
+                        </div>
                     </PopoverContent>
                 </Popover>
+                {/* Account modal is rendered by parent (Dashboard) to allow correct centering over map */}
+
             </div>
         </header>
     );

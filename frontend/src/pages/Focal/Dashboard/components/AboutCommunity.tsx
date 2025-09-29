@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Expand, Minus, Plus, ZoomOut } from 'lucide-react';
 import useCommunityData from '../hooks/useCommunityData';
 
@@ -11,12 +11,34 @@ type AboutModalProps = {
 };
 
 export default function AboutModal({ open, onClose, onEdit, center = null }: AboutModalProps) {
-    if (!open) return null;
+    const ANIM_MS = 220;
+    const [mounted, setMounted] = useState<boolean>(open);
+    const [visible, setVisible] = useState<boolean>(open);
 
+    useEffect(() => {
+        if (open) {
+            setMounted(true);
+            // ensure next frame so CSS transition can pick up the change
+            requestAnimationFrame(() => setVisible(true));
+        } else {
+            setVisible(false);
+            const t = setTimeout(() => {
+                setMounted(false);
+            }, ANIM_MS);
+            return () => clearTimeout(t);
+        }
+    }, [open]);
+
+    // viewer hooks must be declared unconditionally to preserve hook order
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerZoom, setViewerZoom] = useState(1);
     const [viewerRotate, setViewerRotate] = useState(0);
+
+    // ensure community data hook is also called unconditionally
+    const { data } = useCommunityData();
+
+    if (!mounted) return null;
 
     function openViewer(url: string) {
         setViewerUrl(url);
@@ -68,7 +90,23 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         ? { ...baseStyle, position: 'fixed', left: center.x, top: center.y, transform: 'translate(-50%, -50%)', background: '#171717' }
         : { ...baseStyle, position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#171717' };
 
-    const { data } = useCommunityData();
+    const overlayStyle: any = {
+        position: 'fixed', inset: 0,
+        background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
+        zIndex: 'var(--z-popover)',
+        transition: `background ${ANIM_MS}ms ease`,
+        pointerEvents: visible ? 'auto' : 'none',
+    };
+
+    const animatedModalStyle: any = {
+        ...modalStyle,
+        opacity: visible ? 1 : 0,
+        transform: center
+            ? `translate(-50%, -50%) translateY(${visible ? '0' : '-8px'})`
+            : `${visible ? 'translateY(0)' : 'translateY(-8px)'}`,
+        transition: `opacity ${ANIM_MS}ms ease, transform ${ANIM_MS}ms cubic-bezier(.2,.9,.2,1)`,
+    };
+
     const statsTop = [String(data.stats.individuals), String(data.stats.families), String(data.stats.kids)];
     const statsTopLabels = ['Individuals', 'Families', 'Kids'];
 
@@ -76,8 +114,8 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
     const statsBottomLabels = ['Seniors', 'PWDs', 'Pregnant Women'];
 
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 'var(--z-popover)' }}>
-            <div style={modalStyle}>
+        <div style={overlayStyle}>
+            <div style={animatedModalStyle}>
                 {/* close X */}
                 <button onClick={onClose} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer' }}>✕</button>
 

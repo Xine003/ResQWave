@@ -2,8 +2,10 @@ import { useRef, useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { flyToSignal, cinematicMapEntrance } from './utils/flyingEffects';
 import Header from "./components/Header";
+import AccountSettingsModal from "./components/AccountSettingsModal";
 import AboutCommunity from "./components/AboutCommunity";
 import EditAboutCommunity from "./components/EditAboutCommunity";
+import HistoryCommunity from "./components/HistoryCommunity";
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
@@ -12,6 +14,16 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { createDraw, ensureSquareGreenImage, changeToDrawPolygon, makeUpdateCanSave } from './utils/drawMapBoundary';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
 import DashboardAlerts from './components/DashboardAlerts';
+import {
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogFooter,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogAction,
+    AlertDialogCancel,
+} from '@/components/ui/alert-dialog-focal';
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 // lucide icons removed (unused in this file)
@@ -31,6 +43,7 @@ export default function Dashboard() {
     // Dashboard alerts are now handled by DashboardAlerts component
     const alertsRef = useRef<any>(null);
     const [savedTrigger, setSavedTrigger] = useState<number | null>(null);
+    const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
     // keep a ref to the latest popover so map event handlers inside the load callback
     // (which are attached once) can see the current value and update its screen coords
@@ -463,6 +476,7 @@ export default function Dashboard() {
             console.warn('[Dashboard] could not programmatically show saved boundary popover', e);
         }
         // notify DashboardAlerts that a save happened
+        setSavedMessage('Your New Community Boundary is now set!');
         setSavedTrigger(prev => (prev == null ? 1 : prev + 1));
         // after saving, clear canSave so future edits re-trigger the valid alert
         setCanSave(false);
@@ -502,6 +516,13 @@ export default function Dashboard() {
     const [aboutOpen, setAboutOpen] = useState(false);
     const [aboutCenter, setAboutCenter] = useState<{ x: number; y: number } | null>(null);
     const [editAboutOpen, setEditAboutOpen] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [historyCenter, setHistoryCenter] = useState<{ x: number; y: number } | null>(null);
+    const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
+    const [accountSettingsCenter, setAccountSettingsCenter] = useState<{ x: number; y: number } | null>(null);
+    const accountSettingsIsDirtyRef = useRef<() => boolean>(() => false);
+    const [confirmAccountOpen, setConfirmAccountOpen] = useState(false);
+    const pendingAccountContinueRef = useRef<(() => void) | null>(null);
     const editAboutRef = useRef<any>(null);
     const [activeTab, setActiveTab] = useState('community');
     const openAbout = () => {
@@ -520,16 +541,43 @@ export default function Dashboard() {
         setAboutOpen(true);
         setActiveTab('about');
     };
+    const openHistory = () => {
+        try {
+            const rect = mapContainer.current?.getBoundingClientRect();
+            if (rect) setHistoryCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+            else setHistoryCenter(null);
+        } catch (e) {
+            setHistoryCenter(null);
+        }
+        setAboutOpen(false);
+        setHistoryOpen(true);
+        setActiveTab('history');
+    };
     const closeAbout = () => { setAboutOpen(false); setActiveTab('community'); };
     const handleTabChange = (value: string) => {
         setActiveTab(value);
         if (value === 'community') closeAbout();
     };
 
+    // ensure when history tab is chosen we open the modal (tab component uses onTabChange)
+    useEffect(() => {
+        if (activeTab === 'history') openHistory();
+    }, [activeTab]);
+
+    // close history modal when About or Community tab becomes active
+    useEffect(() => {
+        if (activeTab === 'community' || activeTab === 'about') {
+            setHistoryOpen(false);
+        }
+    }, [activeTab]);
+
     // When About's Edit button is clicked we close About and open the edit modal
+    // Wait for About's exit animation to finish before opening EditAbout so the fade-out is visible
+    const ANIM_MS = 220;
     const handleOpenEditAbout = () => {
         setAboutOpen(false);
-        setEditAboutOpen(true);
+        // open edit modal after about's exit animation completes
+        setTimeout(() => setEditAboutOpen(true), ANIM_MS + 15);
     };
 
     const handleCloseEditAbout = () => {
@@ -547,6 +595,33 @@ export default function Dashboard() {
                 onSave={handleSave}
                 onExit={handleExitEdit}
                 onAboutClick={openAbout}
+                onAccountSettingsClick={() => {
+                    try {
+                        const rect = mapContainer.current?.getBoundingClientRect();
+                        if (rect) setAccountSettingsCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                        else setAccountSettingsCenter(null);
+                    } catch (e) { setAccountSettingsCenter(null); }
+                    setAccountSettingsOpen(true);
+                }}
+                accountSettingsOpen={accountSettingsOpen}
+                onRequestCloseAccountSettings={(continueNavigation) => {
+                    try {
+                        const isDirty = accountSettingsIsDirtyRef.current?.() ?? false;
+                        if (!isDirty) {
+                            // not dirty: close modal and continue immediately
+                            setAccountSettingsOpen(false);
+                            continueNavigation();
+                            return;
+                        }
+                        // store the continuation and open the shared AlertDialog
+                        pendingAccountContinueRef.current = continueNavigation;
+                        setConfirmAccountOpen(true);
+                    } catch (e) {
+                        // safe fallback: just close and continue
+                        setAccountSettingsOpen(false);
+                        continueNavigation();
+                    }
+                }}
                 onRequestDiscard={() => editAboutRef.current?.openDiscardConfirm?.(() => {
                     // continue action: close edit modal and switch to community tab
                     setEditAboutOpen(false);
@@ -580,14 +655,56 @@ export default function Dashboard() {
 
             <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
 
-            <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(data: any) => {
+            <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(_data: any) => {
                 // show the centered success alert with a custom message
                 try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch (e) { }
             }} center={aboutCenter} />
 
+            <HistoryCommunity open={historyOpen} onClose={() => { setHistoryOpen(false); setActiveTab('community'); }} center={historyCenter} />
+
+            <AccountSettingsModal open={accountSettingsOpen} onClose={() => setAccountSettingsOpen(false)} center={accountSettingsCenter} onSaved={() => {
+                // show saved alert (bump trigger) when account password updated
+                setAccountSettingsOpen(false);
+                setSavedMessage('Password Updated Successfully!');
+                setSavedTrigger(prev => (prev == null ? 1 : prev + 1));
+            }} isDirtyRef={accountSettingsIsDirtyRef} />
+
+            {/* Alert dialog for confirming leaving Change Password with unsaved changes */}
+            <AlertDialog open={confirmAccountOpen} onOpenChange={setConfirmAccountOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+                        <AlertDialogDescription>You have unsaved changes in the Change Password form. Are you sure you want to discard them?</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setConfirmAccountOpen(false)} className="px-4 py-2 mt-3 bg-[#1b1b1b] text-white border border-[#3E3E3E] cursor-pointer transition duration-175 hover:bg-[#222222]" style={{ borderRadius: 8, fontSize: 15 }}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                            setConfirmAccountOpen(false);
+                            try {
+                                if (pendingAccountContinueRef.current) {
+                                    // close account settings modal first
+                                    setAccountSettingsOpen(false);
+                                    try { pendingAccountContinueRef.current(); } catch (e) { }
+                                    pendingAccountContinueRef.current = null;
+                                } else {
+                                    setAccountSettingsOpen(false);
+                                }
+                            } catch (e) {
+                                setAccountSettingsOpen(false);
+                            }
+                        }} className="px-4 py-2 mt-3 bg-[#fff] text-black hover:bg-[#e2e2e2] rounded cursor-pointer transition duration-175" style={{ borderRadius: 8, fontSize: 15 }}>
+                            Continue
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+
             {/* Transient bottom-centered alert that slides up when editing community markers */}
             {/* centralized dashboard alerts (edit/valid/saved) */}
-            <DashboardAlerts ref={alertsRef} editBoundaryOpen={editBoundaryOpen} canSave={canSave} savedTrigger={savedTrigger} onViewLogs={() => console.log('View Logs clicked')} />
+            <DashboardAlerts ref={alertsRef} editBoundaryOpen={editBoundaryOpen} canSave={canSave} savedTrigger={savedTrigger} savedMessage={savedMessage} onViewLogs={() => console.log('View Logs clicked')} />
 
         </div>
     );
