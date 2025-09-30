@@ -24,7 +24,9 @@ let store: CommunityData = {
         address: 'Block 1, Lot 17, Paraiso Rd, 1400',
         coordinates: '14.774083, 121.042443',
         altFocal: 'Rodel Sustiguer',
-        photo: 'https://avatars.githubusercontent.com/u/1?v=4'
+        altContact: '0905 563 2034',
+        photo: 'https://avatars.githubusercontent.com/u/1?v=4',
+        altPhoto: null,
     }
 };
 

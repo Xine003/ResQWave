@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Expand, Minus, Plus, ZoomOut } from 'lucide-react';
 import useCommunityData from '../hooks/useCommunityData';
 
@@ -11,12 +11,34 @@ type AboutModalProps = {
 };
 
 export default function AboutModal({ open, onClose, onEdit, center = null }: AboutModalProps) {
-    if (!open) return null;
+    const ANIM_MS = 220;
+    const [mounted, setMounted] = useState<boolean>(open);
+    const [visible, setVisible] = useState<boolean>(open);
 
+    useEffect(() => {
+        if (open) {
+            setMounted(true);
+            // ensure next frame so CSS transition can pick up the change
+            requestAnimationFrame(() => setVisible(true));
+        } else {
+            setVisible(false);
+            const t = setTimeout(() => {
+                setMounted(false);
+            }, ANIM_MS);
+            return () => clearTimeout(t);
+        }
+    }, [open]);
+
+    // viewer hooks must be declared unconditionally to preserve hook order
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerZoom, setViewerZoom] = useState(1);
     const [viewerRotate, setViewerRotate] = useState(0);
+
+    // ensure community data hook is also called unconditionally
+    const { data } = useCommunityData();
+
+    if (!mounted) return null;
 
     function openViewer(url: string) {
         setViewerUrl(url);
@@ -30,23 +52,18 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         setViewerUrl(null);
     }
 
-    function toggleZoom() {
-        setViewerZoom((z) => (z === 1 ? 1.5 : 1));
+    function toggleZoomOut() {
+        setViewerZoom((prev) => Math.max(0.25, prev - 0.25)); // step down, min 0.25
     }
 
-    function rotateOnce() {
-        setViewerRotate((r) => (r + 90) % 360);
+    function resetSize() {
+        setViewerZoom(1); // reset to original
     }
 
-    function downloadImage() {
-        if (!viewerUrl) return;
-        const a = document.createElement('a');
-        a.href = viewerUrl;
-        a.download = 'image.jpg';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+    function toggleZoomIn() {
+        setViewerZoom((prev) => Math.min(3, prev + 0.25)); // step up, max 3x
     }
+
 
     const baseStyle: any = {
         width: 'min(780px, 92%)',
@@ -73,7 +90,23 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         ? { ...baseStyle, position: 'fixed', left: center.x, top: center.y, transform: 'translate(-50%, -50%)', background: '#171717' }
         : { ...baseStyle, position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#171717' };
 
-    const { data } = useCommunityData();
+    const overlayStyle: any = {
+        position: 'fixed', inset: 0,
+        background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
+        zIndex: 'var(--z-popover)',
+        transition: `background ${ANIM_MS}ms ease`,
+        pointerEvents: visible ? 'auto' : 'none',
+    };
+
+    const animatedModalStyle: any = {
+        ...modalStyle,
+        opacity: visible ? 1 : 0,
+        transform: center
+            ? `translate(-50%, -50%) translateY(${visible ? '0' : '-8px'})`
+            : `${visible ? 'translateY(0)' : 'translateY(-8px)'}`,
+        transition: `opacity ${ANIM_MS}ms ease, transform ${ANIM_MS}ms cubic-bezier(.2,.9,.2,1)`,
+    };
+
     const statsTop = [String(data.stats.individuals), String(data.stats.families), String(data.stats.kids)];
     const statsTopLabels = ['Individuals', 'Families', 'Kids'];
 
@@ -81,8 +114,8 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
     const statsBottomLabels = ['Seniors', 'PWDs', 'Pregnant Women'];
 
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 'var(--z-popover)' }}>
-            <div style={modalStyle}>
+        <div style={overlayStyle}>
+            <div style={animatedModalStyle}>
                 {/* close X */}
                 <button onClick={onClose} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer' }}>✕</button>
 
@@ -169,34 +202,38 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                     {/* Focal persons header */}
                     <div style={{ marginTop: 10, background: '#fff', color: '#111', padding: '10px 18px', borderRadius: 6, fontWeight: 600 }}>Focal Persons</div>
 
-                    {/* Focal person image-only cards (no text) */}
-                    <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center', marginTop: 6 }}>
-                        <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
-                            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${data.focal.photo})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
-                            <img src={data.focal.photo || ''} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
-                            <button
-                                aria-label="Expand"
-                                onClick={() => openViewer('https://avatars.githubusercontent.com/u/1?v=4')}
-                                style={{
-                                    position: 'absolute',
-                                    right: 15,
-                                    bottom: 15,
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 4,
-                                    background: '#fff',
-                                    border: 'none',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
-                                }}
-                            >
-                                <Expand size={15} color="#111" />
-                            </button>
+                    {/* Focal person image-only cards (no text) - render only when photo exists */}
+                    {data?.focal?.photo ? (
+                        <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center', marginTop: 6 }}>
+                            <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${data.focal.photo})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                                <img src={data.focal.photo || ''} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                                <button
+                                    aria-label="Expand"
+                                    onClick={() => openViewer(data.focal.photo!)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: 15,
+                                        bottom: 15,
+                                        width: 36,
+                                        height: 36,
+                                        borderRadius: 4,
+                                        background: '#fff',
+                                        border: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                                    }}
+                                >
+                                    <Expand size={15} color="#111" />
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    ) : null}
+
+                    {/* altPhoto intentionally not shown in About modal */}
 
                 </div>
 
@@ -224,7 +261,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>CONTACT NO.</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.communityId}</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.altContact ?? ''}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>TERMINAL ID</div>
@@ -232,7 +269,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>COMMUNITY ID</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>0905 563 2034</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.communityId}</div>
                     </div>
                 </div>
 
@@ -261,28 +298,20 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
             </div>
             {viewerOpen && viewerUrl && (
                 <div onClick={closeViewer} style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.75)', zIndex: 'calc(var(--z-popover) + 10)' }}>
-                    <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', maxWidth: 'min(98vw, 900px)', maxHeight: '65vh', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img
-                            src={viewerUrl}
-                            alt="viewer"
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'contain',
-                                transform: `scale(${viewerZoom}) rotate(${viewerRotate}deg)`,
-                                maxWidth: '100%',
-                                maxHeight: '100%',
-                            }}
-                        />
+                    <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', maxWidth: 'min(98vw,600px)', maxHeight: '65vh', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={viewerUrl} alt="viewer" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: `scale(${viewerZoom}) rotate(${viewerRotate}deg)`, maxWidth: '100%', maxHeight: '100%' }} />
                     </div>
-                    {/* tool buttons bottom-center */}
-                    <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 70, display: 'flex' }}>
-                        <button onClick={toggleZoom} style={{ background: '#fff', borderRight: '1px solid #e0e0e0', width: 50, height: 50, borderRadius: '4px 0 0 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Zoom"><Minus size={18} /></button>
-                        <button onClick={rotateOnce} style={{ background: '#fff', border: 'none', width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Rotate"><ZoomOut size={18} /></button>
-                        <button onClick={downloadImage} style={{ background: '#fff', borderLeft: '1px solid #e0e0e0', width: 50, height: 50, borderRadius: '0 4px 4px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Download"><Plus size={18} /></button>
+
+                    {/* buttons pinned to bottom of viewport */}
+                    <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', left: '50%', bottom: 40, transform: 'translateX(-50%)', display: 'flex' }}>
+                        <button onClick={toggleZoomOut} style={{ background: '#fff', borderRight: '1px solid #e0e0e0', width: 50, height: 50, borderRadius: '4px 0 0 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Zoom Out"><Minus size={18} /></button>
+                        <button onClick={resetSize} style={{ background: '#fff', border: 'none', width: 50, height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Reset"><ZoomOut size={18} /></button>
+                        <button onClick={toggleZoomIn} style={{ background: '#fff', borderLeft: '1px solid #e0e0e0', width: 50, height: 50, borderRadius: '0 4px 4px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} aria-label="Zoom In"><Plus size={18} /></button>
                     </div>
                 </div>
             )}
+
+
 
         </div>
     );

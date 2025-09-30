@@ -24,10 +24,25 @@ export type EditAboutHandle = {
 }
 
 const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, onSave, center = null }, ref) => {
+    const ANIM_MS = 220;
+    const [mounted, setMounted] = useState<boolean>(open);
+    const [visible, setVisible] = useState<boolean>(open);
+    useEffect(() => {
+        if (open) {
+            setMounted(true);
+            requestAnimationFrame(() => setVisible(true));
+        } else {
+            setVisible(false);
+            const t = setTimeout(() => setMounted(false), ANIM_MS);
+            return () => clearTimeout(t);
+        }
+    }, [open]);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+    const [altPhotoUrl, setAltPhotoUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const mainFileInputRef = useRef<HTMLInputElement | null>(null);
     // expose imperative method to parent with optional continue callback
     const pendingContinueRef = useRef<(() => void) | null>(null);
     useImperativeHandle(ref, () => ({
@@ -56,6 +71,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     const [focalAddress, setFocalAddress] = useState('');
     const [focalCoordinates, setFocalCoordinates] = useState('');
     const [altFocalName, setAltFocalName] = useState('');
+    const [altFocalContact, setAltFocalContact] = useState('');
 
     // initialize local state from shared data when modal opens
     useEffect(() => {
@@ -76,7 +92,9 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
         setFocalAddress(data.focal?.address ?? '');
         setFocalCoordinates(data.focal?.coordinates ?? '');
         setAltFocalName(data.focal?.altFocal ?? '');
+        setAltFocalContact((data.focal as any)?.altContact ?? '');
         setPhotoUrl(data.focal?.photo ?? null);
+        setAltPhotoUrl((data.focal as any)?.altPhoto ?? null);
     }, [open, data]);
 
     // revoke object URLs when photo changes / on unmount
@@ -106,11 +124,28 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     const modalStyle: any = center
         ? { ...baseStyle, position: 'fixed', left: center.x, top: center.y, transform: 'translate(-50%, -50%)', background: '#171717' }
         : { ...baseStyle, position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#171717' };
-    if (!open) return null;
+    if (!mounted) return null;
+
+    const overlayStyle: any = {
+        position: 'fixed', inset: 0,
+        background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
+        zIndex: 'var(--z-popover)',
+        transition: `background ${ANIM_MS}ms ease`,
+        pointerEvents: visible ? 'auto' : 'none',
+    };
+
+    const animatedModalStyle: any = {
+        ...modalStyle,
+        opacity: visible ? 1 : 0,
+        transform: center
+            ? `translate(-50%, -50%) translateY(${visible ? '0' : '-8px'})`
+            : `${visible ? 'translateY(0)' : 'translateY(-8px)'}`,
+        transition: `opacity ${ANIM_MS}ms ease, transform ${ANIM_MS}ms cubic-bezier(.2,.9,.2,1)`,
+    };
 
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 'var(--z-popover)' }}>
-            <div style={modalStyle}>
+        <div style={overlayStyle}>
+            <div style={animatedModalStyle}>
                 <button onClick={() => setConfirmOpen(true)} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer' }}>✕</button>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -122,7 +157,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
 
                 <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
 
-                    <div style={{ overflow: 'hidden' }}>
+                    <div style={{ overflow: 'visible' }}>
                         <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Community Group Name</div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ flex: 1, marginTop: 2 }}>
@@ -133,33 +168,33 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                         <div style={{ display: 'flex', gap: 12 }}>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total No. of Individuals</div>
-                                <Input value={individuals} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setIndividuals(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={individuals} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setIndividuals(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total No. of Families</div>
-                                <Input value={families} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setFamilies(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={families} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setFamilies(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: 12 }}>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total No. of Babies</div>
-                                <Input value={kids} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setKids(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={kids} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setKids(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total No. of Senior Citizen</div>
-                                <Input value={seniors} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setSeniors(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={seniors} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setSeniors(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: 12 }}>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total No. of Pregnant Women</div>
-                                <Input value={pregnant} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setPregnant(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={pregnant} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setPregnant(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                             <div style={{ flex: 1, marginTop: 2 }}>
                                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 15 }}>Total no. of PWDs</div>
-                                <Input value={pwds} type="number" style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setPwds(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
+                                <Input value={pwds} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setPwds(Number(e.target.value) || 0)} className="bg-input/10 text-white" />
                             </div>
                         </div>
 
@@ -174,18 +209,52 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                     <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 15, fontWeight: 600, marginTop: 15 }}>Focal Person’s Information</div>
 
 
-                    <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center' }}>
-                        <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
-                            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${photoUrl ?? ''})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
-                            <img src={photoUrl ?? ''} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
-                            <button
-                                aria-label="Delete"
-                                onClick={() => { setPhotoUrl(null); }}
-                                style={{ position: 'absolute', right: 15, bottom: 15, width: 36, height: 36, borderRadius: 1, background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
-                                <Trash size={15} color="red" strokeWidth={3} />
-                            </button>
+                    {photoUrl ? (
+                        <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center' }}>
+                            <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${photoUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                                <img src={photoUrl} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                                <button
+                                    aria-label="Delete"
+                                    onClick={() => {
+                                        // revoke blob URL if needed, then clear
+                                        if (photoUrl && photoUrl.startsWith('blob:')) {
+                                            try { URL.revokeObjectURL(photoUrl); } catch (e) { }
+                                        }
+                                        setPhotoUrl(null);
+                                    }}
+                                    style={{ position: 'absolute', right: 15, bottom: 15, width: 36, height: 36, borderRadius: 1, background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
+                                    <Trash size={15} color="red" strokeWidth={3} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        // when empty: render a standalone dashed upload panel (no outer dark card)
+                        <div style={{ marginTop: 6 }}>
+                            <div onClick={() => mainFileInputRef.current?.click()} role="button" tabIndex={0} onKeyDown={() => mainFileInputRef.current?.click()} style={{ cursor: 'pointer', background: '#262626', padding: '28px', borderRadius: 8, border: '1px dashed #404040', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                                <div style={{ background: '#1f2937', width: 48, height: 48, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Upload color="#60A5FA" />
+                                </div>
+                                <div style={{ color: '#fff', fontWeight: 700 }}>Upload photo</div>
+                                <div style={{ color: '#9ca3af', fontSize: 12 }}>Drag and drop or click to upload</div>
+                                <div style={{ color: '#9ca3af', fontSize: 12 }}>JPG and PNG, file size no more than 10MB</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* hidden file input for main focal photo (kept outside so it's always present) */}
+                    <input ref={mainFileInputRef} type="file" accept="image/png,image/jpeg" style={{ display: 'none' }} onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        try {
+                            const url = URL.createObjectURL(f);
+                            // revoke previous blob url if any
+                            if (photoUrl && photoUrl.startsWith('blob:')) {
+                                try { URL.revokeObjectURL(photoUrl); } catch (e) { }
+                            }
+                            setPhotoUrl(url);
+                        } catch (err) { }
+                    }} />
 
 
                 </div>
@@ -211,8 +280,8 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 16 }}>Address</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                     <div style={{ flex: 1, marginTop: 2, position: 'relative' }}>
-                        <Input value={focalAddress} style={{ padding: '22px 46px 22px 17px', border: '1px solid #404040', borderRadius: 6, background: '#262626', color: '#BABABA', fontSize: 14 }} onChange={(e: any) => setFocalAddress(e.target.value)} className="bg-input/10 text-white" />
-                        <div title="Help: format should be 'Street, Barangay, City, Zip'" onClick={() => {/* optional help action */ }}
+                        <Input value={focalAddress} readOnly style={{ padding: '22px 46px 22px 17px', border: '1px solid #404040', borderRadius: 6, background: '#262626', color: '#BABABA', fontSize: 14, cursor: 'not-allowed' }} onChange={(e: any) => setFocalAddress(e.target.value)} className="bg-input/10 text-white" />
+                        <div title="View-only. Request location update from admin." onClick={() => {/* optional help action */ }}
                             style={{ position: 'absolute', right: 15, top: '50%', transform: 'translateY(-50%)', width: 21, height: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', cursor: 'pointer' }}>
                             <HelpCircle color="#9CA3AF" />
                         </div>
@@ -222,32 +291,52 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 16 }}>Coordinates</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ flex: 1, marginTop: 2 }}>
-                        <Input value={focalCoordinates} style={{ padding: '22px 17px', border: '1px solid #404040', borderRadius: 6, background: '#262626', color: '#BABABA', fontSize: 14 }} onChange={(e: any) => setFocalCoordinates(e.target.value)} className="bg-input/10 text-white" />
+                        <Input value={focalCoordinates} readOnly style={{ padding: '22px 17px', border: '1px solid #404040', borderRadius: 6, background: '#262626', color: '#BABABA', fontSize: 14, cursor: 'not-allowed' }} onChange={(e: any) => setFocalCoordinates(e.target.value)} className="bg-input/10 text-white" />
                     </div>
                 </div>
 
                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 15, fontWeight: 600, marginTop: 35 }}>Alternative Focal Person’s Information</div>
 
                 <div style={{ marginTop: 8 }}>
-                    <div onClick={() => fileInputRef.current?.click()} role="button" tabIndex={0} onKeyDown={() => fileInputRef.current?.click()} style={{ cursor: 'pointer', background: '#262626', padding: '28px', borderRadius: 8, border: '1px dashed #404040', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                        <div style={{ background: '#1f2937', width: 48, height: 48, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Upload color="#60A5FA" />
+                    {altPhotoUrl ? (
+                        <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center' }}>
+                            <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${altPhotoUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                                <img src={altPhotoUrl} alt="Alt Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                                <button
+                                    aria-label="Delete"
+                                    onClick={() => {
+                                        if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
+                                            try { URL.revokeObjectURL(altPhotoUrl); } catch (e) { }
+                                        }
+                                        setAltPhotoUrl(null);
+                                    }}
+                                    style={{ position: 'absolute', right: 15, bottom: 15, width: 36, height: 36, borderRadius: 1, background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
+                                    <Trash size={15} color="red" strokeWidth={3} />
+                                </button>
+                            </div>
                         </div>
-                        <div style={{ color: '#fff', fontWeight: 700 }}>Upload photo</div>
-                        <div style={{ color: '#9ca3af', fontSize: 12 }}>Drag and drop or click to upload</div>
-                        <div style={{ color: '#9ca3af', fontSize: 12 }}>JPG and PNG, file size no more than 10MB</div>
-                        {/* {photoUrl ? <img src={photoUrl} alt="preview" style={{ marginTop: 12, maxWidth: 160, borderRadius: 6 }} /> : null} */}
-                    </div>
+                    ) : (
+                        <div onClick={() => fileInputRef.current?.click()} role="button" tabIndex={0} onKeyDown={() => fileInputRef.current?.click()} style={{ cursor: 'pointer', background: '#262626', padding: '28px', borderRadius: 8, border: '1px dashed #404040', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                            <div style={{ background: '#1f2937', width: 48, height: 48, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Upload color="#60A5FA" />
+                            </div>
+                            <div style={{ color: '#fff', fontWeight: 700 }}>Upload photo</div>
+                            <div style={{ color: '#9ca3af', fontSize: 12 }}>Drag and drop or click to upload</div>
+                            <div style={{ color: '#9ca3af', fontSize: 12 }}>JPG and PNG, file size no more than 10MB</div>
+                        </div>
+                    )}
+
                     <input ref={fileInputRef} type="file" accept="image/png,image/jpeg" style={{ display: 'none' }} onChange={(e) => {
                         const f = e.target.files?.[0];
                         if (!f) return;
                         try {
                             const url = URL.createObjectURL(f);
-                            // revoke previous blob url if any
-                            if (photoUrl && photoUrl.startsWith('blob:')) {
-                                try { URL.revokeObjectURL(photoUrl); } catch (e) { }
+                            // revoke previous alt blob url if any
+                            if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
+                                try { URL.revokeObjectURL(altPhotoUrl); } catch (e) { }
                             }
-                            setPhotoUrl(url);
+                            setAltPhotoUrl(url);
                         } catch (err) { }
                     }} />
                 </div>
@@ -259,7 +348,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                     </div>
                     <div style={{ flex: 1, marginTop: 2 }}>
                         <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 17 }}>Contact Number</div>
-                        <Input value={focalContact} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setFocalContact(e.target.value)} className="bg-input/10 text-white" />
+                        <Input value={altFocalContact} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setAltFocalContact(e.target.value)} className="bg-input/10 text-white" />
                     </div>
                 </div>
 
@@ -333,7 +422,9 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                         address: focalAddress,
                                         coordinates: focalCoordinates,
                                         altFocal: altFocalName,
+                                        altContact: altFocalContact,
                                         photo: photoUrl,
+                                        altPhoto: altPhotoUrl,
                                     },
                                     updatedAt: new Date().toLocaleString(),
                                 };

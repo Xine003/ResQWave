@@ -67,7 +67,7 @@ export function LoginDispatcher() {
               if (error) setError("")
             }}
             aria-invalid={!!error}
-            className={`bg-[#232323] rounded-md px-5 py-5 text-white text-3xl placeholder:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 ${!!error ? "border border-red-500" : "border border-[#333]"}`}
+            className={`bg-[#232323] rounded-md px-5 py-5 text-white text-3xl placeholder:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 ${error ? "border border-red-500" : "border border-[#333]"}`}
             style={{ fontSize: "16px", height: "56px" }}
           />
           <div className="relative">
@@ -82,7 +82,7 @@ export function LoginDispatcher() {
                 if (error) setError("")
               }}
               aria-invalid={!!error}
-              className={`bg-[#232323] rounded-md px-5 py-5 text-white text-4xl w-full placeholder:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 ${!!error ? "border border-red-500" : "border border-[#333]"}`}
+              className={`bg-[#232323] rounded-md px-5 py-5 text-white text-4xl w-full placeholder:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 ${error ? "border border-red-500" : "border border-[#333]"}`}
               style={{ fontSize: "16px", height: "56px" }}
             />
             <span
