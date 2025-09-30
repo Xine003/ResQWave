@@ -19,6 +19,8 @@ import {
   Tabular,
   Visualization
 } from '../pages/Official';
+
+import SettingLocationPage from "../pages/Official/CommunityGroups/components/SettingLocationPage";
 import FocalDashboard from '../pages/Focal/Dashboard';
 
 // Protective route for focal pages
@@ -32,8 +34,6 @@ const FocalProtectedRoute: React.FC = () => {
     return <Navigate to="/login-focal" replace />;
   }
   */
-
-
   // --- END PROTECTIVE ROUTE LOGIC ---
   return <Outlet />;
 };
@@ -96,5 +96,9 @@ export const router = createBrowserRouter([
         element: <Tabular />
       },
     ]
-  }
+  },
+  {
+    path: 'community-groups/setting-location',
+    element: <SettingLocationPage />
+  },
 ]);

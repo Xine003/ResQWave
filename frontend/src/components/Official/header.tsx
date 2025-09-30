@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export function Header() {
+export function Header({ isVisualizationOpen }: { isVisualizationOpen: boolean }) {
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
+
   const [activeTab, setActiveTab] = useState<"map" | "table">("map");
   const navigate = useNavigate();
+
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -31,10 +33,11 @@ export function Header() {
   }, []);
 
   const handleTabClick = (tab: "map" | "table") => {
-    setActiveTab(tab);
     if (tab === "map") {
+      setActiveTab("map");
       navigate("/visualization");
     } else {
+      setActiveTab("table");
       navigate("/tabular");
     }
   };
@@ -47,29 +50,30 @@ export function Header() {
         <h1 className="text-white font-semibold text-base md:text-lg tracking-wide">
           BARANGAY 175
         </h1>
-
-        <div className="flex items-center bg-[#262626] p-1 rounded-[5px] w-full md:w-auto">
-          <button
-            onClick={() => handleTabClick("map")}
-            className={`flex-1 md:flex-none px-3 md:px-4 py-1 rounded-[5px] text-xs md:text-sm font-medium transition-colors ${
-              activeTab === "map"
-                ? "bg-[#414141] text-white"
-                : "bg-[#2a2a2a] text-white/60 hover:text-white hover:bg-[#333333]"
-            }`}
-          >
-            Map View
-          </button>
-          <button
-            onClick={() => handleTabClick("table")}
-            className={`flex-1 md:flex-none px-3 md:px-4 py-1 rounded-[5px] text-xs md:text-sm font-medium transition-colors ${
-              activeTab === "table"
-                ? "bg-[#414141] text-white"
-                : "text-white/60 hover:text-white hover:bg-[#333333]"
-            }`}
-          >
-            Table View
-          </button>
-        </div>
+        {isVisualizationOpen && (
+          <div className="flex items-center bg-[#262626] p-1 rounded-[5px] w-full md:w-auto">
+            <button
+              onClick={() => handleTabClick("map")}
+              className={`flex-1 md:flex-none px-3 md:px-4 py-1 rounded-[5px] text-xs md:text-sm font-medium transition-colors ${
+                activeTab === "map"
+                  ? "bg-[#414141] text-white"
+                  : "bg-[#2a2a2a] text-white/60 hover:text-white hover:bg-[#333333]"
+              }`}
+            >
+              Map View
+            </button>
+            <button
+              onClick={() => handleTabClick("table")}
+              className={`flex-1 md:flex-none px-3 md:px-4 py-1 rounded-[5px] text-xs md:text-sm font-medium transition-colors ${
+                activeTab === "table"
+                  ? "bg-[#414141] text-white"
+                  : "text-white/60 hover:text-white hover:bg-[#333333]"
+              }`}
+            >
+              Table View
+            </button>
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2 md:gap-4 text-white/90 text-xs md:text-sm mt-2 md:mt-0 w-full md:w-auto justify-end">
         <span className="font-medium">{currentTime}</span>
