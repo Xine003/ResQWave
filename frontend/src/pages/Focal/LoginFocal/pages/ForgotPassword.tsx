@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ForgotPasswordVerification } from "@/components/Focal/VerifyandForgot";
+import { ForgotPasswordVerification } from "@/pages/Focal/LoginFocal/components/VerifyandForgot";
 
-export default function VerificationSignin() {
+export default function ForgotPasswordPage() {
     const [code, setCode] = useState("");
     const [error, setError] = useState("");
     const [isVerifying, setIsVerifying] = useState(false);
-    const navigate = useNavigate();
 
     function handleVerify(e: React.FormEvent) {
         e.preventDefault();
@@ -17,9 +15,8 @@ export default function VerificationSignin() {
         setIsVerifying(true);
         setTimeout(() => {
             setIsVerifying(false);
-            // Dummy: always succeed for demo
-            // navigate('/dashboard');
-            setError("");
+            // Dummy: always fail for demo
+            setError("Invalid verification code. Please try again.");
         }, 1200);
     }
 

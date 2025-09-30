@@ -1,11 +1,12 @@
-import { FocalHeader } from "@/components/Focal/FocalHeader";
+import { FocalHeader } from "@/pages/Focal/LoginFocal/components/FocalHeader";
 import { Button } from "@/components/ui/button";
+
 import {
     InputOTP,
     InputOTPGroup,
     InputOTPSeparator,
     InputOTPSlot,
-} from "@/components/ui/input-otp";
+} from "@/components/ui/input-otp-focal";
 import resqwave_logo from '/Landing/resqwave_logo.png';
 
 export function ForgotPasswordVerification({

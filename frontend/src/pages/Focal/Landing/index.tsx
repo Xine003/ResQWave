@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { LandingHeader } from "@/components/Landing/header";
-import { LandingHero } from "@/components/Landing/hero";
+import { LandingHeader } from "@/pages/Focal/Landing/components/Header";
+import { LandingHero } from "@/pages/Focal/Landing/components/Hero";
 
 export function Landing() {
   const [navOpen, setNavOpen] = useState(false);

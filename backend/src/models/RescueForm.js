@@ -16,43 +16,47 @@ module.exports = new EntitySchema ({
         dispatcherID: {
             type: "varchar",
             length: 255,
-            nullable: false
+            nullable: false,
         },
-        focalPersonID: {
-            type: "varchar",
-            length: 255,
-            nullable: false
+        focalUnreachable: {
+            type: "boolean",
+            default: false
         },
         waterLevel: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         urgencyOfEvacuation: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         hazardPresent: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         accessibility: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         resourceNeeds: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
         otherInformation: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true,
         },
+        status: {
+            type: "enum",
+            enum: ["Completed", "Pending"],
+            default: "Pending"
+        }
     },
 
     relations: {
@@ -62,23 +66,15 @@ module.exports = new EntitySchema ({
             joinColumn: {
                 name: "emergencyID"
             },
-            inverseSide: "alerts"
+            inverseSide: "rescueForms"
         },
         dispatcher: {
-            type: "one-to-one",
+            type: "many-to-one",
             target: "Dispatcher",
             joinColumn: {
                 name: "dispatcherID"
             },
-            inverseSide: "dispatchers"
-        },
-        focalPerson: {
-            type: "one-to-one",
-            target: "FocalPerson",
-            joinColumn: {
-                name: "focalPersonID"
-            },
-            inverseSide: "focalpersons"
-        },
+            inverseSide: "rescueForms"
+        }
     },
 });

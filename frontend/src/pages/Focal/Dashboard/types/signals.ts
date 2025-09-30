@@ -1,0 +1,51 @@
+export type Signal = {
+    coordinates: [number, number];
+    properties: {
+        status: string;
+        deviceId: string;
+        focalPerson: string;
+        altFocalPerson?: string;
+        address?: string;
+        date?: string;
+        name?: string;
+    };
+    boundary: [number, number][];
+};
+
+export type SignalPopover = {
+    lng: number;
+    lat: number;
+    screen: { x: number; y: number };
+    status?: string;
+    title?: string;
+    address?: string;
+    date?: string;
+    deviceId?: string;
+    focalPerson?: string;
+    altFocalPerson?: string;
+    coordinates?: string;
+};
+
+export type InfoBubble = { x: number; y: number };
+
+// Full shape returned by the useSignals() hook on this page. Centralized here
+// so other components can import the hook return type instead of repeating
+// the structure inline.
+export type DashboardSignals = {
+    otherSignals: Signal[];
+    ownCommunitySignal: Signal;
+    editBoundaryOpen: boolean;
+    setEditBoundaryOpen: (v: boolean) => void;
+    savedGeoJson: GeoJSON.FeatureCollection | null;
+    setSavedGeoJson: (g: GeoJSON.FeatureCollection | null) => void;
+    popover: SignalPopover | null;
+    setPopover: (p: SignalPopover | null) => void;
+    infoBubble: InfoBubble | null;
+    setInfoBubble: (b: InfoBubble | null) => void;
+    infoBubbleVisible: boolean;
+    setInfoBubbleVisible: (v: boolean) => void;
+    canSave: boolean;
+    setCanSave: (v: boolean) => void;
+    updateBoundary: (deviceId: string | undefined, newBoundary: [number, number][] | null) => void;
+    getDistressCoord: () => [number, number];
+};

@@ -1,42 +1,18 @@
 const { AppDataSource } = require("../config/dataSource");
+const bcrypt = require("bcrypt");
 const communityRepo = AppDataSource.getRepository("CommunityGroup");
 const terminalRepo = AppDataSource.getRepository("Terminal");
 const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 
 // CREATE Community Group (sanitize coordinates/boundary)
 const createCommunityGroup = async (req, res) => {
+  const qr = AppDataSource.createQueryRunner();
+  await qr.connect();
+  await qr.startTransaction();
   try {
-    console.log("Received body:", JSON.stringify(req.body, null, 2));
+    // Accept JSON or multipart/form-data
+    const b = req.body || {};
     const {
-      terminalID, communityGroupName, noOfIndividuals, noOfFamilies, noOfPWD,
-      noOfPregnantWomen, noOfKids, noOfSeniors, otherInformation,
-      coordinates, address, boundary
-    } = req.body || {};
-
-    if (!terminalID) return res.status(400).json({ message: "Terminal Not Found" }); // or required check
-    if (!communityGroupName) return res.status(400).json({ message: "communityGroupName is required" });
-
-    const terminal = await terminalRepo.findOne({ where: { id: terminalID } });
-    if (!terminal) return res.status(404).json({ message: "Terminal Not Found" });
-    if (terminal.availability === "occupied") {
-      return res.status(400).json({ message: "Terminal Already Occupied" });
-    }
-
-    const lastCommunity = await communityRepo
-      .createQueryBuilder("communityGroup")
-      .select(["communityGroup.id"]) // only id to avoid simple-json parse
-      .orderBy("communityGroup.id", "DESC")
-      .getOne();
-
-    let newNumber = 1;
-    if (lastCommunity) {
-      const lastNumber = parseInt(lastCommunity.id.replace("COMGROUP", ""), 10);
-      newNumber = lastNumber + 1;
-    }
-    const newID = "COMGROUP" + String(newNumber).padStart(3, "0");
-
-    const communityGroup = communityRepo.create({
-      id: newID,
       terminalID,
       communityGroupName,
       noOfIndividuals,
@@ -46,20 +22,142 @@ const createCommunityGroup = async (req, res) => {
       noOfSeniors,
       noOfKids,
       otherInformation,
-      coordinates: Array.isArray(coordinates) ? coordinates : [],  // safe default
       address,
-      boundary: boundary && typeof boundary === "object" ? boundary : {}, // safe default
+      // Focal fields
+      name, // focal person name
+      email,
+      contactNumber,
+      alternativeFP,
+      alternativeFPEmail,
+      alternativeFPContactNumber,
+      password,
+    } = b;
+
+    // Parse coordinates/boundary (may arrive as JSON string when multipart)
+    const parseMaybeJson = (v, fallback) => {
+      if (v == null || v === "") return fallback;
+      if (Array.isArray(v) || typeof v === "object") return v;
+      try { return JSON.parse(v); } catch { return fallback; }
+    };
+    const coordinates = parseMaybeJson(b.coordinates, []);
+    const boundary = parseMaybeJson(b.boundary, {});
+
+    if (!terminalID) return res.status(400).json({ message: "terminalID is required" });
+    if (!communityGroupName) return res.status(400).json({ message: "communityGroupName is required" });
+    if (!name) return res.status(400).json({ message: "Focal Person name is required" });
+
+    // Lock terminal row to avoid races
+    const terminal = await qr.manager
+      .createQueryBuilder("Terminal", "t")
+      .setLock("pessimistic_write")
+      .where("t.id = :id", { id: terminalID })
+      .getOne();
+
+    if (!terminal) return res.status(404).json({ message: "Terminal Not Found" });
+    if (terminal.availability === "occupied") {
+      return res.status(400).json({ message: "Terminal Already Occupied" });
+    }
+
+    // Generate CommunityGroup ID
+    const lastCG = await qr.manager
+      .getRepository("CommunityGroup")
+      .createQueryBuilder("cg")
+      .select(["cg.id"])
+      .orderBy("cg.id", "DESC")
+      .getOne();
+    let num = 1;
+    if (lastCG) num = parseInt(String(lastCG.id).replace("COMGROUP", ""), 10) + 1;
+    const newCGId = "COMGROUP" + String(num).padStart(3, "0");
+
+    // Create CommunityGroup
+    const cg = qr.manager.getRepository("CommunityGroup").create({
+      id: newCGId,
+      terminalID,
+      communityGroupName,
+      noOfIndividuals: noOfIndividuals ?? 0,
+      noOfFamilies: noOfFamilies ?? 0,
+      noOfPWD: noOfPWD ?? 0,
+      noOfPregnantWomen: noOfPregnantWomen ?? 0,
+      noOfSeniors: noOfSeniors ?? 0,
+      noOfKids: noOfKids ?? 0,
+      otherInformation: otherInformation ?? null,
+      address: address ?? null,
+      coordinates: Array.isArray(coordinates) ? coordinates : [],
+      boundary: boundary && typeof boundary === "object" ? boundary : {},
     });
+    await qr.manager.getRepository("CommunityGroup").save(cg);
 
-    await communityRepo.save(communityGroup);
+    // Generate FocalPerson ID
+    const lastFP = await qr.manager
+      .getRepository("FocalPerson")
+      .createQueryBuilder("fp")
+      .select(["fp.id"])
+      .orderBy("fp.id", "DESC")
+      .getOne();
+    let fnum = 1;
+    if (lastFP) fnum = parseInt(String(lastFP.id).replace("FOCALP", ""), 10) + 1;
+    const newFPId = "FOCALP" + String(fnum).padStart(3, "0");
 
-    terminal.availability = "occupied";
-    await terminalRepo.save(terminal);
+    // Optional photo files (multer memoryStorage)
+    const files = req.files || {};
+    const main = files.photo?.[0];
+    const alt = files.alternativeFPImage?.[0];
 
-    res.status(201).json({ message: "Community Group Created", communityGroup });
+    const plainPassword = password || newFPId;
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    // Create FocalPerson
+    const fp = qr.manager.getRepository("FocalPerson").create({
+      id: newFPId,
+      communityGroupID: newCGId,
+      name,
+      email: email ?? null,
+      contactNumber: contactNumber ?? null,
+      address: address ?? null, // reuse same address if that’s your UI
+      alternativeFP: alternativeFP ?? null,
+      alternativeFPEmail: alternativeFPEmail ?? null,
+      alternativeFPContactNumber: alternativeFPContactNumber ?? null,
+      createdBy: req.user?.id ?? null,
+      password: hashedPassword,
+      ...(main?.buffer ? { photo: main.buffer } : {}),
+      ...(alt?.buffer ? { alternativeFPImage: alt.buffer } : {}),
+    });
+    await qr.manager.getRepository("FocalPerson").save(fp);
+
+    // Mark terminal occupied
+    await qr.manager.getRepository("Terminal").update({ id: terminalID }, { availability: "occupied" });
+
+    await qr.commitTransaction();
+
+    const response = {
+      message: "Community Group and Focal Person Created",
+      communityGroup: {
+        id: cg.id,
+        communityGroupName: cg.communityGroupName,
+        terminalID: cg.terminalID,
+        address: cg.address,
+        createdAt: cg.createdAt,
+      },
+      focalPerson: {
+        id: fp.id,
+        name: fp.name,
+        email: fp.email,
+        contactNumber: fp.contactNumber,
+        alternativeFP: fp.alternativeFP,
+        alternativeFPEmail: fp.alternativeFPEmail,
+        alternativeFPContactNumber: fp.alternativeFPContactNumber,
+        // photos are stored but not included in JSON
+      },
+    };
+    if (!password) response.temporaryPassword = plainPassword;
+
+    return res.status(201).json(response);
   } catch (err) {
-    console.error("Full error:", err);
-    res.status(500).json({ message: "Server Error -- CREATE CG", error: err.message });
+    await qr.rollbackTransaction();
+    console.error("Create CG+FP error:", err);
+    return res.status(500).json({ message: "Server Error - CREATE CG+FP", error: err.message });
+  } finally {
+    await qr.release();
   }
 };
 
@@ -247,29 +345,45 @@ const getCommunityGroup = async (req, res) => {
 
 // UPDATE Community Grouo Boundary
 const updateCommunityBoundary = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { boundary } = req.body;
+  try {
+    const { id } = req.params;
+    let { boundary } = req.body; // may be object, string, null, undefined
 
-        if (boundary == null || typeof boundary !== "object") {
-            return res.status(400).json({ message: "boundary must be a JSON object" });
-        }
-
-        const communityGroup = await communityRepo.findOne({where: {id} });
-        if (!communityGroup) {
-            return res.status(404).json({message: "Community Group Not Found"});
-        }
-
-        communityGroup.boundary = boundary;
-
-        await communityRepo.save(communityGroup);
-
-        res.json({message: "Community Group Updated", boundary});
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({message: "Server Error - UPDATE CG Boundary"});
+    // Treat undefined / null / empty string as "empty boundary"
+    if (boundary === undefined || boundary === null || boundary === "") {
+      boundary = {};
+    } else if (typeof boundary === "string") {
+      // Try to parse string
+      try {
+        boundary = boundary.trim();
+        boundary = boundary.length ? JSON.parse(boundary) : {};
+      } catch {
+        return res.status(400).json({ message: "boundary string is not valid JSON" });
+      }
     }
-}
+
+    // Must end up an object (allow empty {})
+    if (typeof boundary !== "object" || Array.isArray(boundary)) {
+      return res.status(400).json({ message: "boundary must be a JSON object (or empty)" });
+    }
+
+    const group = await communityRepo.findOne({ where: { id } });
+    if (!group) return res.status(404).json({ message: "Community Group Not Found" });
+    if (group.archived) return res.status(400).json({ message: "Cannot update boundary of archived group" });
+
+    group.boundary = boundary;
+    await communityRepo.save(group);
+
+    return res.json({
+      message: "Community Group Boundary Updated",
+      communityGroupID: id,
+      boundary, // echo back (empty object if cleared)
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error - UPDATE CG Boundary" });
+  }
+};
 
 // Fix: UPDATE Community Group (include address, use repo.save)
 const updateCommunityGroup = async (req, res) => {
