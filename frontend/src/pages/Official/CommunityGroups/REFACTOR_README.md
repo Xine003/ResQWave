@@ -53,19 +53,6 @@ utils/
 3. User returns → Component remounts and connects to same store
 4. All data including photos are still available
 
-## 🧹 Cleanup Completed
-
-Removed unused files:
-- ❌ `CreateCommunityGroupSheetRefactored.tsx` (old complex version)
-- ❌ `CommunityGroupDrawerSimple.tsx` (context-based version)  
-- ❌ `CommunityGroupDrawerWrapper.tsx` (unnecessary wrapper)
-- ❌ `FormContext.tsx` (replaced by global store)
-- ❌ `useSessionRestore.ts` (no longer needed)
-- ❌ `useFormPersistence.tsx` (replaced by store)
-- ❌ `useFormInitialization.ts` (simplified)
-- ❌ `usePhotoManagement.ts` (moved to store)
-- ❌ `hooks/index.ts` (unused exports)
-- ❌ `context/` directory (no longer needed)
 
 ## 🚀 Usage
 
@@ -282,11 +269,3 @@ All components include comprehensive logging with emoji indicators:
 3. **Edit Mode**: Test pre-filling and persistence
 4. **Validation**: Test file type/size validation
 5. **Session Management**: Test session restoration and cleanup
-
-## 🔮 Future Enhancements
-
-1. **Drag & Drop**: Add drag and drop for photo uploads
-2. **Image Optimization**: Add client-side image compression
-3. **Progress Indicators**: Show upload progress for large files
-4. **Undo/Redo**: Add form state history management
-5. **Auto-save Indicators**: Visual feedback for auto-save operations
