@@ -20,6 +20,8 @@ export type CommunityData = {
         address: string;
         coordinates: string;
         altFocal?: string;
+        altContact?: string;
         photo?: string | null;
+        altPhoto?: string | null;
     };
 };

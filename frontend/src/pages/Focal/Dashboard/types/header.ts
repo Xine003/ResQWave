@@ -11,4 +11,11 @@ export type HeaderProps = {
     editAboutOpen?: boolean;
     onTabChange?: (value: string) => void;
     activeTab?: string;
+    onAccountSettingsClick?: () => void;
+    // When the Account Settings (Change Password) modal is open
+    accountSettingsOpen?: boolean;
+    // Called when header navigation is attempted while account settings modal is open.
+    // Parent should show a discard confirmation if the change-password form is dirty,
+    // and call the provided continueNavigation() callback if the user confirms.
+    onRequestCloseAccountSettings?: (continueNavigation: () => void) => void;
 };
