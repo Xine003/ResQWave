@@ -181,6 +181,49 @@ const updateFocalPerson = async (req, res) => {
     }
 };
 
+// UPDATE Password
+const changePassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { currentPassword, newPassword, confirmPassword} = req.body;
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return res.json(400).json({message: "Current Password, New Password and Confirm Password cannot be empty."})
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.json(400).json({message: "New Password and Confirm Password are not matched"})
+        }
+
+        // Password Policy
+        const policy = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
+        if (!policy.test(newPassword)) {
+            return res.status(400).json({message: "Password must atleast have 1 Capital, 1 Number and 1 Special Character"});
+        }
+
+        const focalPerson = await focalPersonRepo.findOne({where: {id} });
+        if (!focalPerson) {
+            return res.status(404).json({message: "Focal Person Not Found"});
+        }
+
+        const ok = await bcrypt.compare(currentPassword, focalPerson.password);
+        if (!ok) {
+            return res.status(400).json({message: "Current Password is incorrect."});
+        }
+
+        const same = await bcrypt.compare(newPassword, focalPerson.password);
+        if (same) return res.status(400).json({message: "New Password must be different from current password"});
+
+        focalPerson.password = await bcrypt.hash(newPassword, 10);
+        await focalPersonRepo.save(focalPerson);
+
+        return res.json({message: "Password Updated"});
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({message: "Server Error"});
+    }
+};
+
 
 
 module.exports = {
@@ -190,5 +233,6 @@ module.exports = {
     updateFocalPerson,
     updateFocalPhotos,
     getFocalPhoto,
-    getAlternativeFocalPhoto
+    getAlternativeFocalPhoto,
+    changePassword,
 };
