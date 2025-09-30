@@ -87,19 +87,30 @@ const generateRescueReport = async (req, res) => {
     const template = fs.readFileSync(templatePath);
     const zipDbg = new PizZip(template);
     const docXml = zipDbg.file("word/document.xml")?.asText() || "";
-    const foundMarkers = [...docXml.matchAll(/\{[^{}]+\}/g)].map(m => m[0]);
-    console.log("DEBUG placeholders found in XML:", foundMarkers);
-    // If this logs [], your placeholders aren’t in the main document or are malformed.
+
+    // Auto-detect delimiter style (single {var} vs {{var}})
+    const usesDouble = /{{[^{}]+}}/.test(docXml);
 
     const buffer = await createReport({
       template,
       data,
-      cmdDelimiter: ["{{","}}"],   // <- add if template uses double braces
-      nullGetter: (part, scope, key) => `<<MISSING:${key}>>`
+      ...(usesDouble ? { cmdDelimiter: ["{{","}}"] } : {}),
+      nullGetter: () => ""
     });
 
+    // ----- Filename Convention -----
+    const seq = (communityGroup.id.match(/(\d+)/)?.[1] || "001").padStart(3, "0");
+    const safeName = (communityGroup.communityGroupName || "CommunityGroup")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Za-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .substring(0, 40) || "CommunityGroup";
+    const fileName = `${safeName}_${seq}.docx`;
+    // --------------------------------
+
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-    res.setHeader("Content-Disposition", 'attachment; filename="Rescue_Operation_Report.docx"');
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     res.setHeader("Content-Length", buffer.length);
     return res.end(Buffer.from(buffer));
   } catch (err) {
