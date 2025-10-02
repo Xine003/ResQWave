@@ -172,7 +172,8 @@ export function Visualization() {
                                 date: props.date || undefined,
                                 deviceId: props.deviceId || undefined,
                                 focalPerson: props.focalPerson || undefined,
-                                altFocalPerson: props.altFocalPerson || undefined
+                                altFocalPerson: props.altFocalPerson || undefined,
+                                alertType: props.alertType || undefined
                             });
                         } catch (err) {
                             // fallback: if anything goes wrong, keep previous behavior
@@ -190,6 +191,7 @@ export function Visualization() {
                                 title: props.name || (props.status === 'offline' ? 'Offline Signal' : 'Community'),
                                 address: props.address || undefined,
                                 date: props.date || undefined,
+                                alertType: props.alertType || undefined
                             });
                         }
                     });
