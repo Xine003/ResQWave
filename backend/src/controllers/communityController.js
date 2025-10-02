@@ -1,4 +1,9 @@
 const { AppDataSource } = require("../config/dataSource");
+const {
+  getCache,
+  setCache,
+  deleteCache
+} = require("../config/cache");
 const bcrypt = require("bcrypt");
 const communityRepo = AppDataSource.getRepository("CommunityGroup");
 const terminalRepo = AppDataSource.getRepository("Terminal");
@@ -151,6 +156,9 @@ const createCommunityGroup = async (req, res) => {
     };
     if (!password) response.temporaryPassword = plainPassword;
 
+    await deleteCache("communityGroups:active");
+    await deleteCache("communityGroups:archived");
+
     return res.status(201).json(response);
   } catch (err) {
     await qr.rollbackTransaction();
@@ -162,11 +170,15 @@ const createCommunityGroup = async (req, res) => {
 };
 
 // VIEW Own Community Group (for logged-in focal person)
-// Map View
+// Map View + Cache
 const viewMapOwnCommunityGroup = async (req, res) => {
   try {
     const focalPersonID = req.user?.id || req.params.focalPersonID || req.query.focalPersonID;
     if (!focalPersonID) return res.status(400).json({ message: "Missing Focal Person ID" });
+
+    const cacheKey = `viewMap:fp:${focalPersonID}`;
+    const cached = await getCache(cacheKey); 
+    if (cached) return res.json(cached);
 
     const focal = await focalPersonRepo.findOne({ where: { id: focalPersonID } });
     if (!focal) return res.status(404).json({ message: "Focal Person Not Found" });
@@ -176,7 +188,7 @@ const viewMapOwnCommunityGroup = async (req, res) => {
     });
     if (!group) return res.status(404).json({ message: "Community Group Not Found" });
 
-    return res.json({
+    const payload = { // FIX: payload was not defined before
       communityGroupName: group.communityGroupName,
       terminalID: group.terminalID,
       focalPerson: {
@@ -186,7 +198,10 @@ const viewMapOwnCommunityGroup = async (req, res) => {
       address: group.address ?? null,
       coordinates: Array.isArray(group.coordinates) ? group.coordinates : null,
       createdDate: group.createdAt ?? null,
-    });
+    };
+
+    await setCache(cacheKey, payload, 120);
+    return res.json(payload);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server Error -- VIEW OWN CG" });
@@ -274,9 +289,13 @@ const viewOtherCommunityGroups = async (req, res) => {
   }
 };
 
-// READ All Community Group
+// READ All Community Group + Cache
 const getCommunityGroups = async (req, res) => {
   try {
+    const cacheKey = "communityGroups:active";
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
+
     // Select only the fields we need to avoid parsing simple-json columns
     const groups = await communityRepo
       .createQueryBuilder("cg")
@@ -323,6 +342,7 @@ const getCommunityGroups = async (req, res) => {
       createdDate: g.cg_createdAt || null,
     }));
 
+    await setCache(cacheKey, result, 60); // 60s TTL
     return res.json(result);
   } catch (err) {
     console.error(err);
@@ -330,12 +350,18 @@ const getCommunityGroups = async (req, res) => {
   }
 };
 
-// Fix: READ One Community Group (admin/dispatcher full details)
+// Fix: READ One Community Group (admin/dispatcher full details) + Cache
 const getCommunityGroup = async (req, res) => {
   try {
     const { id } = req.params;
+    const cacheKey = `communityGroup:${id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
+
     const communityGroup = await communityRepo.findOne({ where: { id } });
     if (!communityGroup) return res.status(404).json({ message: "Community Group Not Found" });
+    
+    await setCache(cacheKey, communityGroup, 300);
     res.json(communityGroup);
   } catch (err) {
     console.error(err);
@@ -374,6 +400,10 @@ const updateCommunityBoundary = async (req, res) => {
     group.boundary = boundary;
     await communityRepo.save(group);
 
+    await deleteCache(`communityGroup:${id}`);
+    await deleteCache("communityGroups:active");
+    await deleteCache("communityGroups:archived");
+
     return res.json({
       message: "Community Group Boundary Updated",
       communityGroupID: id,
@@ -408,6 +438,11 @@ const updateCommunityGroup = async (req, res) => {
     if (address != null) communityGroup.address = address;
 
     await communityRepo.save(communityGroup);
+
+    await deleteCache(`communityGroup:${id}`);
+    await deleteCache("communityGroups:active");
+    await deleteCache("communityGroups:archived");
+
     res.json({ message: "Community Group Updated", communityGroup });
   } catch (err) {
     console.error(err);
@@ -469,6 +504,10 @@ const archivedCommunityGroup = async (req, res) => {
       await communityRepo.update({ id }, { terminalID: null });
     }
 
+    await deleteCache(`communityGroup:${id}`);
+    await deleteCache("communityGroups:active");
+    await deleteCache("communityGroups:archived");
+
     return res.json({ message: "Community Group Archived, Focal Person Archived, Terminal Available" });
   } catch (err) {
     console.error(err);
@@ -476,9 +515,13 @@ const archivedCommunityGroup = async (req, res) => {
   }
 };
 
-// GET ARCHIVED CommunityGroup
+// GET ARCHIVED CommunityGroup + Cache
 const getArchivedCommunityGroup = async(req, res) => {
   try {
+    const cacheKey = "communityGroups:archived";
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
+
     const groups = await communityRepo
       .createQueryBuilder("cg")
       .select(["cg.id", "cg.communityGroupName", "cg.address", "cg.createdAt", "cg.terminalID"])
@@ -522,6 +565,7 @@ const getArchivedCommunityGroup = async(req, res) => {
       createdDate: g.cg_createdAt || null,
     }));
 
+    await setCache(cacheKey, result, 120);
     return res.json(result);
   } catch (err) {
     console.error(err);
