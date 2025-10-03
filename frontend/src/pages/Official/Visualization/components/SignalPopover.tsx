@@ -21,7 +21,7 @@ const PopoverRow = ({ label, value, isWide = false }: { label: string; value: Re
     </div>
 );
 
-export default function SignalPopover({ popover, setPopover, onClose, infoBubble, infoBubbleVisible }: SignalPopupProps) {
+export default function SignalPopover({ popover, setPopover, onClose, onOpenCommunityInfo, infoBubble, infoBubbleVisible }: SignalPopupProps) {
     if (!popover) return null;
 
     // Calculate precise positioning to align popover with pin
@@ -91,8 +91,7 @@ export default function SignalPopover({ popover, setPopover, onClose, infoBubble
                     <div className="flex gap-2 mt-4 pointer-events-auto">
                         <button
                             onClick={() => {
-                                // TODO: Implement More Info Sidebar
-                                console.log('More Info button clicked');
+                                onOpenCommunityInfo?.();
                             }}
                             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
                         >

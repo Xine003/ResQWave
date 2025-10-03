@@ -5,4 +5,6 @@ export type MapControlsProps = {
     mapLoaded: boolean;
     makeTooltip: (text: string) => React.ReactNode;
     addCustomLayers: (map: any) => void;
+    onToggleLiveReport?: () => void;
+    isLiveReportOpen?: boolean;
 };

@@ -6,6 +6,8 @@ export type SignalPopupProps = {
     // optional callback invoked when the popover is closed via the UI so the
     // parent can perform cleanup (for example: remove temporary map layers)
     onClose?: () => void;
+    // Handler for opening community info sheet
+    onOpenCommunityInfo?: () => void;
     // Info bubble props moved here so the popup component can also render the
     // small 'YOUR COMMUNITY' bubble when no popover is visible.
     infoBubble: InfoBubble | null;

@@ -7,9 +7,10 @@ import { createColumns, type CommunityGroup } from "./components/Column"
 import { CommunityGroupInfoSheet } from "./components/CommunityGroupInfoSheet"
 import { CommunityGroupDrawer } from "./components/CreateCommunityGroupSheet"
 import { DataTable } from "./components/DataTable"
+import { predefinedCommunityGroupDetails, predefinedCommunityGroups } from "./data/predefinedCommunityGroups"
 import type { CommunityGroupDetails } from "./types"
 
-// active groups are now managed in state (initially empty)
+// active groups are now managed in state (initialized with predefined data)
 
 // Archived groups are also managed in state (start empty)
 
@@ -74,9 +75,9 @@ export function CommunityGroups() {
    const [drawerOpen, setDrawerOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
   const [selectedInfoData, setSelectedInfoData] = useState<CommunityGroupDetails | undefined>(undefined)
-  const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>([])
+  const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>(predefinedCommunityGroups)
   const [archivedGroups, setArchivedGroups] = useState<CommunityGroup[]>([])
-  const [infoById, setInfoById] = useState<Record<string, CommunityGroupDetails>>({})
+  const [infoById, setInfoById] = useState<Record<string, CommunityGroupDetails>>(predefinedCommunityGroupDetails)
   const [searchVisible, setSearchVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [editingGroup, setEditingGroup] = useState<CommunityGroup | null>(null)

@@ -1,16 +1,20 @@
+import type { CommunityGroupDetails, TerminalStatus } from "../../CommunityGroups/types";
+
 export type Signal = {
     coordinates: [number, number];
     properties: {
-        status: string;
+        status: TerminalStatus;
         deviceId: string;
         focalPerson: string;
         altFocalPerson?: string;
         address?: string;
         date?: string;
         name?: string;
-        alertType?: string;
+        alertType?: 'CRITICAL' | 'USER-INITIATED' | 'ONLINE' | 'OFFLINE';
     };
     boundary: [number, number][];
+    // Include full community group details for more info functionality
+    communityDetails?: CommunityGroupDetails;
 };
 
 export type SignalPopover = {
@@ -28,6 +32,8 @@ export type SignalPopover = {
     alertType?: string;
     timeSent?: string;
     contactNumber?: string;
+    // Include community details for more info functionality
+    communityDetails?: CommunityGroupDetails;
 };
 
 export type InfoBubble = { x: number; y: number };

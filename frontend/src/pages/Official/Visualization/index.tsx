@@ -1,6 +1,10 @@
+import { useLiveReport } from '@/components/Official/LiveReportContext';
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
+import { CommunityGroupInfoSheet } from '../CommunityGroups/components/CommunityGroupInfoSheet';
+import type { CommunityGroupDetails } from '../CommunityGroups/types';
+import LiveReportSidebar from './components/LiveReportSidebar';
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
@@ -14,6 +18,15 @@ export function Visualization() {
     const mapContainer = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const [mapLoaded, setMapLoaded] = useState(false);
+    const { isLiveReportOpen, setIsLiveReportOpen } = useLiveReport();
+    
+    // Keep a ref to the latest sidebar state so map event handlers can see the current value
+    const sidebarOpenRef = useRef<boolean>(isLiveReportOpen);
+    useEffect(() => { sidebarOpenRef.current = isLiveReportOpen; }, [isLiveReportOpen]);
+    
+    // Community info sheet state
+    const [infoSheetOpen, setInfoSheetOpen] = useState(false);
+    const [selectedCommunityData, setSelectedCommunityData] = useState<CommunityGroupDetails | undefined>(undefined);
     
     // signal & UI state provided by the useSignals hook (centralized)
     const signals = useSignals();
@@ -24,6 +37,24 @@ export function Visualization() {
     // (which are attached once) can see the current value and update its screen coords
     const popoverRef = useRef<typeof popover>(popover);
     useEffect(() => { popoverRef.current = popover; }, [popover]);
+
+    // Handle map resize when sidebar opens/closes
+    useEffect(() => {
+        const map = mapRef.current;
+        if (map) {
+            // Delay the resize to allow for transition
+            setTimeout(() => {
+                map.resize();
+            }, 300);
+        }
+    }, [isLiveReportOpen]);
+
+    // Clean up: close sidebar when component unmounts
+    useEffect(() => {
+        return () => {
+            setIsLiveReportOpen(false);
+        };
+    }, [setIsLiveReportOpen]);
 
     useEffect(() => {
         if (!mapContainer.current) return;
@@ -162,6 +193,16 @@ export function Visualization() {
                             const absX = (rect?.left ?? 0) + pt.x;
                             const absY = (rect?.top ?? 0) + pt.y;
                             const props = f?.properties || {};
+                            
+                            // Find the community details for this signal
+                            let communityDetails = undefined;
+                            if (deviceId === OwnCommunitySignal.properties.deviceId) {
+                                communityDetails = OwnCommunitySignal.communityDetails;
+                            } else {
+                                const found = otherSignals.find(s => s.properties.deviceId === deviceId);
+                                if (found) communityDetails = found.communityDetails;
+                            }
+                            
                             setPopover({
                                 lng: coord[0],
                                 lat: coord[1],
@@ -173,7 +214,8 @@ export function Visualization() {
                                 deviceId: props.deviceId || undefined,
                                 focalPerson: props.focalPerson || undefined,
                                 altFocalPerson: props.altFocalPerson || undefined,
-                                alertType: props.alertType || undefined
+                                alertType: props.alertType || undefined,
+                                communityDetails: communityDetails
                             });
                         } catch (err) {
                             // fallback: if anything goes wrong, keep previous behavior
@@ -191,7 +233,8 @@ export function Visualization() {
                                 title: props.name || (props.status === 'offline' ? 'Offline Signal' : 'Community'),
                                 address: props.address || undefined,
                                 date: props.date || undefined,
-                                alertType: props.alertType || undefined
+                                alertType: props.alertType || undefined,
+                                communityDetails: undefined // fallback case - no community details
                             });
                         }
                     });
@@ -206,6 +249,16 @@ export function Visualization() {
                 map.on('click', layerId, hideInfoBubbleOnClick);
             });
             bindLayerClicks(signalLayers);
+
+            // Close sidebar when clicking on the map (but not on signal pins)
+            map.on('click', (e) => {
+                // Check if the click was on a signal layer
+                const features = map.queryRenderedFeatures(e.point, { layers: signalLayers });
+                if (features.length === 0 && sidebarOpenRef.current) {
+                    // Only close if clicking on empty map area and sidebar is open
+                    setIsLiveReportOpen(false);
+                }
+            });
 
             // Keep popover anchored while moving
             map.on('move', () => {
@@ -237,6 +290,14 @@ export function Visualization() {
         };
     }, []);
 
+    // Handler for opening community info sheet from popover
+    const handleOpenCommunityInfo = () => {
+        if (popover?.communityDetails) {
+            setSelectedCommunityData(popover.communityDetails);
+            setInfoSheetOpen(true);
+        }
+    };
+
     return (
         <div style={{ 
             height: "calc(100vh - 70px)", 
@@ -245,8 +306,9 @@ export function Visualization() {
             width: "100%", 
             position: "relative", 
             background: "#222", 
-            overflow: "hidden" 
+            overflow: "hidden"
         }}>
+            {/* Map Container */}
             <div ref={mapContainer} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }} />
 
             <SignalPopover
@@ -254,6 +316,7 @@ export function Visualization() {
                 setPopover={setPopover}
                 infoBubble={infoBubble}
                 infoBubbleVisible={infoBubbleVisible}
+                onOpenCommunityInfo={handleOpenCommunityInfo}
                 onClose={() => {
                     // remove any temporary signal boundary overlay when popover closes
                     const map = mapRef.current;
@@ -271,6 +334,56 @@ export function Visualization() {
                 mapLoaded={mapLoaded} 
                 makeTooltip={makeTooltip} 
                 addCustomLayers={(m) => addCustomLayers(m, otherSignals, OwnCommunitySignal)} 
+                onToggleLiveReport={() => setIsLiveReportOpen(!isLiveReportOpen)}
+                isLiveReportOpen={isLiveReportOpen}
+            />
+
+            {/* Live Report Sidebar */}
+            <LiveReportSidebar
+                isOpen={isLiveReportOpen}
+                onClose={() => setIsLiveReportOpen(false)}
+                signals={[...otherSignals, OwnCommunitySignal]}
+                onCardClick={(signal) => {
+                    const map = mapRef.current;
+                    if (!map) return;
+                    
+                    const coord = signal.coordinates;
+                    
+                    // Fly to the signal location
+                    flyToSignal(map, coord);
+                    
+                    // Wait a moment for the map to finish flying, then show popover
+                    setTimeout(() => {
+                        // Calculate screen position for popover
+                        const pt = map.project(coord);
+                        const rect = mapContainer.current?.getBoundingClientRect();
+                        const absX = (rect?.left ?? 0) + pt.x;
+                        const absY = (rect?.top ?? 0) + pt.y;
+                        
+                        // Open the popover with signal information
+                        setPopover({
+                            lng: coord[0],
+                            lat: coord[1],
+                            screen: { x: absX, y: absY },
+                            status: signal.properties.status || undefined,
+                            title: signal.properties.name || 'Unknown Location',
+                            address: signal.properties.address || undefined,
+                            date: signal.properties.date || undefined,
+                            deviceId: signal.properties.deviceId || undefined,
+                            focalPerson: signal.properties.focalPerson || undefined,
+                            altFocalPerson: signal.properties.altFocalPerson || undefined,
+                            alertType: signal.properties.alertType || undefined,
+                            communityDetails: signal.communityDetails
+                        });
+                    }, 500); // Small delay to let the map finish flying
+                }}
+            />
+
+            {/* Community Group Info Sheet */}
+            <CommunityGroupInfoSheet
+                open={infoSheetOpen}
+                onOpenChange={setInfoSheetOpen}
+                communityData={selectedCommunityData}
             />
         </div>
     );

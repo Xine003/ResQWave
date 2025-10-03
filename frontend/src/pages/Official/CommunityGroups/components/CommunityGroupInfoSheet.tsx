@@ -213,17 +213,17 @@ export function CommunityGroupInfoSheet({
 
               <div className="flex justify-between items-center">
                 <span className="text-white text-[10px] font-medium">ALTERNATIVE FOCAL PERSON</span>
-                <span className="text-white text-[10px]">{communityData.alternativeFocalPerson.name}</span>
+                <span className="text-white text-[10px]">{communityData.alternativeFocalPerson.altName}</span>
               </div>
               <div className="border-t border-[#2a2a2a]"></div>
               <div className="flex justify-between items-center">
                 <span className="text-white text-[10px] font-medium">CONTACT NO.</span>
-                <span className="text-white text-[10px]">{communityData.alternativeFocalPerson.contactNumber}</span>
+                <span className="text-white text-[10px]">{communityData.alternativeFocalPerson.altContactNumber}</span>
               </div>
               <div className="border-t border-[#2a2a2a]"></div>
               <div className="flex justify-between items-center">
                 <span className="text-white text-[10px] font-medium">EMAIL</span>
-                <span className="text-white text-[10px]">{communityData.alternativeFocalPerson.email}</span>
+                <span className="text-white text-[10px]">{communityData.alternativeFocalPerson.altEmail}</span>
               </div>
             </div>
           </div>
