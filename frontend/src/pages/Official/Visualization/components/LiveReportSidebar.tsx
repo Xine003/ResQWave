@@ -14,16 +14,17 @@ interface LiveReportSidebarProps {
 export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClick }: LiveReportSidebarProps) {
     const [activeTab, setActiveTab] = useState<'unassigned' | 'waitlisted'>('unassigned');
 
-    // Filter signals - only show CRITICAL and USER-INITIATED alerts, split between tabs
+    // Filter signals - properly separate between unassigned and waitlisted
+    // Unassigned: CRITICAL and USER-INITIATED alerts that are currently ONLINE (active/unassigned)
     const unassignedAlerts = signals.filter(signal => 
-        signal.properties.alertType === 'CRITICAL' || signal.properties.alertType === 'USER-INITIATED'
+        (signal.properties.alertType === 'CRITICAL' || signal.properties.alertType === 'USER-INITIATED') &&
+        signal.properties.status === 'ONLINE'
     );
     
-    // For now, waitlisted can be empty or could contain a subset of emergency alerts
-    // You can adjust this logic based on your specific business rules
+    // Waitlisted: CRITICAL and USER-INITIATED alerts that are OFFLINE (waiting/assigned)
     const waitlistedAlerts = signals.filter(signal => 
         (signal.properties.alertType === 'CRITICAL' || signal.properties.alertType === 'USER-INITIATED') &&
-        signal.properties.status === 'ONLINE' // Example condition - adjust as needed
+        signal.properties.status === 'OFFLINE'
     );
 
     const formatTime = (dateString?: string) => {
@@ -54,8 +55,8 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                             variant="outline" 
                             className={`text-xs px-2 py-1 rounded-[3px] ${
                                 signal.properties.alertType === 'CRITICAL' 
-                                    ? 'border-red-500 text-red-500 bg-transparent' 
-                                    : 'border-yellow-500 text-yellow-500 bg-transparent'
+                                    ? 'border-red-500 text-red-500 bg-red-500/10' 
+                                    : 'border-yellow-500 text-yellow-500 bg-yellow-500/10'
                             }`}
                         >
                             {signal.properties.alertType}
@@ -145,16 +146,18 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                 </div>
             </div>
 
-            {/* Info Section */}
-            <div className="px-2 pb-4">
-                <div className="border border-[#2a2a2a] rounded-[5px] p-4 flex items-start gap-3">
-                    <div className="bg-blue-500/15 rounded-[5px] p-3 mt-0.5">
-                        <Info className="h-5 w-5 text-blue-500" />
+            {/* Info Section - Only visible in Unassigned tab */}
+            <div className="px-4 pb-4">
+                {activeTab === 'unassigned' && (
+                    <div className="border border-[#2a2a2a] rounded-[5px] p-4 flex items-start gap-3">
+                        <div className="bg-blue-500/15 rounded-[5px] p-3 mt-0.5">
+                            <Info className="h-5 w-5 text-blue-500" />
+                        </div>
+                        <p className="text-gray-300 text-sm leading-relaxed">
+                            Emergencies that have not been addressed and no rescue team has been dispatched.
+                        </p>
                     </div>
-                    <p className="text-gray-300 text-sm leading-relaxed">
-                        Emergencies that have not been addressed and no rescue team has been dispatched.
-                    </p>
-                </div>
+                )}
             </div>
 
             {/* Content Area */}

@@ -1,8 +1,7 @@
-import { ClipboardCheck, Radio, Settings, Users } from "lucide-react";
-import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import SettingsPopover from "./settingsPopover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip-white";
+import { ClipboardCheck, Radio, Users } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import SettingsPopover from "./SettingsPopover";
 import resqwave_logo from "/Landing/resqwave_logo.png";
 
 const navigationItems = [
@@ -26,11 +25,6 @@ const navigationItems = [
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [settingsOpen, setSettingsOpen] = React.useState(false);
-  const buttonRef = React.useRef<HTMLButtonElement>(null);
-  const popoverRef = React.useRef<HTMLDivElement>(null);
-  const handleSettingsClick = () => setSettingsOpen((open) => !open);
-  const handlePopoverClose = () => setSettingsOpen(false);
 
   return (
     <>
@@ -58,6 +52,7 @@ export function Sidebar() {
                             : "bg-[#171717] text-white/60 hover:bg-[#302F2F] hover:text-white"
                         }`}
                         onClick={() => navigate(item.path)}
+                        aria-label={item.label}
                       >
                         <Icon className="w-6 h-6" />
                       </button>
@@ -73,35 +68,10 @@ export function Sidebar() {
         </nav>
 
         <div className="relative flex flex-col items-center">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                ref={buttonRef}
-                className={`w-[50px] h-[50px] flex items-center justify-center gap-2.5 flex-shrink-0 aspect-square rounded-[5px] border-[1.5px] border-[#404040] transition-colors ${
-                  location.pathname === "/settings-dispatcher"
-                    ? "bg-white text-black"
-                    : "bg-[#171717] text-white/60 hover:bg-[#302F2F] hover:text-white"
-                }`}
-                aria-label="Settings"
-                type="button"
-                onClick={handleSettingsClick}
-              >
-                <Settings className="w-6 h-6" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>
-              Settings
-            </TooltipContent>
-          </Tooltip>
-          {/* Popover */}
-          {settingsOpen && (
-            <div
-              ref={popoverRef}
-              className="absolute left-full bottom-0 ml-4 z-50"
-            >
-              <SettingsPopover onClose={handlePopoverClose} />
-            </div>
-          )}
+          <SettingsPopover
+            isActive={location.pathname === "/settings-dispatcher"} 
+            isMobile={false}
+          />
         </div>
       </aside>
 
@@ -122,6 +92,7 @@ export function Sidebar() {
                       : "text-white/60 hover:text-white"
                   }`}
                   onClick={() => navigate(item.path)}
+                  aria-label={item.label}
                 >
                   <Icon className="w-6 h-6" />
                   <span className="text-[10px] mt-1">{item.label}</span>
@@ -134,35 +105,10 @@ export function Sidebar() {
           );
         })}
         <div className="relative flex flex-col items-center">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                ref={buttonRef}
-                className={`flex flex-col items-center justify-center transition-colors ${
-                  location.pathname === "/settings-dispatcher"
-                    ? "text-black bg-white"
-                    : "text-white/60 hover:text-white"
-                }`}
-                aria-label="Settings"
-                type="button"
-                onClick={handleSettingsClick}
-              >
-                <Settings className="w-6 h-6" />
-                <span className="text-[10px] mt-1">Settings</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top" sideOffset={8}>
-              Settings
-            </TooltipContent>
-          </Tooltip>
-          {settingsOpen && (
-            <div
-              ref={popoverRef}
-              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50"
-            >
-              <SettingsPopover onClose={handlePopoverClose} />
-            </div>
-          )}
+          <SettingsPopover
+            isActive={location.pathname === "/settings-dispatcher"} 
+            isMobile={true}
+          />
         </div>
       </nav>
     </>

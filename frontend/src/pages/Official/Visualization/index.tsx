@@ -8,7 +8,7 @@ import LiveReportSidebar from './components/LiveReportSidebar';
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
-import type { VisualizationSignals } from './types/signals';
+import type { Signal, VisualizationSignals } from './types/signals';
 import { cinematicMapEntrance, flyToSignal } from './utils/flyingEffects';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
 
@@ -48,6 +48,87 @@ export function Visualization() {
             }, 300);
         }
     }, [isLiveReportOpen]);
+
+    // Helper function to display signal boundary
+    const displaySignalBoundary = (signal: Signal) => {
+        const map = mapRef.current;
+        if (!map || !signal.boundary) return;
+
+        // Remove previous boundary layer/source
+        try {
+            if (map.getLayer('signal-boundary')) map.removeLayer('signal-boundary');
+            if (map.getLayer('signal-boundary-line')) map.removeLayer('signal-boundary-line');
+            if (map.getSource('signal-boundary')) map.removeSource('signal-boundary');
+        } catch (e) { /* ignore */ }
+
+        // Determine color by alert type
+        let fillColor = '#22c55e'; // Default green
+        let lineColor = '#22c55e'; // Default green
+        let opacity = 0.15;
+        const alertType = signal.properties.alertType;
+        
+        switch (alertType) {
+            case 'CRITICAL':
+                fillColor = '#ef4444'; // Red
+                lineColor = '#ef4444';
+                opacity = 0.2; // Slightly more opacity for critical
+                break;
+            case 'USER-INITIATED':
+                fillColor = '#eab308'; // Yellow
+                lineColor = '#eab308';
+                opacity = 0.15;
+                break;
+            case 'ONLINE':
+                fillColor = '#22c55e'; // Green
+                lineColor = '#22c55e';
+                opacity = 0.15;
+                break;
+            case 'OFFLINE':
+                fillColor = '#6b7280'; // Gray
+                lineColor = '#6b7280';
+                opacity = 0.1;
+                break;
+            default:
+                fillColor = '#6b7280'; // Default gray
+                lineColor = '#6b7280';
+                opacity = 0.1;
+                break;
+        }
+
+        // Add boundary source and layers
+        map.addSource('signal-boundary', {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [signal.boundary]
+                }
+            }
+        });
+
+        map.addLayer({
+            id: 'signal-boundary',
+            type: 'fill',
+            source: 'signal-boundary',
+            paint: {
+                'fill-color': fillColor,
+                'fill-opacity': opacity
+            }
+        });
+
+        map.addLayer({
+            id: 'signal-boundary-line',
+            type: 'line',
+            source: 'signal-boundary',
+            paint: {
+                'line-color': lineColor,
+                'line-width': 3,
+                'line-dasharray': [2, 4]
+            }
+        });
+    };
 
     // Clean up: close sidebar when component unmounts
     useEffect(() => {
@@ -348,6 +429,9 @@ export function Visualization() {
                     if (!map) return;
                     
                     const coord = signal.coordinates;
+                    
+                    // Display the signal boundary
+                    displaySignalBoundary(signal);
                     
                     // Fly to the signal location
                     flyToSignal(map, coord);
