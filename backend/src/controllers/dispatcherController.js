@@ -1,6 +1,11 @@
 const bcrypt = require("bcrypt");
 const { AppDataSource } = require("../config/dataSource");
 const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
+const {
+    getCache,
+    setCache,
+    deleteCache
+} = require("../config/cache");
 
 // CREATE Dispatcher
 const createDispatcher = async(req, res) => {
@@ -50,6 +55,10 @@ const createDispatcher = async(req, res) => {
 
         await dispatcherRepo.save(dispatcher);
 
+        // Invalidate Caches
+        await deleteCache("dispatchers:active");
+        await deleteCache("dispatcher:archived");
+
         // Return temporary password only when defaulted to ID
         const responseBody = { message: "Dispatcher Created", dispatcher };
         if (!password) {
@@ -66,7 +75,13 @@ const createDispatcher = async(req, res) => {
 // READ Dispatchers (Exclude Archived)
 const getDispatchers = async (req, res) => {
     try {
+
+        const cacheKey = "dispatchers:active";
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
+
         const dispatchers = await dispatcherRepo.find({where: {archived: false} });
+        await setCache(cacheKey, dispatchers, 60);
         res.json(dispatchers);
     } catch (err) {
         console.error(err);
@@ -78,10 +93,16 @@ const getDispatchers = async (req, res) => {
 const getDispatcher = async (req, res) => {
     try {
        const { id } = req.params;
+
+       const cacheKey = `dispatcher:${id}`;
+       const cached = await getCache(cacheKey);
+       if(cached) return res.json(cached);
+
        const dispatcher = await dispatcherRepo.findOne({where: {id} });
        if (!dispatcher) {
         return res.status(404).json({message: "Dispatcher Does Not Exist"});
        }
+       await setCache(cacheKey, dispatcher, 120);
        res.json(dispatcher);
     } catch (err) {
         console.error(err)
@@ -107,6 +128,11 @@ const updateDispatcher = async (req, res) => {
 
         await dispatcherRepo.save(dispatcher);
 
+        // Invalidate
+        await deleteCache("dispatchers:active");
+        await deleteCache("dispatchers:archived");
+        await deleteCache(`dispatcher:${id}`);
+
         res.json({message: "Dispatcher Updated", dispatcher});
     } catch (err) {
         console.error(err);
@@ -126,6 +152,11 @@ const archiveDispatcher = async (req, res) => {
         dispatcher.archived = true
         await dispatcherRepo.save(dispatcher);
 
+        // Invalidate
+        await deleteCache("dispatchers:active");
+        await deleteCache("dispatchers:archived");
+        await deleteCache(`dispatcher:${id}`);
+
         res.json({message: "Dispatcher Archived"});
     } catch (err) {
         console.error(err);
@@ -136,7 +167,12 @@ const archiveDispatcher = async (req, res) => {
 // READ ARCHIVE Dispatcher
 const archiveDispatchers = async (req, res) => {
     try {
+        const cacheKey = "dispatchers:archived";
+        const cached = await getCache(cacheKey);
+        if(cached) return res.json(cached);
+
         const archivedDispatchers = await dispatcherRepo.find({where: {archived: true} });
+        await setCache(cacheKey, archivedDispatchers, 120)
         res.json(archivedDispatchers);
     } catch (err) {
         console.error(err);

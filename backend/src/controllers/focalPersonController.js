@@ -1,6 +1,18 @@
 const { AppDataSource } = require("../config/dataSource");
 const bcrypt = require("bcrypt");
 const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
+const {
+    getCache,
+    setCache,
+    deleteCache
+} = require("../config/cache");
+
+// Helper to strip sensitive fields before caching
+function sanitizeFP(fp) {
+    if (!fp) return fp;
+    const {password, photo, alternativeFPImage, ...rest} = fp;
+    return rest;
+}
 
 // CREATE FocalPerson 
 const createFocalPerson = async (req, res) => {
@@ -54,6 +66,9 @@ const createFocalPerson = async (req, res) => {
 
         await focalPersonRepo.save(focalPerson);
 
+        // Invalidate 
+        await deleteCache("focalPersons:all");
+
         const responseBody = { message: "Focal Person Created", focalPerson };
         if (!password) {
             responseBody.temporaryPassword = plainPassword;
@@ -69,8 +84,14 @@ const createFocalPerson = async (req, res) => {
 // READ All Focal Person
 const getFocalPersons = async (req, res) => {
     try {
+        const cacheKey = "focalPersons:all";
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
+
         const focalPersons = await focalPersonRepo.find();
-        res.json(focalPersons);
+        const sanitized = focalPersons.map(sanitizeFP);
+        await setCache(cacheKey, sanitized, 120);
+        res.json(sanitized);
     } catch (err) {
         console.error(err);
         res.status(500).json({message: "Server Error - READ All FP"});
@@ -81,11 +102,18 @@ const getFocalPersons = async (req, res) => {
 const getFocalPerson = async (req, res) => {
     try {
         const {id} = req.params;
+        const cacheKey = `focalPerson:${id}`;
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
+
         const focalPerson = await focalPersonRepo.findOne({where: {id} });
         if (!focalPerson) {
             return res.status(404).json({message: "Focal Person Not Found"});
         }
-        res.json(focalPerson);
+
+        const sanitized = sanitizeFP(focalPerson);
+        await setCache(cacheKey, sanitized, 100);
+        res.json(sanitized);
     } catch (err) {
         console.error(err);
         res.status(500).json({message: "Server Error - READ One FP"});
@@ -114,6 +142,12 @@ const updateFocalPhotos = async (req, res) => {
         if (alt?.buffer) fp.alternativeFPImage = alt.buffer
 
         await focalPersonRepo.save(fp);
+        
+        // Invalidate 
+        await deleteCache(`focalPerson:${id}`);
+        await deleteCache("focalPersons:all");
+        await deleteCache(`focalPhoto:${id}`);
+        await deleteCache(`focalAltPhoto:${id}`);
 
         // Do not include raw blobs in JSON response
         return res.json({message: "Focal Person Photos Updated", id: fp.id});
@@ -128,10 +162,18 @@ const updateFocalPhotos = async (req, res) => {
 const getFocalPhoto = async (req, res) => {
     try {
         const {id} = req.params;
+        const cacheKey = `focalPhoto:${id}`;
+        const cached = await getCache(cacheKey);
+        if (cached) {
+            res.setHeader("Content-Type", "application/octet-stream");
+            return res.send(Buffer.from(cached, "base64"));
+        }
+
         const fp = await focalPersonRepo.findOne({where: {id} });
         if (!fp || !fp.photo) return res.status(404).send("Photo Not Found");
 
         // Without a mime column, fallback to a generic type
+        await setCache(cacheKey, Buffer.from(fp.photo).toString("base64"), 86400);
         res.setHeader("Content-Type", "application/octect-stream");
         return res.send(fp.photo);
     } catch (err) {
@@ -145,9 +187,16 @@ const getFocalPhoto = async (req, res) => {
 const getAlternativeFocalPhoto = async (req, res) => {
     try {
         const {id} = req.params;
+        const cacheKey = `focalAltPhoto:${id}`;
+        const cached = await getCache(cacheKey);
+        if (cached) {
+            res.setHeader("Content-Type", "application/octet-stream");
+            return res.send(Buffer.from(cached, "base64"));
+        }
         const fp = await focalPersonRepo.findOne({where: {id} });
         if (!fp || !fp.alternativeFPImage) return res.status(404).send("Alternative Photo Not Found");
 
+        await setCache(cacheKey, Buffer.from(fp.alternativeFPImage).toString("base64"), 86400);
         res.setHeader("Content-Type", "application/octet-stream");
         return res.send(fp.alternativeFPImage);
     } catch (err) {
@@ -173,6 +222,10 @@ const updateFocalPerson = async (req, res) => {
         if (alternativeFPContactNumber) focalPerson.alternativeFPContactNumber = alternativeFPContactNumber;
 
         await focalPersonRepo.save(focalPerson);
+
+        // Invalidate
+        await deleteCache(`focalPerson:${id}`);
+        await deleteCache("focalPersons:all");
 
         res.json({message: "Focal Person Updated", focalPerson});
     } catch (err) {
@@ -216,6 +269,10 @@ const changePassword = async (req, res) => {
 
         focalPerson.password = await bcrypt.hash(newPassword, 10);
         await focalPersonRepo.save(focalPerson);
+
+        // Invalidate
+        await deleteCache(`focalPerson:${id}`);
+        await deleteCache("focalPersons:all");
 
         return res.json({message: "Password Updated"});
     } catch (err) {

@@ -3,6 +3,11 @@ const path = require("path");
 const createReport = require("docx-templates").default;
 const PizZip = require("pizzip");
 
+const {
+  getCache,
+  setCache,
+  deleteCache
+} = require("../config/cache");
 const { AppDataSource } = require("../config/dataSource");
 const alertRepo = AppDataSource.getRepository("Alert");
 const rescueFormRepo = AppDataSource.getRepository("RescueForm");
@@ -14,6 +19,20 @@ const generateRescueReport = async (req, res) => {
   try {
     const { alertID } = req.params;
     if (!alertID) return res.status(400).json({message: "AlertID Required"});
+
+    const cacheKey = `report:alert:${alertID}`;
+
+    // Allow forced regeneration with ?refresh
+    if (req.query.refresh !== "1") {
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        const buf = Buffer.from(cached.buffer, "base64");
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        res.setHeader("Content-Disposition", `attachment; filename="${cached.fileName}"`);
+        res.setHeader("X-Report-Cache", "HIT");
+        return res.end(buf);
+      }
+    }
 
     // Load alert WITH terminal relation (adjust relation name if different)
     const alert = await alertRepo.findOne({
@@ -108,6 +127,12 @@ const generateRescueReport = async (req, res) => {
       .substring(0, 40) || "CommunityGroup";
     const fileName = `${safeName}_${seq}.docx`;
     // --------------------------------
+
+    // Store in Cache (1 Hour TTL)
+    await setCache(cacheKey, {
+      fileName,
+      buffer: Buffer.from(buffer).toString("base64")
+    }, 3600);
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
