@@ -1,6 +1,11 @@
 const { AppDataSource } = require("../config/dataSource");
 const rescueFormRepo = AppDataSource.getRepository("RescueForm");
 const alertRepo = AppDataSource.getRepository("Alert");
+const {
+  getCache, 
+  setCache,
+  deleteCache
+} = require("../config/cache");
 
 // CREATE Rescue Form
 const createRescueForm = async (req, res) => {
@@ -74,6 +79,9 @@ const createRescueForm = async (req, res) => {
 
         await rescueFormRepo.save(newForm);
 
+        // Invalidate Cache
+        await deleteCache(`rescueForm:${formID}`);
+
         res.status(201).json(newForm);
     } catch (err) {
         console.error(err);
@@ -86,6 +94,9 @@ const createRescueForm = async (req, res) => {
 const getRescueForm = async (req, res) => {
   try {
     const { formID } = req.params;
+    const cacheKey = `rescueForm:${formID}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
 
     const form = await rescueFormRepo
       .createQueryBuilder("form")
@@ -104,7 +115,7 @@ const getRescueForm = async (req, res) => {
       return res.status(404).json({ message: "Rescue Form Not Found" });
     }
 
-    res.json({
+    const responseData = {
       communityGroupName: form.communityGroup?.communityGroupName || null,
       focalUnreachable: form.focalUnreachable,
       waterLevel: form.waterLevel,
@@ -113,7 +124,11 @@ const getRescueForm = async (req, res) => {
       accessibility: form.accessibility,
       resourceNeeds: form.resourceNeeds,
       otherInformation: form.otherInformation,
-    });
+    }
+
+    await setCache(cacheKey, responseData, 300);
+
+    res.json(responseData);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server Error" });

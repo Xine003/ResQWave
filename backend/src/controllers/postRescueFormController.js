@@ -4,6 +4,11 @@ const postRescueRepo = AppDataSource.getRepository("PostRescueForm");
 const rescueFormRepo = AppDataSource.getRepository("RescueForm");
 const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
 const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
+const {
+  getCache,
+  setCache,
+  deleteCache
+} = require("../config/cache");
 
 // CREATE POST RESCUE FORM
 const createPostRescueForm = async (req, res) => {
@@ -54,6 +59,10 @@ const createPostRescueForm = async (req, res) => {
 // GET Completed Reports
 const getCompletedReports = async (req, res) => {
   try {
+    const cacheKey = "completedReports";
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
+
     const reports = await alertRepo
       .createQueryBuilder("alert")
       .leftJoin("alert.terminal", "terminal")
@@ -74,6 +83,7 @@ const getCompletedReports = async (req, res) => {
       .orderBy("prf.completedAt", "DESC")
       .getRawMany();
 
+    await setCache(cacheKey, reports, 300);
     res.json(reports);
   } catch (err) {
     console.error(err);
@@ -84,6 +94,10 @@ const getCompletedReports = async (req, res) => {
 // GET Pending Reports
 const getPendingReports = async (req, res) => {
   try {
+    const cacheKey = "pendingReports";
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
+
     const pending = await alertRepo
       .createQueryBuilder("alert")
       .leftJoin("alert.terminal", "terminal")
@@ -106,6 +120,7 @@ const getPendingReports = async (req, res) => {
       .orderBy("alert.dateTimeSent", "DESC")
       .getRawMany();
 
+    await setCache(cacheKey, pending, 300);
     res.json(pending);
   } catch (err) {
     console.error(err);

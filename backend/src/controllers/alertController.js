@@ -3,6 +3,10 @@ const alertRepo = AppDataSource.getRepository("Alert");
 const terminalRepo = AppDataSource.getRepository("Terminal");
 const rescueFormRepo = AppDataSource.getRepository("RescueForm");
 const { getIO } = require("../realtime/socket");
+const {
+	getCache,
+	setCache,
+} = require("../config/cache");
 
 
 // Helper: generate incremental Alert ID like ALRT001
@@ -75,6 +79,10 @@ const createUserInitiatedAlert = async (req, res) => {
 
 const getAlerts = async (req, res) => {
   try {
+	const cacheKey = "alerts:all";
+	const cached = await getCache(cacheKey);
+	if (cached) return res.json(cached);
+
     const alerts = await alertRepo
       .createQueryBuilder("alert")
       .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
@@ -91,6 +99,7 @@ const getAlerts = async (req, res) => {
 	  .addOrderBy("alert.dateTimeSent", "DESC")
       .getRawMany();
 
+	await setCache(cacheKey, alerts, 10);
     res.json(alerts);
   } catch (err) {
     console.error("[getAlerts] error:", err);
@@ -101,23 +110,28 @@ const getAlerts = async (req, res) => {
 
 const getDispatchedAlerts = async (req, res) => {
 	  try {
-    const alerts = await alertRepo
-      .createQueryBuilder("alert")
-      .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
-      .select([
-        "alert.id AS alertId",
-        "alert.terminalID AS terminalId",
-        "alert.alertType AS alertType",
-        "alert.status AS status",
-        "alert.dateTimeSent AS lastSignalTime",
-    	"cg.communityGroupName AS communityGroup", // force alias name
-        "cg.address AS address",
-      ])
-      .where("alert.status = :status", { status: "Dispatched" })
-      .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`)
-      .addOrderBy("alert.dateTimeSent", "DESC")
-      .getRawMany();
+		const cacheKey = "alerts:dispatched";
+		const cached = await getCache(cacheKey);
+		if (cached) return res.json(cached);
 
+		const alerts = await alertRepo
+		.createQueryBuilder("alert")
+		.leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
+		.select([
+			"alert.id AS alertId",
+			"alert.terminalID AS terminalId",
+			"alert.alertType AS alertType",
+			"alert.status AS status",
+			"alert.dateTimeSent AS lastSignalTime",
+			"cg.communityGroupName AS communityGroup", // force alias name
+			"cg.address AS address",
+		])
+		.where("alert.status = :status", { status: "Dispatched" })
+		.orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`)
+		.addOrderBy("alert.dateTimeSent", "DESC")
+		.getRawMany();
+
+	await setCache(cacheKey, alerts, 10);
     res.json(alerts);
   } catch (err) {
     console.error("[getAlerts] error:", err);
@@ -128,6 +142,10 @@ const getDispatchedAlerts = async (req, res) => {
 // List All Alerts with waitlist status
 const getWaitlistedAlerts = async (req, res) => {
   try {
+	const cacheKey = "alerts:waitlist";
+	const cached = await getCache(cacheKey);
+	if (cached) return res.json(cached);
+
     const alerts = await alertRepo
       .createQueryBuilder("alert")
       .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
@@ -145,6 +163,7 @@ const getWaitlistedAlerts = async (req, res) => {
       .addOrderBy("alert.dateTimeSent", "DESC")
       .getRawMany();
 
+	await setCache(cacheKey, alerts, 10);
     res.json(alerts);
   } catch (err) {
     console.error("[getAlerts] error:", err);
@@ -155,6 +174,10 @@ const getWaitlistedAlerts = async (req, res) => {
 // List Alerts with Unassigned Status
 const getUnassignedAlerts = async (req, res) => {
   try {
+	const cacheKey = "alerts:unassigned";
+	const cached = await getCache(cacheKey);
+	if (cached) return res.json(cached);
+
     const alerts = await alertRepo
       .createQueryBuilder("alert")
       .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
@@ -172,6 +195,7 @@ const getUnassignedAlerts = async (req, res) => {
       .addOrderBy("alert.dateTimeSent", "DESC")
       .getRawMany();
 
+	await setCache(cacheKey, alerts, 10);
     res.json(alerts);
   } catch (err) {
     console.error("[getAlerts] error:", err);
@@ -181,6 +205,10 @@ const getUnassignedAlerts = async (req, res) => {
 
 const getUnassignedMapAlerts = async (req, res) => {
 	try {
+		const cacheKey = "mapAlerts:unassigned";
+		const cached = await getCache(cacheKey);
+		if (cached) return res.json(cached);
+
 		const alerts = await alertRepo
 			.createQueryBuilder("alert")
 			.leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
@@ -196,6 +224,7 @@ const getUnassignedMapAlerts = async (req, res) => {
 			.addOrderBy("alert.dateTimeSent", "DESC")
 			.getRawMany();
 		
+		await setCache(cacheKey, alerts, 10);
 		res.json(alerts);
 	} catch (err) {
 		console.error(err);
@@ -205,6 +234,10 @@ const getUnassignedMapAlerts = async (req, res) => {
 
 const getWaitlistedMapAlerts = async (req, res) => {
 	try {
+		const cacheKey = "mapAlerts:waitlist";
+		const cached = await getCache(cacheKey);
+		if (cached) return res.json(cached);
+
 		const alerts = await alertRepo
 			.createQueryBuilder("alert")
 			.leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
@@ -220,6 +253,7 @@ const getWaitlistedMapAlerts = async (req, res) => {
 			.addOrderBy("alert.dateTimeSent", "DESC")
 			.getRawMany();
 		
+		await setCache(cacheKey, alerts, 10);
 		res.json(alerts);
 	} catch (err) {
 		console.error(err);
@@ -231,8 +265,14 @@ const getWaitlistedMapAlerts = async (req, res) => {
 const getAlert = async (req, res) => {
 	try {
 		const { id } = req.params;
+		const cacheKey = `alert:${id}`;
+		const cached = await getCache(cacheKey);
+		if (cached) return res.json(cached);
+
 		const alert = await alertRepo.findOne({ where: { id } });
 		if (!alert) return res.status(404).json({ message: "Alert Not Found" });
+		
+		await setCache(cacheKey, alert, 10);
 		res.json(alert);
 	} catch (err) {
 		console.error(err);

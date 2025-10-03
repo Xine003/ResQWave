@@ -1,6 +1,11 @@
 const { AppDataSource } = require("../config/dataSource");
 const terminalRepo = AppDataSource.getRepository("Terminal");
 const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
+const {
+    getCache,
+    setCache,
+    deleteCache
+} = require("../config/cache");
 
 // CREATE Terminal
 const createTerminal = async (req, res) => {
@@ -27,6 +32,13 @@ const createTerminal = async (req, res) => {
 
         await terminalRepo.save(terminal);
 
+        // Invalidate
+        await deleteCache("terminals:all");
+        await deleteCache(`terminal:${id}`);
+        await deleteCache("onlineTerminals");
+        await deleteCache("offlineTerminals");
+        await deleteCache("terminals:archived");
+
         res.status(201).json({message: "Terminal Created", terminal});
     } catch (err) {
         console.error(err);
@@ -37,7 +49,13 @@ const createTerminal = async (req, res) => {
 // READ All Terminal
 const getTerminals = async(req, res) => {
     try {
+        const cacheKey = "terminals:all";
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
+
         const terminals = await terminalRepo.find();
+
+        await setCache(cacheKey, terminals, 60);
         res.json(terminals);
     } catch (err) {
         console.error(err);
@@ -48,7 +66,13 @@ const getTerminals = async(req, res) => {
 // READ All (Active Only)
 const getOnlineTerminals = async(req, res) => {
     try {
+        const cacheKey = "onlineTerminals";
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
+
         const terminals = await terminalRepo.find({where: {status: "Online"} });
+        
+        await setCache(cacheKey, terminals, 300);
         res.json(terminals);
     } catch (err) {
         console.error(err);
@@ -59,7 +83,13 @@ const getOnlineTerminals = async(req, res) => {
 // READ All (Offline Only)
 const getOfflineTerminals = async(req, res) => {
     try {
+        const cacheKey = "offlineTerminals";
+        const cached = await getCache(cached);
+        if (cached) return res.json(cached);
+
         const terminals = await terminalRepo.find({where: {status: "Offline"} });
+
+        await setCache(cacheKey, terminals, 300);
         res.json(terminals);
     } catch (err) {
         console.error(err);
@@ -70,10 +100,17 @@ const getOfflineTerminals = async(req, res) => {
 // READ One Terminal
 const getTerminal = async (req, res) => {
     try {
+        const {id} = req.params;
+        const cacheKey = `terminal:${id}`;
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
+
         const terminal = await terminalRepo.findOne({ where: {id} });
         if (!terminal) {
             return res.status(404).json({message: "Terminal Not Found"});
         }
+
+        await setCache(cacheKey, terminal, 300);
         res.json(terminal)
     } catch (err) {
         console.error(err);
@@ -95,6 +132,13 @@ const updateTerminal = async (req, res) => {
         if (status) terminal.status = status;
 
         await terminalRepo.save(terminal);
+
+        // Invalidate
+        await deleteCache("terminals:all")
+        await deleteCache(`terminal:${id}`);
+        await deleteCache("onlineTerminals");
+        await deleteCache("offlineTerminals");
+        await deleteCache("terminals:archived");
 
         res.json({message: "Terminal Updated", terminal});
     } catch (err) {
@@ -123,6 +167,13 @@ const archivedTerminal = async (req, res) => {
             await communityGroupRepo.save(communityGroup);
         }
 
+        // Invalidate
+        await deleteCache("terminals:all");
+        await deleteCache(`terminal:${id}`);
+        await deleteCache("onlineTerminals");
+        await deleteCache("offlineTerminals");
+        await deleteCache("terminals:archived");
+
         res.json({message: "Terminal Archived"});
     } catch (err) {
         console.error(err);
@@ -133,7 +184,13 @@ const archivedTerminal = async (req, res) => {
 // READ Archived Terminal
 const getArchivedTerminals = async (req, res) => {
     try {
+        const cacheKey = "terminals:archived";
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
+
         const terminals = await terminalRepo.find({ where: { archived: true} });
+        
+        await setCache(cacheKey, terminals, 300);
         res.json(terminals);
     } catch (err) {
         console.error(err);

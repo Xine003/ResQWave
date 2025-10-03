@@ -6,7 +6,6 @@ const alertRepo = AppDataSource.getRepository("Alert");
 const {
   getCache,
   setCache,
-  deleteCache
 } = require("../config/cache");
 
 const getAlertStats = async (req, res) => {
