@@ -260,20 +260,22 @@ export function CommunityGroups() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {searchVisible && (
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              searchVisible ? 'w-64 opacity-100' : 'w-0 opacity-0'
+            }`}>
               <Input
                 type="text"
                 placeholder="Search community groups..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4]"
-                autoFocus
+                className="w-64 bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4] transition-all duration-300"
+                autoFocus={searchVisible}
               />
-            )}
+            </div>
             <Button 
               variant="ghost" 
               size="icon" 
-              className={`text-[#a1a1a1] hover:text-white hover:bg-[#262626] ${searchVisible ? 'bg-[#262626] text-white' : ''}`}
+              className={`text-[#a1a1a1] hover:text-white hover:bg-[#262626] transition-all duration-200 ${searchVisible ? 'bg-[#262626] text-white' : ''}`}
               onClick={() => {
                 setSearchVisible(!searchVisible)
                 if (searchVisible) {
