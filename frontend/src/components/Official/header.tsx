@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export function Header({ isVisualizationOpen }: { isVisualizationOpen: boolean }) {
+export function Header({ isVisualizationOpen, isLiveReportOpen }: { isVisualizationOpen: boolean, isLiveReportOpen?: boolean }) {
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
 
