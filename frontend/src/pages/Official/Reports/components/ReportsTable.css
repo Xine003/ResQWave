@@ -1,0 +1,23 @@
+.reports-table-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: #707070 #171717;
+}
+
+.reports-table-scrollable::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.reports-table-scrollable::-webkit-scrollbar-track {
+  background: #262626;
+  border-radius: 4px;
+}
+
+.reports-table-scrollable::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 4px;
+}
+
+.reports-table-scrollable::-webkit-scrollbar-thumb:hover {
+  background: #262626;
+}

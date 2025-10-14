@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { useState } from "react";
 import { AlertTypeChart, RecentlyCompletedReports, ReportsTable } from "./components";
 
@@ -77,13 +77,13 @@ export function Reports() {
 
   return (
     <div 
-      className="p-6 flex flex-col bg-background gap-6"
+      className="p-4 flex flex-col bg-[#171717] gap-1"
       style={{ height: "calc(100vh - 70px)", minHeight: "600px" }}
     >
       {/* Top section with charts - 40% of available height */}
       <div className="flex gap-6" style={{ height: "40%" }}>
         {/* Alert Type Chart - 75% width */}
-        <Card className="bg-card border-border flex-[3] flex flex-col">
+        <Card className="border-border flex-[3] flex flex-col" style={{ backgroundColor: "#211f1f" }}>
           <CardHeader className="flex-shrink-0">
             <CardTitle className="text-foreground">Alert Type</CardTitle>
             <CardDescription className="text-muted-foreground">
@@ -96,7 +96,7 @@ export function Reports() {
         </Card>
 
         {/* Recently Completed Reports - 25% width */}
-        <Card className="bg-card border-border flex-1 flex flex-col">
+        <Card className="border-border flex-1 flex flex-col" style={{ backgroundColor: "#211f1f" }}>
           <CardHeader className="flex-shrink-0">
             <CardTitle className="text-foreground">Recently Completed Reports</CardTitle>
           </CardHeader>
@@ -107,35 +107,76 @@ export function Reports() {
       </div>
 
       {/* Reports Table - 60% of available height */}
-      <Card className="bg-card border-border flex flex-col" style={{ height: "60%" }}>
-        <CardHeader className="flex-shrink-0">
-          <CardTitle className="text-foreground">Reports</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col min-h-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col flex-1 min-h-0">
-            <TabsList className="grid w-fit grid-cols-2 bg-muted flex-shrink-0">
-              <TabsTrigger value="completed" className="data-[state=active]:bg-background">
+      <Card className="flex flex-col gap-3 border-0" style={{ height: "60%" }}>
+        <CardHeader className="flex-shrink-0 flex flex-row items-center gap-3">
+          <CardTitle className="text-foreground text-2xl">Reports</CardTitle>
+          <Tabs value={activeTab} defaultValue="completed" onValueChange={(v) => setActiveTab(v)}>
+            <TabsList>
+              <TabsTrigger
+                value="completed"
+                style={{
+                  color: "#fff",
+                  fontSize: "1rem",
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: 4,
+                  transition: "background 0.1s",
+                  cursor: 'pointer'
+                }}
+                className="tab-trigger"
+                onMouseEnter={e => (e.currentTarget.style.background = '#333333')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
                 Completed
+                <span style={{
+                  marginLeft: "0.5rem",
+                  padding: "0.125rem 0.5rem",
+                  background: "#707070",
+                  borderRadius: "0.25rem",
+                  fontSize: "0.75rem"
+                }}>
+                  {completedReports.length}
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="pending" className="data-[state=active]:bg-background">
+              <TabsTrigger
+                value="pending"
+                style={{
+                  color: "#fff",
+                  fontSize: "1rem",
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: 4,
+                  transition: "background 0.1s",
+                  cursor: 'pointer'
+                }}
+                className="tab-trigger"
+                onMouseEnter={e => (e.currentTarget.style.background = '#333333')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
                 Pending
+                <span style={{
+                  marginLeft: "0.5rem",
+                  padding: "0.125rem 0.5rem",
+                  background: "#707070",
+                  borderRadius: "0.25rem",
+                  fontSize: "0.75rem"
+                }}>
+                  {pendingReports.length}
+                </span>
               </TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="completed" className="mt-6 flex-1 min-h-0">
-              <ReportsTable 
-                type="completed" 
-                data={completedReports}
-              />
-            </TabsContent>
-            
-            <TabsContent value="pending" className="mt-6 flex-1 min-h-0">
-              <ReportsTable 
-                type="pending" 
-                data={pendingReports}
-              />
-            </TabsContent>
           </Tabs>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col min-h-0">
+          {activeTab === "completed" ? (
+            <ReportsTable 
+              type="completed" 
+              data={completedReports}
+            />
+          ) : (
+            <ReportsTable 
+              type="pending" 
+              data={pendingReports}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

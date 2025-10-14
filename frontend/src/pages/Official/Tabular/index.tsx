@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs-focal'
 import { ArrowUpDown, Search } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { AlertInfoDialog } from "./components/AlertInfoDialog"
@@ -56,36 +57,110 @@ export function Tabular() {
           <h1 className="text-2xl font-bold text-white">Live Report</h1>
           
           {/* Tabs */}
-          <div className="flex space-x-1 bg-[#2c2a2a] rounded-[5px] border border-[#383838]">
-            <TabButton 
-              active={activeTab === "all"} 
-              onClick={() => setActiveTab("all")}
-              count={tabCounts.all}
-            >
-              All
-            </TabButton>
-            <TabButton 
-              active={activeTab === "unassigned"} 
-              onClick={() => setActiveTab("unassigned")}
-              count={tabCounts.unassigned}
-            >
-              Unassigned
-            </TabButton>
-            <TabButton 
-              active={activeTab === "waitlisted"} 
-              onClick={() => setActiveTab("waitlisted")}
-              count={tabCounts.waitlisted}
-            >
-              Waitlisted
-            </TabButton>
-            <TabButton 
-              active={activeTab === "dispatched"} 
-              onClick={() => setActiveTab("dispatched")}
-              count={tabCounts.dispatched}
-            >
-              Dispatched
-            </TabButton>
-          </div>
+          <Tabs value={activeTab} defaultValue="all" onValueChange={(v: string) => setActiveTab(v as TabType)}>
+            <TabsList>
+              <TabsTrigger
+                value="all"
+                style={{
+                  color: "#fff",
+                  fontSize: "1rem",
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: 4,
+                  transition: "background 0.2s",
+                  cursor: 'pointer'
+                }}
+                className="tab-trigger"
+                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = '#333333')}
+                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'transparent')}
+              >
+                All
+                <span style={{
+                  marginLeft: "0.5rem",
+                  padding: "0.125rem 0.5rem",
+                  background: "#707070",
+                  borderRadius: "0.25rem",
+                  fontSize: "0.75rem"
+                }}>
+                  {tabCounts.all}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="unassigned"
+                style={{
+                  color: "#fff",
+                  fontSize: "1rem",
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: 4,
+                  transition: "background 0.2s",
+                  cursor: 'pointer'
+                }}
+                className="tab-trigger"
+                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = '#333333')}
+                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'transparent')}
+              >
+                Unassigned
+                <span style={{
+                  marginLeft: "0.5rem",
+                  padding: "0.125rem 0.5rem",
+                  background: "#707070",
+                  borderRadius: "0.25rem",
+                  fontSize: "0.75rem"
+                }}>
+                  {tabCounts.unassigned}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="waitlisted"
+                style={{
+                  color: "#fff",
+                  fontSize: "1rem",
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: 4,
+                  transition: "background 0.2s",
+                  cursor: 'pointer'
+                }}
+                className="tab-trigger"
+                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = '#333333')}
+                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'transparent')}
+              >
+                Waitlisted
+                <span style={{
+                  marginLeft: "0.5rem",
+                  padding: "0.125rem 0.5rem",
+                  background: "#707070",
+                  borderRadius: "0.25rem",
+                  fontSize: "0.75rem"
+                }}>
+                  {tabCounts.waitlisted}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="dispatched"
+                style={{
+                  color: "#fff",
+                  fontSize: "1rem",
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: 4,
+                  transition: "background 0.2s",
+                  cursor: 'pointer'
+                }}
+                className="tab-trigger"
+                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = '#333333')}
+                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'transparent')}
+              >
+                Dispatched
+                <span style={{
+                  marginLeft: "0.5rem",
+                  padding: "0.125rem 0.5rem",
+                  background: "#707070",
+                  borderRadius: "0.25rem",
+                  fontSize: "0.75rem"
+                }}>
+                  {tabCounts.dispatched}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
         
         {/* Search and Controls */}
@@ -166,40 +241,5 @@ export function Tabular() {
         onOpenChange={setAlertInfoOpen}
       />
     </div>
-  )
-}
-
-// Tab Button Component
-interface TabButtonProps {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-  count: number
-}
-
-function TabButton({ active, onClick, children, count }: TabButtonProps) {
-  return (
-    <Button
-      variant="ghost"
-      onClick={onClick}
-      className={`
-        relative px-4 py-2 text-sm font-medium rounded-[5px] transition-colors
-        ${active 
-          ? "bg-[#414141] text-white" 
-          : "text-[#c9c9c9] hover:text-white"
-        }
-      `}
-    >
-      {children}
-      <span className={`
-        ml-2 px-2 py-0.5 text-xs rounded-[5px]
-        ${active 
-          ? "bg-white/20 text-white" 
-          : "bg-[#404040] text-[#a1a1a1]"
-        }
-      `}>
-        {count}
-      </span>
-    </Button>
   )
 }

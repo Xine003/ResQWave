@@ -2,21 +2,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-    getCoreRowModel,
-    getPaginationRowModel,
-    useReactTable,
-    type ColumnDef,
+  getCoreRowModel,
+  getPaginationRowModel,
+  useReactTable,
+  type ColumnDef,
 } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import "./ReportsTable.css";
 
 interface CompletedReport {
   emergencyId: string;
@@ -161,50 +162,61 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
 
   return (
     <div className="w-full h-full flex flex-col">
-      <div className="bg-[#191818] rounded-[5px] border border-[#262626] overflow-hidden flex-1">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="bg-white border-b border-[#404040] hover:bg-white">
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="text-black font-medium">
-                    {header.isPlaceholder ? null : (
-                      typeof header.column.columnDef.header === 'function' 
-                        ? header.column.columnDef.header(header.getContext())
-                        : header.column.columnDef.header
-                    )}
-                  </TableHead>
+      <div className="bg-[#191818] rounded-[5px] border border-[#262626] flex-1 min-h-0 flex flex-col overflow-hidden">
+        {/* Fixed Header */}
+        <div className="flex-shrink-0">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full caption-bottom text-sm">
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id} className="bg-white border-b border-[#404040] hover:bg-white">
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id} className="text-black font-medium">
+                        {header.isPlaceholder ? null : (
+                          typeof header.column.columnDef.header === 'function' 
+                            ? header.column.columnDef.header(header.getContext())
+                            : header.column.columnDef.header
+                        )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
                 ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="border-b border-[#262626] hover:bg-[#1f1f1f] data-[state=selected]:bg-[#1f1f1f]"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-[8.7px]">
-                      {typeof cell.column.columnDef.cell === 'function' 
-                        ? cell.column.columnDef.cell(cell.getContext())
-                        : cell.getValue()
-                      }
-                    </TableCell>
-                  ))}
+              </TableHeader>
+            </table>
+          </div>
+        </div>
+        
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0 reports-table-scrollable">
+          <table className="w-full caption-bottom text-sm">
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="border-b border-[#262626] hover:bg-[#1f1f1f] data-[state=selected]:bg-[#1f1f1f]"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="py-[8.7px]">
+                        {typeof cell.column.columnDef.cell === 'function' 
+                          ? cell.column.columnDef.cell(cell.getContext())
+                          : cell.getValue()
+                        }
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center text-[#a1a1a1]">
+                    No results.
+                  </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-[#a1a1a1]">
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </table>
+        </div>
       </div>
 
       {/* Pagination */}
