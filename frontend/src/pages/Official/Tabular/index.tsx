@@ -166,45 +166,39 @@ export function Tabular() {
         {/* Search and Controls */}
         <div className="flex items-center space-x-2">
           {/* Search */}
-          <div className="relative">
-            {searchVisible ? (
-              <div className="flex items-center">
-                <Input
-                  placeholder="Search reports..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-64 bg-[#262626] border-[#404040] text-white placeholder-[#a1a1a1] focus:border-[#4285f4]"
-                  autoFocus
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearchVisible(false)
-                    setSearchQuery("")
-                  }}
-                  className="ml-2 rounded-[5px] border-[#414141] bg-[#2c2a2a] text-[#a1a1a1] hover:text-white"
-                >
-                  ✕
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSearchVisible(true)}
-                className="text-[#a1a1a1] rounded-[5px] border border-[#414141] bg-[#2c2a2a] hover:text-white hover:bg-[#262626]"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            )}
+          <div className="flex items-center gap-3">
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              searchVisible ? 'w-64 opacity-100' : 'w-0 opacity-0'
+            }`}>
+              <Input
+                type="text"
+                placeholder="Search reports..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64 bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4] transition-all duration-300"
+                autoFocus={searchVisible}
+              />
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={`text-[#a1a1a1] hover:text-white hover:bg-[#262626] transition-all duration-200 ${searchVisible ? 'bg-[#262626] text-white' : ''}`}
+              onClick={() => {
+                setSearchVisible(!searchVisible)
+                if (searchVisible) {
+                  setSearchQuery("")
+                }
+              }}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Sort Button */}
           <Button
             variant="ghost"
             size="sm"
-            className="text-[#a1a1a1] rounded-[5px] border border-[#414141] bg-[#2c2a2a] hover:text-white hover:bg-[#262626]"
+            className="text-[#a1a1a1] rounded-[5px] hover:text-white hover:bg-[#262626]"
           >
             <ArrowUpDown className="h-4 w-4" />
           </Button>
