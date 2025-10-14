@@ -277,11 +277,11 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
   return (
     <main className="flex flex-1 flex-col md:flex-row items-center justify-between px-20 md:px-48 gap-8 md:gap-16 w-full relative" style={{ overflow: 'hidden', zIndex: 20, position: 'relative' }}>
       {/* Left Side */}
-      <div className="w-full md:w-3/5 flex flex-col justify-center items-start md:items-start max-w-2xl">
+      <div className="w-full md:w-3/5 flex flex-col justify-center gap-4 items-start md:items-start max-w-2xl">
         <h1
           className="text-[40px] md:text-[55px] font-bold mb-6 leading-tight"
           style={{
-            background: "linear-gradient(180deg, #FFFFFF 0%, #999999 100%)",
+            background: "linear-gradient(180deg, #FFFFFF 0%, #BFBFBF 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
@@ -301,8 +301,8 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
         <div style={{ position: 'relative', width: '100%', maxWidth: 350, minHeight: 56, overflow: 'hidden' }}>
           {/* Button (hidden when search is shown) */}
           <Button
-            className={`bg-white text-black px-7 py-7 rounded shadow hover:bg-gray-200 hover:shadow-lg transition-all duration-500 cursor-pointer ${showSearch ? 'opacity-0 pointer-events-none translate-x-32' : 'opacity-100 translate-x-0'}`}
-            style={{ width: '100%', position: 'absolute', left: 0, top: 0, transition: 'all 0.5s cubic-bezier(.4,0,.2,1), transform 0.5s cubic-bezier(.4,0,.2,1)' }}
+            className={`bg-white text-black text-lg shadow p- hover:bg-gray-200 hover:shadow-lg transition-all duration-500 cursor-pointer flex items-center justify-center ${showSearch ? 'opacity-0 pointer-events-none translate-x-32' : 'opacity-100 translate-x-0'}`}
+            style={{ width: 'auto', height: 'auto', position: 'absolute', left: 0, top: 0, transition: 'all 0.5s cubic-bezier(.4,0,.2,1), transform 0.5s cubic-bezier(.4,0,.2,1)' }}
             onClick={() => setShowSearch(true)}
           >
             Am I part of a community?
