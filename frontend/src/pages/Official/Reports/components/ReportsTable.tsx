@@ -166,12 +166,23 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
         {/* Fixed Header */}
         <div className="flex-shrink-0">
           <div className="w-full overflow-x-auto">
-            <table className="w-full caption-bottom text-sm">
+            <table className="w-full caption-bottom text-sm table-fixed">
+              <colgroup>
+                <col className="col-checkbox" />
+                <col className="col-emergency-id" />
+                <col className="col-community-name" />
+                <col className="col-alert-type" />
+                <col className="col-dispatcher" />
+                <col className="col-datetime" />
+                {isCompleted && <col className="col-accomplished" />}
+                <col className="col-address" />
+                <col className="col-actions" />
+              </colgroup>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id} className="bg-white border-b border-[#404040] hover:bg-white">
                     {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id} className="text-black font-medium">
+                      <TableHead key={header.id} className="text-black font-medium px-3 py-2">
                         {header.isPlaceholder ? null : (
                           typeof header.column.columnDef.header === 'function' 
                             ? header.column.columnDef.header(header.getContext())
@@ -188,7 +199,18 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
         
         {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0 reports-table-scrollable">
-          <table className="w-full caption-bottom text-sm">
+          <table className="w-full caption-bottom text-sm table-fixed">
+            <colgroup>
+              <col className="col-checkbox" />
+              <col className="col-emergency-id" />
+              <col className="col-community-name" />
+              <col className="col-alert-type" />
+              <col className="col-dispatcher" />
+              <col className="col-datetime" />
+              {isCompleted && <col className="col-accomplished" />}
+              <col className="col-address" />
+              <col className="col-actions" />
+            </colgroup>
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
@@ -198,7 +220,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
                     className="border-b border-[#262626] hover:bg-[#1f1f1f] data-[state=selected]:bg-[#1f1f1f]"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-[8.7px]">
+                      <TableCell key={cell.id} className="px-3 py-2">
                         {typeof cell.column.columnDef.cell === 'function' 
                           ? cell.column.columnDef.cell(cell.getContext())
                           : cell.getValue()
