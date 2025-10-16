@@ -1,3 +1,4 @@
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -51,28 +52,42 @@ export function Header({ isVisualizationOpen, isLiveReportOpen }: { isVisualizat
           BARANGAY 175
         </h1>
         {isVisualizationOpen && (
-          <div className="flex items-center bg-[#262626] p-1 rounded-[5px] w-full md:w-auto">
-            <button
-              onClick={() => handleTabClick("map")}
-              className={`flex-1 md:flex-none px-3 md:px-4 py-1 rounded-[5px] text-xs md:text-sm font-medium transition-colors ${
-                activeTab === "map"
-                  ? "bg-[#414141] text-white"
-                  : "bg-[#2a2a2a] text-white/60 hover:text-white hover:bg-[#333333]"
-              }`}
-            >
-              Map View
-            </button>
-            <button
-              onClick={() => handleTabClick("table")}
-              className={`flex-1 md:flex-none px-3 md:px-4 py-1 rounded-[5px] text-xs md:text-sm font-medium transition-colors ${
-                activeTab === "table"
-                  ? "bg-[#414141] text-white"
-                  : "text-white/60 hover:text-white hover:bg-[#333333]"
-              }`}
-            >
-              Table View
-            </button>
-          </div>
+          <Tabs value={activeTab} defaultValue="map" onValueChange={(v) => handleTabClick(v as "map" | "table")}>
+            <TabsList>
+              <TabsTrigger
+                value="map"
+                style={{
+                  color: "#fff",
+                  fontSize: "1rem",
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: 4,
+                  transition: "background 0.2s",
+                  cursor: 'pointer'
+                }}
+                className="tab-trigger"
+                onMouseEnter={e => (e.currentTarget.style.background = '#333333')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                Map View
+              </TabsTrigger>
+              <TabsTrigger
+                value="table"
+                style={{
+                  color: "#fff",
+                  fontSize: "1rem",
+                  padding: "0.5rem 1.5rem",
+                  borderRadius: 4,
+                  transition: "background 0.2s",
+                  cursor: 'pointer'
+                }}
+                className="tab-trigger"
+                onMouseEnter={e => (e.currentTarget.style.background = '#333333')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                Table View
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         )}
       </div>
       <div className="flex items-center gap-2 md:gap-4 text-white/90 text-xs md:text-sm mt-2 md:mt-0 w-full md:w-auto justify-end">
