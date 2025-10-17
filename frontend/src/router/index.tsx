@@ -1,9 +1,10 @@
 import { OfficialLayout } from '@/components/Official/OfficialLayout';
 import React from 'react';
 import { createBrowserRouter, Outlet } from 'react-router-dom';
-import { Landing, LoginFocal } from '../pages/Focal';
-import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/ForgotPassword';
-import VerificationSignin from '../pages/Focal/LoginFocal/pages/VerificationSignin';
+import { Landing, LoginFocal, RegisterAccount } from '../pages/Focal';
+import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/SignAccount/ForgotPassword';
+import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
+import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount';
 import {
   CommunityGroups,
   ForgotPasswordPageDispatcher,
@@ -47,6 +48,11 @@ export const router = createBrowserRouter([
     path: '/login-focal',
     element: <LoginFocal />,
   },
+  // Public register route for focal users
+  {
+    path: '/register-focal',
+    element: <RegisterAccount />,
+  },
   // Focal Routes (protected)
   {
     element: <FocalProtectedRoute />,
@@ -58,6 +64,10 @@ export const router = createBrowserRouter([
       {
         path: '/verification-signin-focal',
         element: <VerificationSignin />,
+      },
+      {
+        path: '/verify-account-focal',
+        element: <VerifyAccount />,
       },
       {
         path: '/focal-dashboard',

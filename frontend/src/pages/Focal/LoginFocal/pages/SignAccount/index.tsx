@@ -33,7 +33,7 @@ export function LoginFocal() {
       }
       setError("");
       setIsLoading(false);
-      navigate('verification-signin-focal');
+      navigate('/verification-signin-focal');
     }, 1200);
   }
 
