@@ -40,7 +40,6 @@ const createInitialFormData = (): CommunityFormData => ({
   altFocalPersonName: "",
   altFocalPersonContact: "",
   altFocalPersonEmail: "",
-  boundaryGeoJSON: "",
 })
 
 // Global state - persists across navigation
