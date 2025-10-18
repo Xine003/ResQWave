@@ -5,6 +5,7 @@ import { Landing, LoginFocal, RegisterAccount } from '../pages/Focal';
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/SignAccount/ForgotPassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
 import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount';
+import InfoDetailsRegister from '../pages/Focal/LoginFocal/pages/RegisterAccount/InfoDetailsRegister';
 import {
   CommunityGroups,
   ForgotPasswordPageDispatcher,
@@ -68,6 +69,34 @@ export const router = createBrowserRouter([
       {
         path: '/verify-account-focal',
         element: <VerifyAccount />,
+      },
+      {
+        path: '/register/personal-info',
+        element: <InfoDetailsRegister step={1} />,
+      },
+      {
+        path: '/register/profile-picture',
+        element: <InfoDetailsRegister step={2} />,
+      },
+      {
+        path: '/register/create-password',
+        element: <InfoDetailsRegister step={3} />,
+      },
+      {
+        path: '/register/location-details',
+        element: <InfoDetailsRegister step={4} />,
+      },
+      {
+        path: '/register/alternative-focal-person',
+        element: <InfoDetailsRegister step={5} />,
+      },
+      {
+        path: '/register/alternative-profile-picture',
+        element: <InfoDetailsRegister step={6} />,
+      },
+      {
+        path: '/register/about-neighborhood',
+        element: <InfoDetailsRegister step={7} />,
       },
       {
         path: '/focal-dashboard',

@@ -29,8 +29,8 @@ export default function VerifyAccount() {
         setIsVerifying(true);
         setTimeout(() => {
             setIsVerifying(false);
-            // Navigate to focal dashboard after successful verification
-            navigate('/focal-dashboard');
+            // Navigate to information details page after successful verification
+            navigate('/register/personal-info');
             setError("");
         }, 1200);
     }

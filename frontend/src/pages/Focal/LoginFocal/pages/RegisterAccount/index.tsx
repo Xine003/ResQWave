@@ -147,8 +147,9 @@ export function RegisterAccount() {
             {inputMode === "phone" ? (
               <div className="flex gap-3">
                 <div className="flex items-center justify-center bg-[#171717] border border-[#404040] rounded-lg px-3 py-4 min-w-[85px]">
-                  <span className="text-[#A3A3A3] text-sm flex items-center">
-                    🇵🇭 +63
+                  <span className="text-[#A3A3A3] text-sm flex items-center gap-2">
+                    <img src="/Landing/phFlag.png" alt="PH Flag" className="w-4 h-3" />
+                    +63
                   </span>
                 </div>
                 <Input
