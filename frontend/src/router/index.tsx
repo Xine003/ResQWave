@@ -1,4 +1,4 @@
-import { OfficialLayout } from '@/components/Official/OfficialLayout';
+import { OfficialLayout } from '@/components/Official/officialLayout';
 import React from 'react';
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { Landing, LoginFocal } from '../pages/Focal';
@@ -6,10 +6,10 @@ import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/ForgotPa
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/VerificationSignin';
 import {
   CommunityGroups,
-  ForgotPasswordPageDispatcher,
   LoginDispatcher,
   Reports,
   Tabular,
+  VerificationOfficial,
   Visualization
 } from '../pages/Official';
 // TypeScript declaration for window property
@@ -71,8 +71,8 @@ export const router = createBrowserRouter([
     element: <LoginDispatcher />,
   },
   {
-    path: '/forgot-passwo rd-dispatcher',
-    element: <ForgotPasswordPageDispatcher />,
+    path: '/verification-official',
+    element: <VerificationOfficial />,
   },
   {
     path: '/',

@@ -1,6 +1,5 @@
 export { Landing, LoginFocal } from './Focal';
 export {
-    CommunityGroups, ForgotPasswordPageDispatcher,
-    LoginDispatcher, Reports, Tabular, Visualization
+    CommunityGroups, LoginDispatcher, Reports, Tabular, VerificationOfficial, Visualization
 } from './Official';
 
