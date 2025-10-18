@@ -6,6 +6,7 @@ import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/SignAcco
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
 import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount';
 import InfoDetailsRegister from '../pages/Focal/LoginFocal/pages/RegisterAccount/InfoDetailsRegister';
+import AccountReview from '../pages/Focal/LoginFocal/pages/RegisterAccount/AccountReview';
 import {
   CommunityGroups,
   ForgotPasswordPageDispatcher,
@@ -97,6 +98,26 @@ export const router = createBrowserRouter([
       {
         path: '/register/about-neighborhood',
         element: <InfoDetailsRegister step={7} />,
+      },
+      {
+        path: '/register/about-residents',
+        element: <InfoDetailsRegister step={8} />,
+      },
+      {
+        path: '/register/floodwater-duration',
+        element: <InfoDetailsRegister step={9} />,
+      },
+      {
+        path: '/register/flood-hazards',
+        element: <InfoDetailsRegister step={10} />,
+      },
+      {
+        path: '/register/other-info',
+        element: <InfoDetailsRegister step={11} />,
+      },
+      {
+        path: '/register/account-review',
+        element: <AccountReview />,
       },
       {
         path: '/focal-dashboard',

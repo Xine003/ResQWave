@@ -1,3 +1,5 @@
+import { Step10OtherInfo } from "./components/Step10OtherInfo";
+import { Step9FloodHazards } from "./components/Step6FloodHazards";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FocalHeader } from "@/pages/Focal/LoginFocal/components/FocalHeader";
@@ -7,6 +9,8 @@ import { Step3CreatePassword } from "./components/Step3CreatePassword";
 import { Step4LocationDetails } from "./components/Step4LocationDetails";
 import { Step5AlternativeProfilePicture } from "./components/Step5AlternativeProfilePicture";
 import { Step6AboutNeighborhood } from "./components/Step6AboutNeighborhood";
+import { Step7AboutResidents } from "./components/Step6AboutResidents";
+import { Step8FloodwaterDuration } from "./components/Step6FloodwaterDuration";
 
 interface RegistrationData {
     firstName: string;
@@ -45,6 +49,18 @@ export default function InfoDetailsRegister({ step = 1 }: InfoDetailsRegisterPro
                 break;
             case 7:
                 navigate('/register/about-neighborhood');
+                break;
+            case 8:
+                navigate('/register/about-residents');
+                break;
+            case 9:
+                navigate('/register/floodwater-duration');
+                break;
+            case 10:
+                navigate('/register/flood-hazards');
+                break;
+            case 11:
+                navigate('/register/other-info');
                 break;
             default:
                 navigate('/register/personal-info');
@@ -85,16 +101,16 @@ export default function InfoDetailsRegister({ step = 1 }: InfoDetailsRegisterPro
         if (currentStep >= 1 && currentStep <= 6) {
             return Math.round((currentStep / 6) * 100);
         }
-        // Treat step 7 (About Neighborhood) as step 6 of 6
-        if (currentStep === 7) {
+        // Treat step 7-11 as step 6 of 6
+        if (currentStep >= 7 && currentStep <= 11) {
             return 100;
         }
         return 0;
     };
 
     const getStepText = () => {
-        // Treat step 7 (About Neighborhood) as step 6 of 6
-        if (currentStep === 7) {
+        // Treat step 7-11 as step 6 of 6
+        if (currentStep >= 7 && currentStep <= 11) {
             return `STEP 6 OF 6`;
         }
         return `STEP ${currentStep} OF 6`;
@@ -160,7 +176,39 @@ export default function InfoDetailsRegister({ step = 1 }: InfoDetailsRegisterPro
 
                 {currentStep === 7 && (
                     <Step6AboutNeighborhood
-                        onNext={() => navigate('/focal-dashboard')}
+                        onNext={() => navigateToStep(8)}
+                        onBack={handleBack}
+                        isLoading={isLoading}
+                    />
+                )}
+
+                {currentStep === 8 && (
+                    <Step7AboutResidents
+                        onNext={() => navigateToStep(9)}
+                        onBack={handleBack}
+                        isLoading={isLoading}
+                    />
+                )}
+
+                {currentStep === 9 && (
+                    <Step8FloodwaterDuration
+                        onNext={() => navigateToStep(10)}
+                        onBack={handleBack}
+                        isLoading={isLoading}
+                    />
+                )}
+
+                {currentStep === 10 && (
+                    <Step9FloodHazards
+                        onNext={() => navigateToStep(11)}
+                        onBack={handleBack}
+                        isLoading={isLoading}
+                    />
+                )}
+
+                {currentStep === 11 && (
+                    <Step10OtherInfo
+                        onNext={() => navigate('/register/account-review')}
                         onBack={handleBack}
                         isLoading={isLoading}
                     />

@@ -3,21 +3,22 @@ import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownIcon } from "@/components/ui/DropdownIcon";
 
-interface Step6AboutNeighborhoodProps {
+interface Step7AboutResidentsProps {
   onNext: (data: { range: string }) => void;
   onBack: () => void;
   isLoading?: boolean;
 }
 
 const ranges = [
-  "1-20",
-  "20-40",
-  "50-60",
-  "60-80",
-  "80-100"
+  "1-100",
+  "100-200",
+  "200-300",
+  "300-400",
+  "400-500",
+  "500+"
 ];
 
-export function Step6AboutNeighborhood({ onNext, onBack, isLoading = false }: Step6AboutNeighborhoodProps) {
+export function Step7AboutResidents({ onNext, onBack, isLoading = false }: Step7AboutResidentsProps) {
   const [range, setRange] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -47,16 +48,16 @@ export function Step6AboutNeighborhood({ onNext, onBack, isLoading = false }: St
       <div className="flex flex-col items-start gap-4 mb-8 w-full max-w-[490px]">
         <h1 className="text-4xl font-semibold text-white mb-2 text-center w-full">About Your Neighborhood</h1>
         <p className="text-gray-300 text-start text-base leading-relaxed w-full">
-          How many households near you usually experience the same flood level?
+          With approximately how many no. of residents?
         </p>
         <p className="text-gray-500 text-start text-sm italic leading-relaxed w-full">
-          (Tinatayang ilang kabahayan sa inyong lugar ang nakakaranas ng kaparehong antas ng baha?)
+          (Na may tinatayang ilang residente?)
         </p>
       </div>
       <div className="flex flex-col gap-6 w-full max-w-[490px]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full">
           <div className="relative w-full" ref={dropdownRef}>
-            <label className="block text-white text-sm font-medium mb-3">Select a range</label>
+            <label className="block text-white text-sm font-medium mb-3">Select range</label>
             <button
               type="button"
               className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full text-base flex items-center justify-between"
@@ -64,7 +65,7 @@ export function Step6AboutNeighborhood({ onNext, onBack, isLoading = false }: St
               aria-haspopup="listbox"
               aria-expanded={dropdownOpen}
             >
-              {range ? range : "Select a range"}
+              {range ? range : "Select range"}
               <span className="ml-2">
                 <DropdownIcon open={dropdownOpen} />
               </span>
@@ -98,7 +99,7 @@ export function Step6AboutNeighborhood({ onNext, onBack, isLoading = false }: St
              bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
              hover:from-[#2C64C5] hover:to-[#2C64C5]
              disabled:opacity-50 disabled:cursor-not-allowed
-             transition duration-300 mt-4"
+             transition duration-300"
           >
             {isLoading ? 'Processing...' : 'Next'}
           </Button>
