@@ -71,12 +71,41 @@ const makeArchivedColumns = (
 ]
 
 export function CommunityGroups() {
-  const [activeTab, setActiveTab] = useState<"active" | "archived">("active")
+  const [activeTab, setActiveTab] = useState<"active" | "archived" | "awaiting">("active")
    const [drawerOpen, setDrawerOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
   const [selectedInfoData, setSelectedInfoData] = useState<CommunityGroupDetails | undefined>(undefined)
   const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>(predefinedCommunityGroups)
   const [archivedGroups, setArchivedGroups] = useState<CommunityGroup[]>([])
+  const [awaitingGroups] = useState<CommunityGroup[]>([
+    {
+      id: "CG-008",
+      name: "Riverside Heights",
+      status: "OFFLINE",
+      focalPerson: "Juan Dela Cruz",
+      contactNumber: "0928 456 7891",
+      address: "Block 5, Lot 14, Riverside Rd, 1423",
+      registeredAt: "August 30, 2025"
+    },
+    {
+      id: "CG-007", 
+      name: "Sunset Village",
+      status: "OFFLINE",
+      focalPerson: "Kristine Lopez",
+      contactNumber: "0908 765 4321",
+      address: "Block 3, Lot 8, Maligaya Rd, 1411",
+      registeredAt: "August 30, 2025"
+    },
+    {
+      id: "CG-006",
+      name: "Green Valley",
+      status: "OFFLINE",
+      focalPerson: "Roberto Reyes",
+      contactNumber: "0945 123 9876",
+      address: "Block 7, Lot 22, Sto. Niño Rd, 1420",
+      registeredAt: "September 1, 2025"
+    }
+  ])
   const [infoById, setInfoById] = useState<Record<string, CommunityGroupDetails>>(predefinedCommunityGroupDetails)
   const [searchVisible, setSearchVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -178,7 +207,6 @@ export function CommunityGroups() {
     if (!searchQuery.trim()) return groups
     
     return groups.filter((group) =>
-      group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       group.focalPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
       group.contactNumber.includes(searchQuery) ||
       group.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -188,8 +216,9 @@ export function CommunityGroups() {
 
   const filteredActiveGroups = filterGroups(activeGroups)
   const filteredArchivedGroups = filterGroups(archivedGroups)
+  const filteredAwaitingGroups = filterGroups(awaitingGroups)
 
-  const tableData = activeTab === "active" ? filteredActiveGroups : filteredArchivedGroups
+  const tableData = activeTab === "active" ? filteredActiveGroups : activeTab === "archived" ? filteredArchivedGroups : filteredAwaitingGroups
   const tableColumns = activeTab === "active" ? activeColumns : archivedColumns
 
   // Reopen the drawer automatically if we return from the map flow
@@ -235,7 +264,7 @@ export function CommunityGroups() {
       <div className="w-full max-w-9xl mx-auto flex-1 flex flex-col min-h-0">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-            <h1 className="text-2xl font-semibold text-white">Community Groups</h1>
+            <h1 className="text-2xl font-semibold text-white">Neighborhood Groups</h1>
             <div className="flex items-center gap-1 bg-[#262626] rounded-[5px] p-1">
               <button
                 onClick={() => setActiveTab("active")}
@@ -243,7 +272,7 @@ export function CommunityGroups() {
                   activeTab === "active" ? "bg-[#404040] text-white" : "bg-transparent text-[#a1a1a1] hover:text-white"
                 }`}
               >
-                Active Groups
+                Active
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{activeGroups.length}</span>
               </button>
               <button
@@ -254,8 +283,19 @@ export function CommunityGroups() {
                     : "bg-transparent text-[#a1a1a1] hover:text-white"
                 }`}
               >
-                Archived Groups
+                Archived
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{archivedGroups.length}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("awaiting")}
+                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
+                  activeTab === "awaiting"
+                    ? "bg-[#404040] text-white"
+                    : "bg-transparent text-[#a1a1a1] hover:text-white"
+                }`}
+              >
+                Awaiting Approval
+                <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{awaitingGroups.length}</span>
               </button>
             </div>
           </div>
@@ -265,7 +305,7 @@ export function CommunityGroups() {
             }`}>
               <Input
                 type="text"
-                placeholder="Search community groups..."
+                placeholder="Search neighborhood groups..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-64 bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4] transition-all duration-300"
@@ -300,7 +340,7 @@ export function CommunityGroups() {
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Add New Community Group
+              Add New Neighborhood Group
             </Button>
             <CommunityGroupDrawer
               open={drawerOpen}

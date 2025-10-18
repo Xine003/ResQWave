@@ -32,31 +32,8 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
   },
   {
     accessorKey: "id",
-    header: "Community ID",
+    header: "Neighborhood ID",
     cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("id")}</div>,
-  },
-  {
-    accessorKey: "name",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent focus:bg-transparent active:bg-transparent"
-        >
-          Community Name
-          <svg className="ml-2 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-            />
-          </svg>
-        </Button>
-      )
-    },
-    cell: ({ row }) => <div className="text-white font-medium">{row.getValue("name")}</div>,
   },
   {
     accessorKey: "status",
