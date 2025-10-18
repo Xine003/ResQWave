@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useAuth } from "@/contexts/AuthContext"
 import { CircleAlert, Eye, EyeOff } from "lucide-react"
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
@@ -7,30 +8,32 @@ import { HeaderOfficial } from "./components/HeaderOfficial"
 
 export function LoginDispatcher() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [ID, setID] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Mockup credentials for testing
-  const CORRECT_ID = "COMGROUP-01";
-  const CORRECT_PASSWORD = "password123";
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
     
-    setTimeout(() => {
-      if (ID === CORRECT_ID && password === CORRECT_PASSWORD) {
+    try {
+      const success = await login(ID, password)
+      
+      if (success) {
         setIsLoading(false)
         navigate("/verification-official")
       } else {
         setError("Invalid credentials. Please check your ID and password.")
         setIsLoading(false)
       }
-    }, 1000);
+    } catch (error) {
+      setError("An error occurred during login. Please try again.")
+      setIsLoading(false)
+    }
   }
 
   return (

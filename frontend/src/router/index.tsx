@@ -1,4 +1,5 @@
 import { OfficialLayout } from '@/components/Official/officialLayout';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import React from 'react';
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { Landing, LoginFocal } from '../pages/Focal';
@@ -21,6 +22,7 @@ declare global {
 
 import FocalDashboard from '../pages/Focal/Dashboard';
 import SettingLocationPage from "../pages/Official/CommunityGroups/components/SettingLocationPage";
+import { Dispatchers } from '../pages/Official/DispatcherCRUD';
 
 // Protective route for focal pages
 const FocalProtectedRoute: React.FC = () => {
@@ -89,6 +91,14 @@ export const router = createBrowserRouter([
       {
         path: 'community-groups',
         element: <CommunityGroups />
+      },
+      {
+        path: 'dispatchers',
+        element: (
+          <ProtectedRoute adminOnly={true}>
+            <Dispatchers />
+          </ProtectedRoute>
+        )
       },
       {
         path: 'tabular',
