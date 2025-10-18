@@ -1,4 +1,4 @@
-import { Step10OtherInfo } from "./components/Step10OtherInfo";
+import { Step10OtherInfo } from "./components/Step6OtherInfo";
 import { Step9FloodHazards } from "./components/Step6FloodHazards";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
