@@ -6,7 +6,7 @@ import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { HeaderOfficial } from "./components/HeaderOfficial"
 
-export function LoginDispatcher() {
+export function LoginOfficial() {
   const navigate = useNavigate()
   const { login } = useAuth()
   const [ID, setID] = useState("")

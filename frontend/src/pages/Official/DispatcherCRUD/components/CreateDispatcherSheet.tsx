@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { RefreshCcw, Trash, Upload, X } from "lucide-react"
+import { RefreshCcw, Trash, Upload } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import type { DispatcherDetails, DispatcherDrawerProps } from "../types"
 import { CloseCreateDialog } from "./CloseCreateDialog"
@@ -332,14 +332,6 @@ export function CreateDispatcherSheet({
             <SheetTitle className="text-white text-lg font-semibold">
               {isEditing ? "Edit Dispatcher" : "New Dispatcher"}
             </SheetTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-              className="text-[#a1a1a1] hover:text-white hover:bg-[#262626] h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">

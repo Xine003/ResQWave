@@ -7,7 +7,7 @@ import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/ForgotPa
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/VerificationSignin';
 import {
   CommunityGroups,
-  LoginDispatcher,
+  LoginOfficial,
   Reports,
   Tabular,
   VerificationOfficial,
@@ -69,8 +69,8 @@ export const router = createBrowserRouter([
   },
 
   {
-    path: '/login-dispatcher',
-    element: <LoginDispatcher />,
+    path: '/login-official',
+    element: <LoginOfficial />,
   },
   {
     path: '/verification-official',
