@@ -30,8 +30,8 @@ export function Step1PersonalInfo({ onNext, onBack, isLoading = false, initialDa
   return (
     <>
       {/* Main Content */}
-      <div className="flex flex-col items-center gap-4 mb-8">
-        <h1 className="text-4xl font-semibold text-white mb-2 text-center">Tell us about You</h1>
+      <div className="flex flex-col items-center gap-3 mb-10">
+        <h1 className="text-[43px] font-medium leading-snug text-white mb-2 text-center">Tell us about You</h1>
         <p className="text-gray-300 text-center text-base max-w-md leading-relaxed">
           The following information will be used as the main focal person of the neighborhood.
         </p>
@@ -41,7 +41,7 @@ export function Step1PersonalInfo({ onNext, onBack, isLoading = false, initialDa
         {/* First Name and Last Name */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-white text-sm font-medium mb-3">
+            <label className="block text-white text-[15px] font-light mb-3">
               First Name
             </label>
             <Input
@@ -49,12 +49,12 @@ export function Step1PersonalInfo({ onNext, onBack, isLoading = false, initialDa
               value={firstName}
               onChange={e => setFirstName(e.target.value)}
               className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              style={{ fontSize: "16px", height: "48px" }}
+              style={{ fontSize: "16px", height: "50px" }}
               placeholder=""
             />
           </div>
           <div>
-            <label className="block text-white text-sm font-medium mb-3">
+            <label className="block text-white text-[15px] font-light mb-3">
               Last Name
             </label>
             <Input
@@ -62,7 +62,7 @@ export function Step1PersonalInfo({ onNext, onBack, isLoading = false, initialDa
               value={lastName}
               onChange={e => setLastName(e.target.value)}
               className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              style={{ fontSize: "16px", height: "48px" }}
+              style={{ fontSize: "16px", height: "50px" }}
               placeholder=""
             />
           </div>
@@ -70,7 +70,7 @@ export function Step1PersonalInfo({ onNext, onBack, isLoading = false, initialDa
 
         {/* Date of Birth */}
         <div>
-          <label className="block text-white text-sm font-medium mb-3">
+          <label className="block text-white text-[15px] font-light mb-3">
             Date of Birth
           </label>
           <DatePicker
@@ -79,7 +79,7 @@ export function Step1PersonalInfo({ onNext, onBack, isLoading = false, initialDa
             placeholder="Date of Birth"
             className="w-full"
           />
-          <p className="text-gray-400 text-sm mt-2">
+          <p className="text-gray-400 text-sm mt-3">
             Why do we need your date of birth? <span className="text-gray-400 underline hover:text-blue-400 cursor-pointer">Learn more</span>
           </p>
         </div>
@@ -88,7 +88,7 @@ export function Step1PersonalInfo({ onNext, onBack, isLoading = false, initialDa
         <Button
           onClick={handleNext}
           disabled={isLoading || !isFormValid}
-          className="text-white py-6 rounded-md font-medium text-base mt-6 flex items-center justify-center gap-2
+          className="text-white py-6 rounded-md font-medium text-base mt-4 flex items-center justify-center gap-2
            bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
            hover:from-[#2C64C5] hover:to-[#2C64C5]
            disabled:bg-[#232323] disabled:text-[#929090] disabled:cursor-not-allowed
@@ -111,7 +111,7 @@ export function Step1PersonalInfo({ onNext, onBack, isLoading = false, initialDa
 
         <Button
           onClick={onBack}
-          className="text-[#BABABA] bg-transparent border-none cursor-pointer hover:text-white hover:bg-transparent"
+          className="text-[#BABABA] bg-transparent border-none cursor-pointer hover:text-white hover:bg-transparent mt-[-3px]"
         >
           Back
         </Button>

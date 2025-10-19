@@ -44,50 +44,49 @@ export function Step6AboutNeighborhood({ onNext, onBack, isLoading = false }: St
 
   return (
     <>
-      <div className="flex flex-col items-start gap-4 mb-8 w-full max-w-[490px]">
-        <h1 className="text-4xl font-semibold text-white mb-2 text-center w-full">About Your Neighborhood</h1>
-        <p className="text-gray-300 text-start text-base leading-relaxed w-full">
+      <div className="flex flex-col items-start mb-4 w-full max-w-[490px]">
+        <h1 className="text-4xl font-semibold text-white mb-10 text-center w-full mt-2">About Your Neighborhood</h1>
+        <p className="text-gray-300 text-start text-base leading-relaxed w-full mb-2">
           How many households near you usually experience the same flood level?
         </p>
-        <p className="text-gray-500 text-start text-sm italic leading-relaxed w-full">
+        <p className="text-gray-500 text-start text-[14.5px] italic leading-loose w-full">
           (Tinatayang ilang kabahayan sa inyong lugar ang nakakaranas ng kaparehong antas ng baha?)
         </p>
       </div>
       <div className="flex flex-col gap-6 w-full max-w-[490px]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full">
           <div className="relative w-full" ref={dropdownRef}>
-            <label className="block text-white text-sm font-medium mb-3">Select a range</label>
             <button
               type="button"
-              className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full text-base flex items-center justify-between"
+              className="bg-[#171717] border border-[#404040] rounded-lg px-4 h-[52px] text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full text-base flex items-center justify-between"
               onClick={() => setDropdownOpen((open) => !open)}
               aria-haspopup="listbox"
               aria-expanded={dropdownOpen}
             >
-              {range ? range : "Select a range"}
+              {range ? range : <span className="text-[#A3A3A3]">Select a range</span>}
               <span className="ml-2">
-                <DropdownIcon open={dropdownOpen} />
+              <DropdownIcon open={dropdownOpen} />
               </span>
             </button>
             {dropdownOpen && (
               <ul
-                className="absolute z-10 mt-1 w-full bg-[#171717] border border-[#404040] rounded-lg shadow-lg"
-                role="listbox"
+              className="absolute z-10 mt-1 w-full bg-[#171717] border border-[#404040] rounded-lg shadow-lg"
+              role="listbox"
               >
-                {ranges.map((r, idx) => (
-                  <li
-                    key={idx}
-                    className={`px-4 py-3 text-white text-base cursor-pointer hover:bg-[#232323] ${range === r ? "bg-[#232323]" : ""}`}
-                    role="option"
-                    aria-selected={range === r}
-                    onClick={() => {
-                      setRange(r);
-                      setDropdownOpen(false);
-                    }}
-                  >
-                    {r}
-                  </li>
-                ))}
+              {ranges.map((r, idx) => (
+                <li
+                key={idx}
+                className={`px-4 h-[50px] flex items-center text-white text-base cursor-pointer hover:bg-[#232323] ${range === r ? "bg-[#232323]" : ""}`}
+                role="option"
+                aria-selected={range === r}
+                onClick={() => {
+                  setRange(r);
+                  setDropdownOpen(false);
+                }}
+                >
+                {r}
+                </li>
+              ))}
               </ul>
             )}
           </div>
@@ -105,7 +104,7 @@ export function Step6AboutNeighborhood({ onNext, onBack, isLoading = false }: St
           <Button
             type="button"
             onClick={onBack}
-            className="text-[#BABABA] bg-transparent border-none cursor-pointer hover:text-white hover:bg-transparent mt-2"
+            className="text-[#BABABA] bg-transparent border-none cursor-pointer hover:text-white hover:bg-transparent"
           >
             Back
           </Button>

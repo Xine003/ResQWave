@@ -25,7 +25,7 @@ export function Step5AlternativeFocalPerson({ onNext, onBack, isLoading = false 
   return (
     <>
       <div className="flex flex-col items-center gap-4 mb-8">
-        <h1 className="text-4xl font-semibold text-white mb-2 text-center">Set Alternative Focal Person</h1>
+        <h1 className="text-4xl font-semibold text-white mb-2 text-center mt-2">Set Alternative Focal Person</h1>
         <p className="text-gray-300 text-center text-base max-w-md leading-relaxed">
           In case you're unreachable, they will be our second point of contact.
         </p>
@@ -35,43 +35,43 @@ export function Step5AlternativeFocalPerson({ onNext, onBack, isLoading = false 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-white text-sm font-medium mb-3">First Name</label>
+              <label className="block text-white text-[15px] font-light mb-3">First Name</label>
               <Input
                 type="text"
                 value={firstName}
                 onChange={e => setFirstName(e.target.value)}
                 className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                style={{ fontSize: "16px", height: "48px" }}
+                style={{ fontSize: "16px", height: "50px" }}
                 placeholder=""
                 required
               />
             </div>
             <div>
-              <label className="block text-white text-sm font-medium mb-3">Last Name</label>
+              <label className="block text-white text-[15px] font-light mb-3">Last Name</label>
               <Input
                 type="text"
                 value={lastName}
                 onChange={e => setLastName(e.target.value)}
                 className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                style={{ fontSize: "16px", height: "48px" }}
+                style={{ fontSize: "16px", height: "50px" }}
                 placeholder=""
                 required
               />
             </div>
           </div>
           <div>
-            <label className="block text-white text-sm font-medium mb-3">Phone Number</label>
-            <div className="flex items-center gap-4">
-              <span className="flex items-center px-4 py-[11px] pr-7 bg-[#171717] border border-[#404040] rounded-lg">
+            <label className="block text-white text-[15px] font-light mb-3">Phone Number</label>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center px-4 py-[13px] pr-7 bg-[#171717] border border-[#404040] rounded-lg">
                 <img src="/public/Landing/phFlag.png" alt="PH" className="w-4 h-3 mr-2" />
-                <span className="text-white text-base font-medium">+63</span>
+                <span className="text-[#A3A3A3] text-[15px] font-medium">+63</span>
               </span>
               <Input
                 type="tel"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
                 className="bg-[#171717] border border-[#404040] rounded-r-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                style={{ fontSize: "16px", height: "48px" }}
+                style={{ fontSize: "16px", height: "50px" }}
                 placeholder=""
                 required
               />
@@ -91,7 +91,7 @@ export function Step5AlternativeFocalPerson({ onNext, onBack, isLoading = false 
           <Button
             type="button"
             onClick={onBack}
-            className="text-[#BABABA] bg-transparent border-none cursor-pointer hover:text-white hover:bg-transparent mt-2"
+            className="text-[#BABABA] bg-transparent border-none cursor-pointer hover:text-white hover:bg-transparent"
           >
             Back
           </Button>

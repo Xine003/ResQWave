@@ -64,66 +64,63 @@ export function Step3CreatePassword({ onNext, onBack, isLoading = false }: Step3
   return (
     <>
       {/* Main Content */}
-      <div className="flex flex-col items-center gap-4 mb-8">
-        <h1 className="text-4xl font-semibold text-white mb-2 text-center">Create Password</h1>
+      <div className="flex flex-col items-center gap-4 mb-10">
+        <h1 className="text-4xl font-semibold text-white mb-2 text-center mt-1">Create Password</h1>
       </div>
 
+      <div className="flex flex-col gap-6 w-full max-w-[490px]">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full">
+          {/* Password Field */}
+          <div>
+            <label className="block text-white text-[15px] font-light mb-3">Password</label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12 text-base placeholder-gray-400"
+                style={{ fontSize: "16px", height: "50px" }}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
 
-            <div className="flex flex-col gap-6 w-full max-w-[490px]">
-              <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full">
-                {/* Password Field */}
-                <div>
-                  <label className="block text-white text-sm font-medium mb-3">Password</label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12 text-base placeholder-gray-400"
-                      style={{ fontSize: "16px", height: "48px" }}
-                      placeholder="Enter your password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm Password Field */}
-                <div>
-                  <label className="block text-white text-sm font-medium mb-3">Confirm Password</label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12 text-base placeholder-gray-400"
-                      style={{ fontSize: "16px", height: "48px" }}
-                      placeholder="Confirm your password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
+          {/* Confirm Password Field */}
+          <div>
+            <label className="block text-white text-[15px] font-light mb-3">Confirm Password</label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12 text-base placeholder-gray-400"
+                style={{ fontSize: "16px", height: "50px" }}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
 
           {/* Password Requirements */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2 mb-2">
               <Info className="w-5 h-5 text-blue-500 flex-shrink-0" />
-              <span className="text-white text-sm font-medium">Your password must contain:</span>
+              <span className="text-white text-[13.8px] font-light">Your password must contain:</span>
             </div>
 
             <div className="grid grid-cols-2 gap-x-8 gap-y-1">
@@ -132,7 +129,7 @@ export function Step3CreatePassword({ onNext, onBack, isLoading = false }: Step3
                   {requirement.met ? (
                     <Check className="w-4 h-4 text-[#22c55e] flex-shrink-0" />
                   ) : (
-                    <X className={`w-4 h-4 flex-shrink-0 ${requirement.met ? 'text-gray-400' : 'text-gray-400'}`} />
+                    <X className={`w-[13px] h-[13px] flex-shrink-0 ${requirement.met ? 'text-white' : 'text-white'}`} />
                   )}
                   <span className={`text-sm ${requirement.met ? 'text-gray-400' : 'text-gray-400'}`}>
                     {requirement.label}
@@ -167,7 +164,7 @@ export function Step3CreatePassword({ onNext, onBack, isLoading = false }: Step3
             <Button
               type="button"
               onClick={onBack}
-              className="text-[#BABABA] bg-transparent border-none cursor-pointer hover:text-white hover:bg-transparent mt-2"
+              className="text-[#BABABA] bg-transparent border-none cursor-pointer hover:text-white hover:bg-transparent"
             >
               Back
             </Button>

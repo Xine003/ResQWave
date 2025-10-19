@@ -79,6 +79,54 @@ export default function Dashboard() {
             } catch (e) { }
 
             addCustomLayers(map, otherSignals, OwnCommunitySignal);
+            // Add flood polygons source + layer
+            // Add flood polygons source + layer
+            try {
+
+                const floodFiles = [
+                    { id: "metro-manila", url: "/Landing/MetroManila_Flood.geojson" },
+                    // { id: "bulacan", url: "/Landing/Bulacan_Flood.geojson" },
+                ];
+                floodFiles.forEach(file => {
+                    const sourceId = `floods-${file.id}`;
+                    const polygonLayerId = `flood-polygons-${file.id}`;
+
+                    // Add GeoJSON source
+                    if (!map.getSource(sourceId)) {
+                        map.addSource(sourceId, {
+                            type: "geojson",
+                            data: file.url
+                        });
+                    }
+
+                    // Add polygon fill layer (NO border layer anymore)
+                    if (!map.getLayer(polygonLayerId)) {
+                        map.addLayer({
+                            id: polygonLayerId,
+                            type: "fill",
+                            source: sourceId,
+                            paint: {
+                                "fill-color": [
+                                    "match",
+                                    ["get", "Var"], // assumes "Var" exists in *all* geojsons
+                                    1, "#ffff00",   // Low hazard → Yellow
+                                    2, "#ff9900",   // Medium hazard → Orange
+                                    3, "#ff0000",   // High hazard → Red
+                                    "#000000"       // fallback → Black
+                                ],
+                                "fill-opacity": 0.5
+                            }
+                        }, "waterway-label"); // 👈 ensures labels stay above
+                    }
+                });
+
+            } catch (e) {
+                console.warn("[Dashboard] could not add flood polygons sources/layers", e);
+            }
+
+
+
+
             // Move signal dot layers above draw layers
             const drawLayerIds = [
                 'gl-draw-polygon-fill',
@@ -352,8 +400,14 @@ export default function Dashboard() {
             return;
         }
 
-        // Get the coordinates of the first polygon
-        const newBoundary = polygons[0]?.geometry?.coordinates?.[0];
+        // Get the coordinates of the first polygon safely
+        let newBoundary: [number, number][] | undefined = undefined;
+        if (polygons[0] && polygons[0].geometry && polygons[0].geometry.type === "Polygon" && Array.isArray(polygons[0].geometry.coordinates)) {
+            // Filter to ensure each coordinate is a [number, number] pair
+            newBoundary = (polygons[0].geometry.coordinates[0] as any[])
+                .filter((pt: any) => Array.isArray(pt) && pt.length === 2 && typeof pt[0] === 'number' && typeof pt[1] === 'number')
+                .map((pt: any) => [pt[0], pt[1]] as [number, number]);
+        }
         // Update the boundary for the currently edited signal
         // We'll assume the last clicked signal is stored in popover
         if (popover && newBoundary) {

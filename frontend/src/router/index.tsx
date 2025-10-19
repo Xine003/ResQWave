@@ -1,4 +1,4 @@
-import { OfficialLayout } from '@/components/Official/OfficialLayout';
+import { OfficialLayout } from '@/components/Official/officialLayout';
 import React from 'react';
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { Landing, LoginFocal, RegisterAccount } from '../pages/Focal';

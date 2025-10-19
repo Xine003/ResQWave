@@ -8,6 +8,7 @@ import { Step2ProfilePicture } from "./components/Step2ProfilePicture";
 import { Step3CreatePassword } from "./components/Step3CreatePassword";
 import { Step4LocationDetails } from "./components/Step4LocationDetails";
 import { Step5AlternativeProfilePicture } from "./components/Step5AlternativeProfilePicture";
+import { Step5AlternativeFocalPerson } from "./components/Step5AlternativeFocalPerson";
 import { Step6AboutNeighborhood } from "./components/Step6AboutNeighborhood";
 import { Step7AboutResidents } from "./components/Step6AboutResidents";
 import { Step8FloodwaterDuration } from "./components/Step6FloodwaterDuration";
@@ -66,7 +67,7 @@ export default function InfoDetailsRegister({ step = 1 }: InfoDetailsRegisterPro
                 navigate('/register/personal-info');
         }
     };
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading] = useState(false);
     const [registrationData, setRegistrationData] = useState<RegistrationData>({
         firstName: "",
         lastName: "",
@@ -86,6 +87,15 @@ export default function InfoDetailsRegister({ step = 1 }: InfoDetailsRegisterPro
     const handleStep3Next = (data: { password: string; confirmPassword: string }) => {
         setRegistrationData(prev => ({ ...prev, ...data }));
         navigateToStep(4);
+    };
+
+    // Fix: After Location Details (step 4), go to Alternative Focal Person (step 5), then to Alternative Profile Picture (step 6)
+    const handleStep4Next = () => {
+        navigateToStep(5);
+    };
+
+    const handleStep5Next = () => {
+        navigateToStep(6);
     };
 
     const handleBack = () => {
@@ -120,16 +130,16 @@ export default function InfoDetailsRegister({ step = 1 }: InfoDetailsRegisterPro
         <div className="min-h-screen flex flex-col primary-background" style={{ position: 'relative', overflow: 'hidden' }}>
             <div className="loginfocal-radial-gradient" />
             <FocalHeader />
-            <main className="flex flex-1 flex-col items-center justify-center w-full" style={{ marginTop: '0px', zIndex: 20, position: 'relative' }}>
+            <main className="flex flex-1 flex-col items-center w-full" style={{ marginTop: '120px', zIndex: 20, position: 'relative' }}>
                 {/* Progress Bar */}
-                <div className="w-full max-w-[310px] mb-5">
-                    <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-600 mb-2">
-                        <div 
+                <div className="w-full max-w-[310px] mb-2">
+                    <div className="relative h-2 w-full overflow-hidden rounded-full bg-[#262626] mb-2">
+                        <div
                             className="h-full bg-blue-500 transition-all duration-300"
                             style={{ width: `${getProgressValue()}%` }}
                         />
                     </div>
-                    <p className="text-gray-400 text-sm text-center mt-11">{getStepText()}</p>
+                    <p className="text-[#A3A3A3] font-medium text-sm text-center mt-11">{getStepText()}</p>
                 </div>
 
                 {/* Step Content */}
@@ -160,13 +170,21 @@ export default function InfoDetailsRegister({ step = 1 }: InfoDetailsRegisterPro
 
                 {currentStep === 4 && (
                     <Step4LocationDetails
-                        onNext={() => navigateToStep(5)}
+                        onNext={handleStep4Next}
                         onBack={handleBack}
                         isLoading={isLoading}
                     />
                 )}
 
                 {currentStep === 5 && (
+                    <Step5AlternativeFocalPerson
+                        onNext={handleStep5Next}
+                        onBack={handleBack}
+                        isLoading={isLoading}
+                    />
+                )}
+
+                {currentStep === 6 && (
                     <Step5AlternativeProfilePicture
                         onNext={() => navigateToStep(7)}
                         onBack={handleBack}

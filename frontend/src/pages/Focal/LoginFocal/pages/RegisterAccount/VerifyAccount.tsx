@@ -39,19 +39,19 @@ export default function VerifyAccount() {
         <div className="min-h-screen flex flex-col primary-background" style={{ position: 'relative', overflow: 'hidden' }}>
             <div className="loginfocal-radial-gradient" />
             <FocalHeader />
-            <main className="flex flex-1 flex-col items-center justify-center w-full" style={{ marginTop: '0px', zIndex: 20, position: 'relative' }}>
+            <main className="flex flex-1 flex-col items-center w-full" style={{ marginTop: '120px', zIndex: 20, position: 'relative' }}>
                 <div className="flex flex-col items-center gap-4 mb-8">
-                    <span className="mb-4 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', width: '80px', height: '80px' }}>
+                    <span className="mb-4 rounded-md flex items-center justify-center" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', width: '75px', height: '75px' }}>
                         {mode === 'phone' ? (
                             <MessageSquareMore className="text-[#3B82F6]" size={38} />
                         ) : (
                             <Mail className="text-[#3B82F6]" size={38} />
                         )}
                     </span>
-                    <h1 className="text-4xl font-semibold text-white mb-1">
+                    <h1 className="text-[43px] font-medium leading-snug text-white mb-1">
                         {mode === 'phone' ? 'Verify Phone Number' : 'Verify Email'}
                     </h1>
-                    <p className="text-[#BABABA] text-center mb-2 text-base max-w-lg">
+                    <p className="text-[#BABABA] text-center mb-2 text-base max-w-lg leading-[30px]">
                         {mode === 'phone' ? (
                             <>
                                 <span className="block mb-1">We've sent an SMS with an activation code to your phone</span>
@@ -77,22 +77,22 @@ export default function VerifyAccount() {
                             containerClassName="justify-center mb-9 gap-4"
                         >
                             <InputOTPGroup>
-                                <InputOTPSlot index={0} className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
-                                <InputOTPSlot index={1} className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
+                                <InputOTPSlot index={0} className={`bg-[#171717] h-[62px] w-[62px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
+                                <InputOTPSlot index={1} className={`bg-[#171717] h-[62px] w-[62px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
                             </InputOTPGroup>
                             <InputOTPSeparator>
                                 <span className="mx-4 text-white text-2xl">&bull;</span>
                             </InputOTPSeparator>
                             <InputOTPGroup>
-                                <InputOTPSlot index={2} className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
-                                <InputOTPSlot index={3} className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
+                                <InputOTPSlot index={2} className={`bg-[#171717] h-[62px] w-[62px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
+                                <InputOTPSlot index={3} className={`bg-[#171717] h-[62px] w-[62px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
                             </InputOTPGroup>
                             <InputOTPSeparator>
                                 <span className="mx-4 text-white text-2xl">&bull;</span>
                             </InputOTPSeparator>
                             <InputOTPGroup>
-                                <InputOTPSlot index={4} className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
-                                <InputOTPSlot index={5} className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
+                                <InputOTPSlot index={4} className={`bg-[#171717] h-[62px] w-[62px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
+                                <InputOTPSlot index={5} className={`bg-[#171717] h-[62px] w-[62px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
                             </InputOTPGroup>
                         </InputOTP>
                         <div className="text-center text-gray-400 text-base mb-5 w-full">

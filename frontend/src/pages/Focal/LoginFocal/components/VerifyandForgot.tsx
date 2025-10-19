@@ -26,13 +26,10 @@ export function ForgotPasswordVerification({
         <div className="min-h-screen flex flex-col primary-background" style={{ position: 'relative', overflow: 'hidden' }}>
             <div className="loginfocal-radial-gradient" />
             <FocalHeader />
-            <main className="flex flex-1 flex-col items-center justify-center w-full" style={{ marginTop: '0px', zIndex: 20, position: 'relative' }}>
+            <main className="flex flex-1 flex-col items-center w-full" style={{ marginTop: '120px', zIndex: 20, position: 'relative' }}>
                 <div className="flex flex-col items-center gap-4 mb-8">
-                    <span className="mb-3">
-                        <img src={resqwave_logo} alt="ResQWave Logo" className="h-12 w-12" />
-                    </span>
-                    <h1 className="text-4xl font-semibold text-white mb-1">Enter verification code</h1>
-                    <p className="text-[#BABABA] text-center mb-2 text-base max-w-lg">
+                    <h1 className="text-[43px] font-semibold text-white mb-1">Enter verification code</h1>
+                    <p className="text-[#BABABA] text-center text-[17px] mb-2 leading-relaxed max-w-2xl">
                         <span className="block mb-1">We want to make sure your information stays safe and secure.</span>
                         <span className="block mb-1">Please enter the verification code we sent to your registered</span>
                         <span className="block">number/email to continue.</span>
@@ -65,7 +62,7 @@ export function ForgotPasswordVerification({
                                 <InputOTPSlot index={5} className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`} />
                             </InputOTPGroup>
                         </InputOTP>
-                        <div className="text-center text-gray-400 text-base mb-5 w-full">
+                        <div className="text-center text-[#BABABA] text-base mb-5 w-full">
                             Didn't receive any code? <button type="button" className="text-blue-400 hover:underline">Resend</button>
                         </div>
                         <Button

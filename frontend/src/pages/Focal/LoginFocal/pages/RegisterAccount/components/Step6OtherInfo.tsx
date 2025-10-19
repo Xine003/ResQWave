@@ -17,10 +17,10 @@ export function Step10OtherInfo({ onNext, onBack, isLoading = false }: Step10Oth
 
   return (
     <>
-      <div className="flex flex-col items-start gap-4 mb-5 w-full max-w-[490px]">
-        <h1 className="text-4xl font-semibold text-white mb-2 text-center w-full">About Your Neighborhood</h1>
-        <label className="text-white text-sm font-medium mb-1">Other notable information</label>
-        <p className="text-gray-500 text-start text-sm italic leading-relaxed w-full mb-2">
+      <div className="flex flex-col items-start mb-4 w-full max-w-[490px]">
+        <h1 className="text-4xl font-semibold text-white mb-10 text-center w-full mt-2">About Your Neighborhood</h1>
+        <label className="text-gray-300 text-sm font-medium mb-2">Other notable information</label>
+        <p className="text-gray-500 text-start text-[15.5px] italic leading-relaxed w-full mb-1">
           (Maglagay ng iba pang mahahalagang detalye tungkol sa kalagayan ng baha sa inyong lugar)
         </p>
       </div>
@@ -39,14 +39,14 @@ export function Step10OtherInfo({ onNext, onBack, isLoading = false }: Step10Oth
              bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
              hover:from-[#2C64C5] hover:to-[#2C64C5]
              disabled:opacity-50 disabled:cursor-not-allowed
-             transition duration-300 mt-3"
+             transition duration-300 mt-2"
           >
             {isLoading ? 'Processing...' : 'Next'}
           </Button>
           <Button
             type="button"
             onClick={onBack}
-            className="text-[#BABABA] bg-transparent border-none cursor-pointer hover:text-white hover:bg-transparent mt-2"
+            className="text-[#BABABA] bg-transparent border-none cursor-pointer hover:text-white hover:bg-transparent"
           >
             Back
           </Button>

@@ -69,19 +69,19 @@ export default function SettingLocationPage() {
 
     // Resize guards
     map.on("load", () => {
-      try { ensureSquareBlueImage(map) } catch {}
-      try { map.resize() } catch {}
-      setTimeout(() => { try { map.resize() } catch {} }, 100)
+      try { ensureSquareBlueImage(map) } catch { }
+      try { map.resize() } catch { }
+      setTimeout(() => { try { map.resize() } catch { } }, 100)
     })
     let ro: ResizeObserver | null = null
     try {
-      ro = new ResizeObserver(() => { try { map.resize() } catch {} })
+      ro = new ResizeObserver(() => { try { map.resize() } catch { } })
       if (mapContainerRef.current) ro.observe(mapContainerRef.current)
-    } catch {}
+    } catch { }
 
     return () => {
-      try { ro && mapContainerRef.current && ro.unobserve(mapContainerRef.current) } catch {}
-      try { map.remove() } catch {}
+      try { ro && mapContainerRef.current && ro.unobserve(mapContainerRef.current) } catch { }
+      try { map.remove() } catch { }
       mapRef.current = null
     }
   }, [])
@@ -90,13 +90,13 @@ export default function SettingLocationPage() {
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    try { map.setStyle(`mapbox://styles/mapbox/${baseStyle}`) } catch {}
+    try { map.setStyle(`mapbox://styles/mapbox/${baseStyle}`) } catch { }
     // After style change, the sprite resets. Re-add custom icon soon after style data is available.
     try {
       map.once("styledata", () => {
-        try { ensureSquareBlueImage(map) } catch {}
+        try { ensureSquareBlueImage(map) } catch { }
       })
-    } catch {}
+    } catch { }
   }, [baseStyle])
 
   // Phase handling: attach interactions for each phase
@@ -107,14 +107,14 @@ export default function SettingLocationPage() {
     let onVertsEnterOrMove: ((e: any) => void) | undefined
     let onVertsLeave: (() => void) | undefined
     let onVertsClick: ((e: any) => void) | undefined
-  let detachStyleData: (() => void) | undefined
+    let detachStyleData: (() => void) | undefined
 
     // Clear existing listeners and draw controls
-    try { m.off("click", onMapClick as any) } catch {}
+    try { m.off("click", onMapClick as any) } catch { }
     if (phase === "terminal") {
       m.on("click", onMapClick)
       // Use crosshair to match boundary point picking (plus-shaped cursor)
-      try { m.getCanvas().style.cursor = "crosshair" } catch {}
+      try { m.getCanvas().style.cursor = "crosshair" } catch { }
     } else {
       const draw = new MapboxDraw({
         displayControlsDefault: false,
@@ -125,7 +125,7 @@ export default function SettingLocationPage() {
       drawRef.current = draw
       m.addControl(draw as any, "top-left")
       // Let Mapbox Draw manage its own cursor (reset any overrides)
-      try { m.getCanvas().style.cursor = "" } catch {}
+      try { m.getCanvas().style.cursor = "" } catch { }
 
       // First-vertex UX: pointer cursor on hover, click to close/save boundary
       let vertexEventsAttached = false
@@ -133,9 +133,9 @@ export default function SettingLocationPage() {
         try {
           const hasFirst = (e?.features || []).some((f: any) => f?.properties?.idx === 0)
           m.getCanvas().style.cursor = hasFirst ? "pointer" : ""
-        } catch {}
+        } catch { }
       }
-      onVertsLeave = () => { try { m.getCanvas().style.cursor = "" } catch {} }
+      onVertsLeave = () => { try { m.getCanvas().style.cursor = "" } catch { } }
       onVertsClick = (e: any) => {
         try {
           const clickedFirst = (e?.features || []).some((f: any) => f?.properties?.idx === 0)
@@ -144,7 +144,14 @@ export default function SettingLocationPage() {
           const dataNow = draw.getAll()
           const linesNow = (dataNow?.features || []).filter((f: any) => f.geometry?.type === "LineString")
           if (!linesNow.length) return
-          const coords = (linesNow[linesNow.length - 1].geometry?.coordinates || []) as number[][]
+          // Filter to ensure each coordinate is a [number, number] pair
+          let coords: [number, number][] = [];
+          const lastLine = linesNow[linesNow.length - 1];
+          if (lastLine && lastLine.geometry && lastLine.geometry.type === "LineString") {
+            coords = ((lastLine.geometry.coordinates || []) as any[])
+              .filter((pt: any) => Array.isArray(pt) && pt.length === 2 && typeof pt[0] === 'number' && typeof pt[1] === 'number')
+              .map((pt: any) => [pt[0], pt[1]] as [number, number]);
+          }
           if (coords.length < 3) return
           const first = coords[0]
           const last = coords[coords.length - 1]
@@ -153,8 +160,8 @@ export default function SettingLocationPage() {
           if (mapRef.current) {
             updateBoundaryVertices(mapRef.current, coords)
           }
-          try { (draw as any).changeMode("simple_select") } catch {}
-        } catch {}
+          try { (draw as any).changeMode("simple_select") } catch { }
+        } catch { }
       }
       const tryAttachVertexEvents = () => {
         if (vertexEventsAttached) return
@@ -167,7 +174,7 @@ export default function SettingLocationPage() {
           if (onVertsLeave) m.on("mouseleave", "cg-boundary-vertices", onVertsLeave as any)
           if (onVertsClick) m.on("click", "cg-boundary-vertices", onVertsClick as any)
           vertexEventsAttached = true
-        } catch {}
+        } catch { }
       }
 
       const handleDrawChange = () => {
@@ -175,9 +182,17 @@ export default function SettingLocationPage() {
         const lines = (data?.features || []).filter((f: any) => f.geometry?.type === "LineString")
         setHasLine(lines.length > 0)
         // update live coords for vertex overlay (use the last line if multiple)
-        const coords = lines.length > 0 ? (lines[lines.length - 1].geometry?.coordinates as number[][]) : null
+        let coords: [number, number][] | null = null;
+        if (lines.length > 0) {
+          const lastLine = lines[lines.length - 1];
+          if (lastLine && lastLine.geometry && lastLine.geometry.type === "LineString") {
+            coords = ((lastLine.geometry.coordinates || []) as any[])
+              .filter((pt: any) => Array.isArray(pt) && pt.length === 2 && typeof pt[0] === 'number' && typeof pt[1] === 'number')
+              .map((pt: any) => [pt[0], pt[1]] as [number, number]);
+          }
+        }
         setLastDrawnCoords(coords || null)
-        try { updateBoundaryVertices(m, coords || null) } catch {}
+        try { updateBoundaryVertices(m, coords || null) } catch { }
         // Attach UX handlers once the layer exists
         tryAttachVertexEvents()
       }
@@ -191,7 +206,7 @@ export default function SettingLocationPage() {
       tryAttachVertexEvents()
       // Also try re-attaching after any style change (e.g., switching base layers)
       m.on("styledata", tryAttachVertexEvents)
-      detachStyleData = () => { try { m.off("styledata", tryAttachVertexEvents) } catch {} }
+      detachStyleData = () => { try { m.off("styledata", tryAttachVertexEvents) } catch { } }
     }
 
     function onMapClick(e: any) {
@@ -214,11 +229,11 @@ export default function SettingLocationPage() {
     }
 
     return () => {
-      try { m.off("click", onMapClick as any) } catch {}
+      try { m.off("click", onMapClick as any) } catch { }
       // Cleanup cursor override when leaving this phase/effect
-      try { m.getCanvas().style.cursor = "" } catch {}
+      try { m.getCanvas().style.cursor = "" } catch { }
       if (phase === "boundary") {
-        try { (drawRef.current as any) && m.removeControl(drawRef.current) } catch {}
+        try { (drawRef.current as any) && m.removeControl(drawRef.current) } catch { }
         drawRef.current = null
         try {
           if (detachStyleData) detachStyleData()
@@ -228,7 +243,7 @@ export default function SettingLocationPage() {
           }
           if (onVertsLeave) m.off("mouseleave", "cg-boundary-vertices", onVertsLeave as any)
           if (onVertsClick) m.off("click", "cg-boundary-vertices", onVertsClick as any)
-        } catch {}
+        } catch { }
       }
     }
   }, [phase])
@@ -258,14 +273,17 @@ export default function SettingLocationPage() {
     const data = draw.getAll()
     const lines = (data?.features || []).filter((f: any) => f.geometry?.type === "LineString")
     if (lines.length === 0) return
-    const coords = (lines[0].geometry?.coordinates || []) as number[][]
-      setSavedBoundaryCoords(coords)
-      // Ensure vertices overlay reflects saved shape; also add fill on Save
-      if (mapRef.current) {
-        updateBoundaryVertices(mapRef.current, coords)
-        try { updateBoundaryFill(mapRef.current, coords) } catch {}
-        try { setShowFill(true) } catch {}
-      }
+    // Filter to ensure each coordinate is a [number, number] pair
+    const coords = ((lines[0].geometry?.coordinates || []) as any[])
+      .filter((pt: any) => Array.isArray(pt) && pt.length === 2 && typeof pt[0] === 'number' && typeof pt[1] === 'number')
+      .map((pt: any) => [pt[0], pt[1]] as [number, number]);
+    setSavedBoundaryCoords(coords)
+    // Ensure vertices overlay reflects saved shape; also add fill on Save
+    if (mapRef.current) {
+      updateBoundaryVertices(mapRef.current, coords)
+      try { updateBoundaryFill(mapRef.current, coords) } catch { }
+      try { setShowFill(true) } catch { }
+    }
     setBoundarySaved(true)
     alertsRef.current?.showBoundaryValid("Boundaries set are valid!")
   }
@@ -279,12 +297,12 @@ export default function SettingLocationPage() {
   const addCustomLayers = (_m: mapboxgl.Map) => {
     // Re-add boundary translucent fill after base style changes
     if (mapRef.current) {
-      try { ensureSquareBlueImage(mapRef.current) } catch {}
+      try { ensureSquareBlueImage(mapRef.current) } catch { }
       if (savedBoundaryCoords && showFill) {
-        try { updateBoundaryFill(mapRef.current, savedBoundaryCoords) } catch {}
+        try { updateBoundaryFill(mapRef.current, savedBoundaryCoords) } catch { }
       }
       const verts = boundarySaved ? savedBoundaryCoords : lastDrawnCoords
-      try { updateBoundaryVertices(mapRef.current, verts || null) } catch {}
+      try { updateBoundaryVertices(mapRef.current, verts || null) } catch { }
     }
   }
   // boundary delete-all is no longer used; granular undo implemented via onUndo
@@ -294,12 +312,12 @@ export default function SettingLocationPage() {
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-4 py-3 border-b border-[#2a2a2a] bg-[#171717] backdrop-blur-sm">
         <div className="font-semibold text-base">{title}</div>
-        
+
         <div className="ml-auto flex gap-2">
           {phase === "terminal" && !terminalSaved && (
-        <>
-      <Button onClick={() => { if (selectedPoint) { setTerminalSaved(true); alertsRef.current?.showLocationSaved(); if (markerRef.current) { animatePinSaved(markerRef.current) } } }} disabled={!selectedPoint} className="bg-[#4285f4] hover:bg-[#3367d6] text-white disabled:opacity-60"><CircleCheck className="w-4 h-4 mr-2" />Save</Button>
-        <Button variant="outline" onClick={handleExit} className="bg-transparent border-[#2a2a2a] text-white hover:bg-[#262626]"><CircleX className="w-4 h-4" />Exit</Button>
+            <>
+              <Button onClick={() => { if (selectedPoint) { setTerminalSaved(true); alertsRef.current?.showLocationSaved(); if (markerRef.current) { animatePinSaved(markerRef.current) } } }} disabled={!selectedPoint} className="bg-[#4285f4] hover:bg-[#3367d6] text-white disabled:opacity-60"><CircleCheck className="w-4 h-4 mr-2" />Save</Button>
+              <Button variant="outline" onClick={handleExit} className="bg-transparent border-[#2a2a2a] text-white hover:bg-[#262626]"><CircleX className="w-4 h-4" />Exit</Button>
             </>
           )}
           {phase === "terminal" && terminalSaved && (
@@ -332,7 +350,7 @@ export default function SettingLocationPage() {
                     line: { geojson: JSON.stringify(geojson) },
                   }
                 }))
-                try { sessionStorage.setItem("cg_reopen_sheet", "1") } catch {}
+                try { sessionStorage.setItem("cg_reopen_sheet", "1") } catch { }
                 // Small delay so the user can see the fill before leaving
                 setTimeout(() => navigate(-1), 200)
               }} className="bg-[#4285f4] hover:bg-[#3367d6] text-white"><CircleCheck className="w-4 h-4 mr-2" />Confirm</Button>
@@ -365,7 +383,7 @@ export default function SettingLocationPage() {
             } catch { void 0 }
           } else {
             // terminal phase undo: remove pin and selection
-            try { markerRef.current?.remove() } catch {}
+            try { markerRef.current?.remove() } catch { }
             markerRef.current = null
             setSelectedPoint(null)
             setTerminalSaved(false)

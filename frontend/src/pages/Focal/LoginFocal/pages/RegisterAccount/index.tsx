@@ -105,10 +105,10 @@ export function RegisterAccount() {
     <div className="min-h-screen flex flex-col primary-background" style={{ position: 'relative', overflow: 'hidden' }}>
       <div className="loginfocal-radial-gradient" />
       <FocalHeader />
-      <main className="flex flex-1 flex-col items-center justify-center w-full" style={{ marginTop: '0px', zIndex: 20, position: 'relative' }}>
+      <main className="flex flex-1 flex-col items-center w-full" style={{ marginTop: '120px', zIndex: 20, position: 'relative' }}>
         <div className="flex flex-col items-center gap-4 mb-7">
-            <h1 className="text-4xl font-semibold text-white mb-3 max-w-[400px] text-center break-words">Be your Community's Focal Person</h1>
-            <p className="text-gray-300 text-center mb-2 max-w-[400px] leading-[30px]">
+            <h1 className="text-[43px] font-medium leading-snug text-white mb-3 max-w-[500px] text-center break-words">Be your Community's Focal Person</h1>
+            <p className="text-[#BABABA] text-center mb-2 max-w-[400px] leading-[30px]">
             To start, please provide your {inputMode === "phone" ? "primary phone number" : "primary email address"} or{' '}
             <button
               type="button"
@@ -141,14 +141,14 @@ export function RegisterAccount() {
 
         <form className="flex flex-col gap-4 w-full max-w-[490px]" onSubmit={handleSubmit}>
           <div>
-            <label className="block text-white text-[13.5px] font-medium mb-4">
+            <label className="block text-white text-[15.2px] font-normal mb-4">
               {inputMode === "phone" ? "Phone Number" : "Email"}
             </label>
             {inputMode === "phone" ? (
               <div className="flex gap-3">
-                <div className="flex items-center justify-center bg-[#171717] border border-[#404040] rounded-lg px-3 py-4 min-w-[85px]">
-                  <span className="text-[#A3A3A3] text-sm flex items-center gap-2">
-                    <img src="/Landing/phFlag.png" alt="PH Flag" className="w-4 h-3" />
+                <div className="flex items-center justify-center bg-[#171717] border border-[#404040] rounded-lg px-4.5 py-4 min-w-[85px]">
+                  <span className="text-[#A3A3A3] text-[15px] flex items-center gap-2">
+                    <img src="/Landing/phFlag.png" alt="PH Flag" className="w-5 h-4" />
                     +63
                   </span>
                 </div>
@@ -188,7 +188,7 @@ export function RegisterAccount() {
     
           </div>
 
-            <div className="flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-4 mt-3 mb-1">
             <Checkbox
               id="terms"
               checked={agreeToTerms}
@@ -200,7 +200,7 @@ export function RegisterAccount() {
                 !!error && error.includes("agree to") ? "border border-red-500" : "border-none"
               }`}
               />
-            <label htmlFor="terms" className="text-gray-300 text-[14.5px] leading-relaxed">
+            <label htmlFor="terms" className="text-white text-[13.4px] leading-relaxed">
               I have read and I agree to the{' '}
               <button
               type="button"

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, User } from "lucide-react";
+// import { Camera } from "lucide-react";
+import { X } from "lucide-react";
+import cameraIcon from '/li_camera.png'; // Adjust path if needed
+import personIcon from '/user.png'; // Adjust path if needed
 
 interface Step2ProfilePictureProps {
   onNext: () => void;
@@ -9,6 +12,9 @@ interface Step2ProfilePictureProps {
 }
 
 export function Step2ProfilePicture({ onNext, onBack, isLoading = false }: Step2ProfilePictureProps) {
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+  };
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -33,7 +39,7 @@ export function Step2ProfilePicture({ onNext, onBack, isLoading = false }: Step2
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(false);
-    
+
     const file = event.dataTransfer.files[0];
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
@@ -65,8 +71,8 @@ export function Step2ProfilePicture({ onNext, onBack, isLoading = false }: Step2
   return (
     <>
       {/* Main Content */}
-      <div className="flex flex-col items-center gap-4 mb-8">
-        <h1 className="text-4xl font-semibold text-white mb-2 text-center">Set your Profile Picture</h1>
+      <div className="flex flex-col items-center gap-4 mb-10">
+        <h1 className="text-4xl font-semibold text-white mb-2 text-center mt-3">Set your Profile Picture</h1>
         <p className="text-gray-300 text-center text-base max-w-md leading-relaxed">
           The following information will be used for the main focal person of the neighborhood.
         </p>
@@ -77,9 +83,8 @@ export function Step2ProfilePicture({ onNext, onBack, isLoading = false }: Step2
         <div className="flex flex-col items-center gap-6">
           <div className="relative">
             <div
-              className={`w-32 h-32 rounded-full border-2 ${
-                isDragging ? 'border-blue-400 bg-blue-50/10' : 'border-white'
-              } transition-all duration-200 overflow-hidden cursor-pointer hover:border-blue-400 p-1`}
+              className={`w-40 h-40 rounded-full border-2 ${isDragging ? 'border-blue-400 bg-blue-50/10' : 'border-[#BABABA]'
+                } transition-all duration-200 overflow-hidden cursor-pointer hover:border-blue-400`}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -93,15 +98,28 @@ export function Step2ProfilePicture({ onNext, onBack, isLoading = false }: Step2
                 />
               ) : (
                 <div className="w-full h-full bg-[#262626] rounded-full flex items-center justify-center">
-                  <User className="w-16 h-16 text-gray-400" />
+                  <img src={personIcon} alt="Person Icon" className="w-24 h-24 object-contain" />
                 </div>
               )}
             </div>
-            
+
             {/* Camera Icon Overlay - Outside the border */}
-            <div className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors">
-              <Camera className="w-4 h-4 text-white" />
-            </div>
+            {/* Icon Overlay - Camera or Remove */}
+            {selectedImage ? (
+              <div
+                className="absolute bottom-2 right-0 w-10 h-10 bg-red-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors"
+                onClick={handleRemoveImage}
+              >
+                <X className="w-5 h-5 text-white" />
+              </div>
+            ) : (
+              <div
+                className="absolute bottom-2 right-0 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors"
+                onClick={triggerFileUpload}
+              >
+                <img src={cameraIcon} alt="Camera Icon" className="w-5 h-5 object-contain" />
+              </div>
+            )}
           </div>
 
           {/* Hidden File Input */}

@@ -75,12 +75,12 @@ export function DatePicker({
         <Button
           variant="outline"
           className={cn(
-            "w-full justify-between font-normal bg-[#171717] border border-[#404040] text-white hover:bg-[#171717] hover:text-white",
+            "w-full justify-between font-normal text-[15px] bg-[#171717] border border-[#404040] text-white hover:bg-[#171717] hover:text-white",
             !value && "text-gray-400",
             className
           )}
           disabled={disabled}
-          style={{ fontSize: "16px", height: "48px" }}
+          style={{ fontSize: "16px", height: "50px" }}
         >
           {value ? value.toLocaleDateString() : placeholder}
           <ChevronDownIcon className="h-4 w-4" />
