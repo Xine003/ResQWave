@@ -16,6 +16,12 @@ const authMiddleware = async (req, res, next) => {
         const secret = process.env.JWT_SECRET;
         const decoded = jwt.verify(token, secret);
 
+        // Allow admins to bypass session verification
+        if (decoded.role === "admin") {
+            req.user = decoded;
+            return next();
+        }
+
         // Check if the session is Enough
         if (!decoded.sessionID) {
             return res.status(403).json({message: "Invalid Session"});

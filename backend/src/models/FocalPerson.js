@@ -1,76 +1,103 @@
 const { EntitySchema } = require("typeorm");
 
-module.exports = new EntitySchema ({
+module.exports = new EntitySchema({
     name: "FocalPerson",
     tableName: "focalpersons",
     columns: {
-        id: {
-            type: "varchar",
-            primary: true,
-        },
-        email: {
-            type: "varchar",
-            length: 255,
-            nullable: false
-        },
-        communityGroupID: {
-            type: "varchar",
-            length: 255,
-            nullable: false,
-        },
-        photo: {
-            type: "longblob",
-            nullable: true,
-        },
-        name: {
-            type: "varchar",
-            length: 255,
-            nullable: false,
-        },
-        contactNumber: {
-            type: "integer",
-            nullable: false
-        },
-        alternativeFP: {
-            type: "varchar",
-            length: 255,
-            nullable: false
-        },
-        alternativeFPEmail: {
-            type: "varchar",
-            length: 255,
-            nullable: false
-        },
-        alternativeFPImage: {
-            type: "longblob",
-            nullable: true,
-        },
-        alternativeFPContactNumber: {
-            type: "integer",
-            nullable: false,
-        },
-        createdBy: {
-            type: "varchar",
-            length: 255,
-        },
-        archived: {
-            type: "boolean",
-            default: false,
-        },
-        password: {
-            type: "varchar",
-            length: 255,
-            nullable: false,
-        }
-    },
+        id: { 
+            type: "varchar", 
+            length: 40, 
+            primary: true 
+        }, // e.g., FP001
 
-    relations: {
-        communityGroup: {
-            target: "CommunityGroup",
-            type: "one-to-one",
-            joinColumn: {name: "communityGroupID"},
-            inverseSide: "communityGroups",
-            onDelete: "CASCADE"
+        // Identity
+        firstName: { 
+            type: "varchar", 
+            length: 80, 
+            nullable: false 
+        },
+        lastName: { 
+            type: "varchar", 
+            length: 80, 
+            nullable: false 
+        },
+
+        // Contact
+        email: { 
+            type: "varchar", 
+            length: 255, 
+            nullable: true 
+        },
+        contactNumber: { 
+            type: "varchar", 
+            length: 40, 
+            nullable: true 
+        },
+
+        // Auth (hashed)
+        password: { 
+            type: "varchar", 
+            length: 255, 
+            nullable: false 
+        },
+
+        // Address/Location (string or JSON string)
+        address: { 
+            type: "text", 
+            nullable: true 
+        },
+
+        // Photos
+        photo: { 
+            type: "longblob", 
+            nullable: true 
+        },
+        alternativeFPImage: { 
+            type: "longblob", 
+            nullable: true 
+        },
+
+        // Alternative focal person
+        altFirstName: { 
+            type: "varchar", 
+            length: 255, 
+            nullable: true 
+        },
+        altLastName: { 
+            type: "varchar", 
+            length: 255, 
+            nullable: true 
+        },
+        altEmail: { 
+            type: "varchar", 
+            length: 255, 
+            nullable: true 
+        },
+        altContactNumber: { 
+            type: "varchar", 
+            length: 40, 
+            nullable: true 
+        },
+
+        approvedBy: { 
+            type: "varchar", 
+            length: 255, 
+            nullable: true 
+        },
+
+        archived: { 
+            type: "boolean", 
+            default: false 
+        },
+
+        createdAt: { 
+            type: "timestamp", 
+            createDate: true, 
+            update: false 
+        },
+        updatedAt: { 
+            type: "timestamp", 
+            updateDate: true 
         },
     },
 });

@@ -6,6 +6,10 @@ const {
     setCache,
     deleteCache
 } = require("../config/cache");
+const registrationRepo = AppDataSource.getRepository("FocalPersonRegistration");
+const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
+const focalRepo = AppDataSource.getRepository("FocalPerson");
+const terminalRepo = AppDataSource.getRepository("Terminal");
 
 // Helper to strip sensitive fields before caching
 function sanitizeFP(fp) {
@@ -78,6 +82,132 @@ const createFocalPerson = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({message: "Server Error - CREATE FP"});
+    }
+};
+
+const approveFocalRegistration = async (req, res) => {
+    try {
+        const registrationID = String(req.params.id || "").trim();
+        const { terminalID } = req.body || {};
+
+        if (!registrationID) {
+            return res.status(400).json({ message: "RegistrationID is Required" });
+        }
+        if (!terminalID) {
+            return res.status(400).json({ message: "TerminalID is Required" });
+        }
+
+        // Load Registration (entity, not the repo)
+        const registration = await registrationRepo.findOne({ where: { id: registrationID } });
+        if (!registration) {
+            return res.status(404).json({ message: "Registration not found" });
+        }
+        if ((registration.status || "").toLowerCase() !== "pending") {
+            return res.status(400).json({ message: "Registration is not pending" });
+        }
+
+        // Validate Terminal
+        const terminal = await terminalRepo.findOne({ where: { id: terminalID } });
+        if (!terminal) return res.status(404).json({ message: "Terminal not found" });
+        if (terminal.availability === "occupied") {
+            return res.status(400).json({ message: "Terminal already occupied" });
+        }
+
+        // Generate Focal Person ID (FP001…)
+        const lastFocal = await focalRepo
+            .createQueryBuilder("fp")
+            .orderBy("fp.id", "DESC")
+            .getOne();
+
+        let newFPNumber = 1;
+        if (lastFocal?.id) {
+            const lastNum = parseInt(String(lastFocal.id).replace("FP", ""), 10);
+            if (!Number.isNaN(lastNum)) newFPNumber = lastNum + 1;
+        }
+        const newFocalPersonID = "FP" + String(newFPNumber).padStart(3, "0");
+
+        // Create Focal Person from registration
+        const focalEntity = focalRepo.create({
+            id: newFocalPersonID,
+            // keep first/last names separate
+            firstName: registration.firstName,
+            lastName: registration.lastName,
+
+            email: registration.email || null,
+            contactNumber: registration.phoneNumber || null,
+            password: registration.password, // already hashed at registration time
+
+            // store location stringified
+            address: registration.location || null,
+
+            // alternative focal person fields
+            altFirstName: registration.altFirstName || null,
+            altLastName: registration.altLastName || null,
+            altContactNumber: registration.altPhoneNumber || null,
+
+            // photos
+            ...(registration.photo ? { photo: registration.photo } : {}),
+            ...(registration.altPhoto ? { alternativeFPImage: registration.altPhoto } : {}),
+
+            archived: false,
+        });
+        const savedFocal = await focalRepo.save(focalEntity);
+
+        // Generate Neighborhood ID (N001…)
+        const lastNeighborhood = await neighborhoodRepo
+            .createQueryBuilder("n")
+            .orderBy("n.id", "DESC")
+            .getOne();
+
+        let newNbrNumber = 1;
+        if (lastNeighborhood?.id) {
+            const lastNum = parseInt(String(lastNeighborhood.id).replace("N", ""), 10);
+            if (!Number.isNaN(lastNum)) newNbrNumber = lastNum + 1;
+        }
+        const newNeighborhoodID = "N" + String(newNbrNumber).padStart(3, "0");
+
+        // Hazards JSON (support both hazardsJson and hazards string)
+        let hazardsString = null;
+        if (registration.hazardsJson) {
+            hazardsString = registration.hazardsJson;
+        } else if (registration.hazards) {
+            // if it was stored as CSV or array string earlier
+            try { hazardsString = JSON.stringify(JSON.parse(registration.hazards)); }
+            catch { hazardsString = JSON.stringify(String(registration.hazards).split(",").map(s => s.trim()).filter(Boolean)); }
+        }
+
+        // Create Neighborhood linked to the focalPersonID (not registrationID)
+        const neighborhoodEntity = neighborhoodRepo.create({
+            id: newNeighborhoodID,
+            focalPersonID: savedFocal.id,
+            terminalID,
+
+            noOfHouseholds: registration.noOfHouseholds ?? null,
+            noOfResidents: registration.noOfResidents ?? null,
+            floodSubsideHours: registration.floodSubsideHours ?? null,
+            hazards: hazardsString,
+            otherInformation: registration.otherInformation ?? null,
+
+            archived: false,
+        });
+        const savedNeighborhood = await neighborhoodRepo.save(neighborhoodEntity);
+
+        // Mark Terminal occupied
+        await terminalRepo.update({ id: terminalID }, { availability: "occupied" });
+
+        // Delete Registration after successful transfer
+        await registrationRepo.delete({ id: registration.id });
+
+        return res.json({
+            message: "Registration approved",
+            focalPersonID: savedFocal.id,        // FP001
+            neighborhoodID: savedNeighborhood.id, // N001
+            terminalID,
+            deletedRegistrationID: registrationID,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server Error - APPROVE REGISTRATION" });
     }
 }
 
@@ -292,4 +422,5 @@ module.exports = {
     getFocalPhoto,
     getAlternativeFocalPhoto,
     changePassword,
+    approveFocalRegistration,
 };

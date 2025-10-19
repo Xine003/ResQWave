@@ -34,7 +34,6 @@ const createTerminal = async (req, res) => {
 
         // Invalidate
         await deleteCache("terminals:all");
-        await deleteCache(`terminal:${id}`);
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
@@ -135,7 +134,6 @@ const updateTerminal = async (req, res) => {
 
         // Invalidate
         await deleteCache("terminals:all")
-        await deleteCache(`terminal:${id}`);
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
@@ -169,7 +167,6 @@ const archivedTerminal = async (req, res) => {
 
         // Invalidate
         await deleteCache("terminals:all");
-        await deleteCache(`terminal:${id}`);
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
