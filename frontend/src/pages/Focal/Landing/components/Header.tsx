@@ -7,22 +7,20 @@ export function LandingHeader({ navOpen, setNavOpen }: { navOpen: boolean, setNa
   const navigate = useNavigate();
   return (
     <header
-      className="flex items-center px-10 md:px-20 py-6 border-b border-[#404040] relative"
+      className="flex items-center justify-between  px-10 md:px-20 py-6 border-b border-[#404040] relative"
       style={{
-        background: 'rgba(24, 24, 27, 0.65)',
+        background: 'rgba(24, 24, 27, 0.5)',
         backdropFilter: 'blur(16px) saturate(180%)',
         WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-        borderBottom: '1px solid #404040',
         zIndex: 10,
       }}
     >
       {/* Left side: logo and name */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <img src={resqwave_logo} alt="ResQWave Logo" className="h-12 w-12" />
-        <span className="font-bold text-lg ml-4">ResQWave</span>
+      <div className="flex items-center gap-4">
+        <img src={resqwave_logo} alt="ResQWave Logo" className="h-auto w-8" />
+        <span className="font-medium text-lg ">ResQWave</span>
       </div>
-      {/* Desktop nav and button */}
-      <div className="hidden md:flex flex-1 items-center justify-end gap-11">
+      <div>
         <nav className="header-navs">
           <a href="#importance" className="importance-link">
             Importance
@@ -41,6 +39,10 @@ export function LandingHeader({ navOpen, setNavOpen }: { navOpen: boolean, setNa
             <span className="underline-effect" />
           </a>
         </nav>
+      </div>
+      {/* Desktop nav and button */}
+      <div className="hidden md:flex  items-center justify-end gap-11">
+        
         <Button className="bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] hover:from-[#2563eb] hover:to-[#60a5fa] transition-colors
              transition duration-300 cursor-pointer text-white text-[14px] px-6 py-2 rounded ml-1 font-medium" onClick={() => navigate('/login-focal')}>
           FOCAL LOGIN
@@ -56,7 +58,7 @@ export function LandingHeader({ navOpen, setNavOpen }: { navOpen: boolean, setNa
       </button>
       {/* Mobile nav menu */}
       {navOpen && (
-        <div className="absolute top-full left-0 w-full bg-[#171717] border-b border-gray-700 z-50 flex flex-col items-end px-4 py-4 gap-4 md:hidden animate-in fade-in">
+        <div className="absolute top-full left-0 w-full bg-[#171717] border-b border-gray-700 z-50 flex flex-col items-end px-4 py-4 gap-4 md:hidden ">
           <nav className="flex flex-col gap-4 w-full cursor-pointer">
             <a href="#importance" className="hover:text-blue-400 transition w-full" onClick={() => setNavOpen(false)}>Importance</a>
             <a href="#how" className="hover:text-blue-400 transition w-full" onClick={() => setNavOpen(false)}>How it works</a>

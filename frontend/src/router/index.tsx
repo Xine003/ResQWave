@@ -1,13 +1,6 @@
-import { createBrowserRouter } from 'react-router-dom';
-import { Outlet, Navigate } from 'react-router-dom';
+import { OfficialLayout } from '@/components/Official/OfficialLayout';
 import React from 'react';
-// TypeScript declaration for window property
-declare global {
-  interface Window {
-    isFocalAuthenticated?: boolean;
-  }
-}
-import { OfficialLayout } from '@/components/Official/officialLayout';
+import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { Landing, LoginFocal } from '../pages/Focal';
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/ForgotPassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/VerificationSignin';
@@ -19,9 +12,15 @@ import {
   Tabular,
   Visualization
 } from '../pages/Official';
+// TypeScript declaration for window property
+declare global {
+  interface Window {
+    isFocalAuthenticated?: boolean;
+  }
+}
 
-import SettingLocationPage from "../pages/Official/CommunityGroups/components/SettingLocationPage";
 import FocalDashboard from '../pages/Focal/Dashboard';
+import SettingLocationPage from "../pages/Official/CommunityGroups/components/SettingLocationPage";
 
 // Protective route for focal pages
 const FocalProtectedRoute: React.FC = () => {

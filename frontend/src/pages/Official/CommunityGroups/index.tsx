@@ -7,9 +7,10 @@ import { createColumns, type CommunityGroup } from "./components/Column"
 import { CommunityGroupInfoSheet } from "./components/CommunityGroupInfoSheet"
 import { CommunityGroupDrawer } from "./components/CreateCommunityGroupSheet"
 import { DataTable } from "./components/DataTable"
+import { predefinedCommunityGroupDetails, predefinedCommunityGroups } from "./data/predefinedCommunityGroups"
 import type { CommunityGroupDetails } from "./types"
 
-// active groups are now managed in state (initially empty)
+// active groups are now managed in state (initialized with predefined data)
 
 // Archived groups are also managed in state (start empty)
 
@@ -74,9 +75,9 @@ export function CommunityGroups() {
    const [drawerOpen, setDrawerOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
   const [selectedInfoData, setSelectedInfoData] = useState<CommunityGroupDetails | undefined>(undefined)
-  const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>([])
+  const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>(predefinedCommunityGroups)
   const [archivedGroups, setArchivedGroups] = useState<CommunityGroup[]>([])
-  const [infoById, setInfoById] = useState<Record<string, CommunityGroupDetails>>({})
+  const [infoById, setInfoById] = useState<Record<string, CommunityGroupDetails>>(predefinedCommunityGroupDetails)
   const [searchVisible, setSearchVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [editingGroup, setEditingGroup] = useState<CommunityGroup | null>(null)
@@ -259,20 +260,22 @@ export function CommunityGroups() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {searchVisible && (
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              searchVisible ? 'w-64 opacity-100' : 'w-0 opacity-0'
+            }`}>
               <Input
                 type="text"
                 placeholder="Search community groups..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4]"
-                autoFocus
+                className="w-64 bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4] transition-all duration-300"
+                autoFocus={searchVisible}
               />
-            )}
+            </div>
             <Button 
               variant="ghost" 
               size="icon" 
-              className={`text-[#a1a1a1] hover:text-white hover:bg-[#262626] ${searchVisible ? 'bg-[#262626] text-white' : ''}`}
+              className={`text-[#a1a1a1] hover:text-white hover:bg-[#262626] transition-all duration-200 ${searchVisible ? 'bg-[#262626] text-white' : ''}`}
               onClick={() => {
                 setSearchVisible(!searchVisible)
                 if (searchVisible) {
