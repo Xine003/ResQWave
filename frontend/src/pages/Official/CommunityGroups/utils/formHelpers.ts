@@ -54,7 +54,7 @@ export const convertFormToInfoData = (
     coordinates: coordinatesArr.length === 2 ? coordinatesArr : undefined,
     boundary: boundaryObj,
     focalPerson: {
-      name: formData.focalPersonName,
+      name: `${formData.focalPersonFirstName || ''} ${formData.focalPersonLastName || ''}`.trim() || formData.focalPersonName,
       photo: formData.focalPersonPhoto ? URL.createObjectURL(formData.focalPersonPhoto) : undefined,
       contactNumber: formData.focalPersonContact,
       email: formData.focalPersonEmail,
@@ -62,7 +62,8 @@ export const convertFormToInfoData = (
       coordinates: formData.focalPersonCoordinates,
     },
     alternativeFocalPerson: {
-      altName: formData.altFocalPersonName,
+      altName: `${formData.altFocalPersonFirstName || ''} ${formData.altFocalPersonLastName || ''}`.trim() || formData.altFocalPersonName,
+      altPhoto: formData.altFocalPersonPhoto ? URL.createObjectURL(formData.altFocalPersonPhoto) : undefined,
       altContactNumber: formData.altFocalPersonContact,
       altEmail: formData.altFocalPersonEmail,
     },

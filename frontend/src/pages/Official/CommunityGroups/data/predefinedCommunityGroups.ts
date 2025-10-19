@@ -223,3 +223,128 @@ export const predefinedCommunityGroupDetails: { [key: string]: CommunityGroupDet
         }
     }
 };
+
+// Predefined awaiting approval community groups data
+export const predefinedAwaitingGroups: CommunityGroup[] = [
+    {
+        id: "R-003",
+        name: "Riverside Heights",
+        status: "OFFLINE",
+        focalPerson: "Juan Dela Cruz",
+        contactNumber: "0928 456 7891",
+        address: "Block 5, Lot 14, Riverside Rd, 1423",
+        registeredAt: "August 30, 2025"
+    },
+    {
+        id: "R-002", 
+        name: "Sunset Village",
+        status: "OFFLINE",
+        focalPerson: "Kristine Lopez",
+        contactNumber: "0908 765 4321",
+        address: "Block 3, Lot 8, Maligaya Rd, 1411",
+        registeredAt: "August 30, 2025"
+    },
+    {
+        id: "R-001",
+        name: "Green Valley",
+        status: "OFFLINE",
+        focalPerson: "Roberto Reyes",
+        contactNumber: "0945 123 9876",
+        address: "Block 7, Lot 22, Sto. Niño Rd, 1420",
+        registeredAt: "September 1, 2025"
+    }
+];
+
+// Detailed information for awaiting approval groups
+export const predefinedAwaitingGroupDetails: { [key: string]: CommunityGroupDetails } = {
+    "R-003": {
+        name: "Riverside Heights",
+        terminalId: "R-003",
+        communityId: "R-003",
+        individuals: 10,
+        families: 10,
+        kids: 0,
+        seniors: 0,
+        pwds: 0,
+        pregnantWomen: 0,
+        notableInfo: [
+            "Strong water current",
+            "Risk of landslide or erosion", 
+            "Roads become impassable"
+        ],
+        address: "Block 1, Lot 17, Paraiso Rd, 1400",
+        coordinates: [121.042443, 14.774083],
+        focalPerson: {
+            name: "Gwyneth Uy",
+            contactNumber: "0905 385 4293",
+            email: "uy.gwynethfabul@gmail.com",
+            houseAddress: "Block 1, Lot 17, Paraiso Rd, 1400",
+            coordinates: "14.774083, 121.042443"
+        },
+        alternativeFocalPerson: {
+            altName: "Rodel Sustiguer",
+            altContactNumber: "0905 563 2034",
+            altEmail: "sustiguer.rodel@gmail.com"
+        }
+    },
+    "R-002": {
+        name: "Sunset Village",
+        terminalId: "R-002",
+        communityId: "R-002",
+        individuals: 10,
+        families: 10,
+        kids: 0,
+        seniors: 0,
+        pwds: 0,
+        pregnantWomen: 0,
+        notableInfo: [
+            "Strong water current",
+            "Risk of landslide or erosion", 
+            "Roads become impassable"
+        ],
+        address: "Block 3, Lot 8, Maligaya Rd, 1411",
+        coordinates: [121.041234, 14.773456],
+        focalPerson: {
+            name: "Kristine Lopez",
+            contactNumber: "0908 765 4321",
+            email: "kristine.lopez@gmail.com",
+            houseAddress: "Block 3, Lot 8, Maligaya Rd, 1411",
+            coordinates: "14.773456, 121.041234"
+        },
+        alternativeFocalPerson: {
+            altName: "Maria Santos",
+            altContactNumber: "0917 123 4567",
+            altEmail: "maria.santos@gmail.com"
+        }
+    },
+    "R-001": {
+        name: "Green Valley", 
+        terminalId: "R-001",
+        communityId: "R-001",
+        individuals: 10,
+        families: 10,
+        kids: 0,
+        seniors: 0,
+        pwds: 0,
+        pregnantWomen: 0,
+        notableInfo: [
+            "Strong water current",
+            "Risk of landslide or erosion", 
+            "Roads become impassable"
+        ],
+        address: "Block 7, Lot 22, Sto. Niño Rd, 1420",
+        coordinates: [121.043567, 14.775678],
+        focalPerson: {
+            name: "Roberto Reyes",
+            contactNumber: "0945 123 9876",
+            email: "roberto.reyes@gmail.com",
+            houseAddress: "Block 7, Lot 22, Sto. Niño Rd, 1420",
+            coordinates: "14.775678, 121.043567"
+        },
+        alternativeFocalPerson: {
+            altName: "Carmen Villanueva",
+            altContactNumber: "0928 876 5432",
+            altEmail: "carmen.villanueva@gmail.com"
+        }
+    }
+};

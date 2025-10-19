@@ -52,6 +52,7 @@ export interface FocalPerson {
 
 export interface AlternativeFocalPerson {
   altName: string
+  altPhoto?: string
   altContactNumber: string
   altEmail: string
 }

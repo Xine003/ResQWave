@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Map } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useFormStore } from "../hooks/useFormStore"
 import { useLocationPickerResults } from "../hooks/useLocationPickerResults"
@@ -14,9 +14,30 @@ import { convertFormToInfoData } from "../utils/formHelpers"
 import { CloseCreateDialog } from "./CloseCreateDialog"
 import { PhotoUploadArea } from "./PhotoUploadArea"
 
+// Validation utility functions
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+const validatePhoneNumber = (phone: string): boolean => {
+  // Remove any non-digit characters for validation
+  const cleanPhone = phone.replace(/\D/g, '')
+  // Check if it's exactly 11 digits (for Philippines +63 format)
+  return cleanPhone.length === 11
+}
+
+const formatPhoneNumber = (phone: string): string => {
+  // Remove any non-digit characters
+  const cleanPhone = phone.replace(/\D/g, '')
+  // Limit to 11 digits
+  return cleanPhone.slice(0, 11)
+}
+
 export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isEditing }: CommunityGroupDrawerProps) {
   const navigate = useNavigate()
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
   
   // Use global form store instead of local state
   const {
@@ -37,6 +58,69 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
   // Handle location picker results
   useLocationPickerResults()
 
+  // Form validation
+  const isFormValid = useMemo(() => {
+    // Check required string fields
+    const requiredStringFields = [
+      formData.assignedTerminal,
+      formData.focalPersonAddress,
+      formData.floodwaterDuration,
+      formData.focalPersonFirstName,
+      formData.focalPersonLastName,
+      formData.focalPersonContact,
+      formData.focalPersonEmail,
+      formData.altFocalPersonFirstName,
+      formData.altFocalPersonLastName,
+      formData.altFocalPersonContact,
+      formData.altFocalPersonEmail,
+    ]
+
+    // Check required select fields
+    const requiredSelectFields = [
+      formData.totalFamilies,
+      formData.totalIndividuals,
+    ]
+
+    const allStringFieldsFilled = requiredStringFields.every(field => field && typeof field === 'string' && field.trim() !== '')
+    const allSelectFieldsFilled = requiredSelectFields.every(field => field !== null && field !== undefined && field !== '')
+    
+    const isMainFocalEmailValid = formData.focalPersonEmail ? validateEmail(formData.focalPersonEmail) : false
+    const isMainFocalPhoneValid = formData.focalPersonContact ? validatePhoneNumber(formData.focalPersonContact) : false
+    
+    const isAltFocalEmailValid = formData.altFocalPersonEmail ? validateEmail(formData.altFocalPersonEmail) : false
+    const isAltFocalPhoneValid = formData.altFocalPersonContact ? validatePhoneNumber(formData.altFocalPersonContact) : false
+
+    return allStringFieldsFilled && allSelectFieldsFilled && isMainFocalEmailValid && isMainFocalPhoneValid && isAltFocalEmailValid && isAltFocalPhoneValid
+  }, [formData])
+
+  // Validate individual fields and update errors
+  const validateField = useCallback((fieldName: string, value: string) => {
+    const newErrors = { ...errors }
+
+    switch (fieldName) {
+      case 'focalPersonEmail':
+      case 'altFocalPersonEmail':
+        if (value && !validateEmail(value)) {
+          newErrors[fieldName] = 'Please enter a valid email address'
+        } else {
+          delete newErrors[fieldName]
+        }
+        break
+      case 'focalPersonContact':
+      case 'altFocalPersonContact':
+        if (value && !validatePhoneNumber(value)) {
+          newErrors[fieldName] = 'Contact number must be exactly 11 digits'
+        } else {
+          delete newErrors[fieldName]
+        }
+        break
+      default:
+        break
+    }
+
+    setErrors(newErrors)
+  }, [errors])
+
   // Debug: Log form data changes for location fields
   useEffect(() => {
     console.log("🔍 Form data update - Address:", formData.focalPersonAddress, "Coordinates:", formData.focalPersonCoordinates)
@@ -48,7 +132,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
       console.log("📝 Pre-filling edit data")
       setFormData({
         assignedTerminal: editData.terminalId || "",
-        communityGroupName: editData.name || "",
+        communityGroupName: "",
         totalIndividuals: editData.individuals || "",
         totalFamilies: editData.families || "",
         totalKids: editData.kids || 0,
@@ -81,6 +165,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
       // Reset form for new creation if the form is not dirty
       if (!isDirty) {
         resetForm()
+        setErrors({})
       }
     }
   }, [open, isEditing, editData, setFormData, setNotableInfoInputs, setIsDirty, setIsEditing, setEditData, resetForm, isDirty])
@@ -112,16 +197,23 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
   )
 
   const handleSave = () => {
+    if (!isFormValid) {
+      console.log("Form is invalid, cannot save")
+      return
+    }
+    
     console.log("Saving community group:", formData, "Notable info:", notableInfoInputs)
     const infoData = convertFormToInfoData(formData, [formData.notableInfo].filter(Boolean))
     onSave?.(infoData)
     resetForm()
+    setErrors({})
     onOpenChange(false)
   }
 
   const handleDiscard = () => {
     setShowCloseConfirm(false)
     resetForm()
+    setErrors({})
     onOpenChange(false)
   }
 
@@ -422,9 +514,19 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
             <Label className="text-white text-sm">Contact Number</Label>
             <Input
               value={formData.focalPersonContact}
-              onChange={(e) => updateFormData({ focalPersonContact: e.target.value })}
-              className="bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
+              onChange={(e) => {
+                const formattedPhone = formatPhoneNumber(e.target.value)
+                updateFormData({ focalPersonContact: formattedPhone })
+                validateField('focalPersonContact', formattedPhone)
+              }}
+              className={`bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600 ${
+                errors.focalPersonContact ? 'border-red-500' : ''
+              }`}
+              maxLength={11}
             />
+            {errors.focalPersonContact && (
+              <p className="text-red-400 text-xs mt-1">{errors.focalPersonContact}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -432,9 +534,17 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
             <Input
               type="email"
               value={formData.focalPersonEmail}
-              onChange={(e) => updateFormData({ focalPersonEmail: e.target.value })}
-              className="bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
+              onChange={(e) => {
+                updateFormData({ focalPersonEmail: e.target.value })
+                validateField('focalPersonEmail', e.target.value)
+              }}
+              className={`bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600 ${
+                errors.focalPersonEmail ? 'border-red-500' : ''
+              }`}
             />
+            {errors.focalPersonEmail && (
+              <p className="text-red-400 text-xs mt-1">{errors.focalPersonEmail}</p>
+            )}
           </div>
 
           {/* Alternative Focal Person Section */}
@@ -475,9 +585,19 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
             <Label className="text-white text-sm">Contact Number</Label>
             <Input
               value={formData.altFocalPersonContact}
-              onChange={(e) => updateFormData({ altFocalPersonContact: e.target.value })}
-              className="bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
+              onChange={(e) => {
+                const formattedPhone = formatPhoneNumber(e.target.value)
+                updateFormData({ altFocalPersonContact: formattedPhone })
+                validateField('altFocalPersonContact', formattedPhone)
+              }}
+              className={`bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600 ${
+                errors.altFocalPersonContact ? 'border-red-500' : ''
+              }`}
+              maxLength={11}
             />
+            {errors.altFocalPersonContact && (
+              <p className="text-red-400 text-xs mt-1">{errors.altFocalPersonContact}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -485,9 +605,17 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
             <Input
               type="email"
               value={formData.altFocalPersonEmail}
-              onChange={(e) => updateFormData({ altFocalPersonEmail: e.target.value })}
-              className="bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
+              onChange={(e) => {
+                updateFormData({ altFocalPersonEmail: e.target.value })
+                validateField('altFocalPersonEmail', e.target.value)
+              }}
+              className={`bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600 ${
+                errors.altFocalPersonEmail ? 'border-red-500' : ''
+              }`}
             />
+            {errors.altFocalPersonEmail && (
+              <p className="text-red-400 text-xs mt-1">{errors.altFocalPersonEmail}</p>
+            )}
           </div>
         </div>
 
@@ -503,7 +631,12 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
             </Button>
             <Button
               onClick={handleSave}
-              className="flex-1 bg-[#4285f4] hover:bg-[#3367d6] text-white rounded-[5px]"
+              disabled={!isFormValid}
+              className={`flex-1 rounded-[5px] transition-colors ${
+                isFormValid 
+                  ? "bg-[#4285f4] hover:bg-[#3367d6] text-white cursor-pointer" 
+                  : "bg-gray-500 text-gray-300 cursor-not-allowed"
+              }`}
             >
               {isEditing ? "Update" : "Save"}
             </Button>
