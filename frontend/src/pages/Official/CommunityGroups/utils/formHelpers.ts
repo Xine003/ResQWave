@@ -2,19 +2,6 @@ import type { CommunityGroupDetails } from "../types"
 import type { CommunityFormData } from "../types/forms"
 
 /**
- * Generates a boundary summary string for display
- */
-export const summarizeBoundary = (boundaryGeoJSON: string): string => {
-  try {
-    const f = JSON.parse(boundaryGeoJSON)
-    if (f?.type === "Feature" && f.geometry?.type === "LineString") {
-      return `LineString (${f.geometry.coordinates.length} pts)`
-    }
-  } catch {}
-  return boundaryGeoJSON ? "Custom geometry set" : " "
-}
-
-/**
  * Converts form data to the expected info data format for saving
  */
 export const convertFormToInfoData = (
@@ -43,8 +30,8 @@ export const convertFormToInfoData = (
     name: formData.communityGroupName || "Untitled Community",
     terminalId: formData.assignedTerminal || "",
     communityId: "",
-    individuals: formData.totalIndividuals,
-    families: formData.totalFamilies,
+    individuals: typeof formData.totalIndividuals === 'string' ? parseInt(formData.totalIndividuals) || 0 : formData.totalIndividuals,
+    families: typeof formData.totalFamilies === 'string' ? parseInt(formData.totalFamilies) || 0 : formData.totalFamilies,
     kids: formData.totalKids,
     seniors: formData.totalSeniorCitizen,
     pwds: formData.totalPWDs,
@@ -54,7 +41,7 @@ export const convertFormToInfoData = (
     coordinates: coordinatesArr.length === 2 ? coordinatesArr : undefined,
     boundary: boundaryObj,
     focalPerson: {
-      name: formData.focalPersonName,
+      name: `${formData.focalPersonFirstName || ''} ${formData.focalPersonLastName || ''}`.trim() || formData.focalPersonName,
       photo: formData.focalPersonPhoto ? URL.createObjectURL(formData.focalPersonPhoto) : undefined,
       contactNumber: formData.focalPersonContact,
       email: formData.focalPersonEmail,
@@ -62,7 +49,8 @@ export const convertFormToInfoData = (
       coordinates: formData.focalPersonCoordinates,
     },
     alternativeFocalPerson: {
-      altName: formData.altFocalPersonName,
+      altName: `${formData.altFocalPersonFirstName || ''} ${formData.altFocalPersonLastName || ''}`.trim() || formData.altFocalPersonName,
+      altPhoto: formData.altFocalPersonPhoto ? URL.createObjectURL(formData.altFocalPersonPhoto) : undefined,
       altContactNumber: formData.altFocalPersonContact,
       altEmail: formData.altFocalPersonEmail,
     },
@@ -81,16 +69,22 @@ export const createInitialFormData = (): CommunityFormData => ({
   totalSeniorCitizen: 0,
   totalPregnantWomen: 0,
   totalPWDs: 0,
+  floodwaterDuration: "",
+  floodHazards: [],
+  notableInfo: "",
   focalPersonPhoto: null as File | null,
+  focalPersonFirstName: "",
+  focalPersonLastName: "",
   focalPersonName: "",
   focalPersonContact: "",
   focalPersonEmail: "",
   focalPersonAddress: "",
   focalPersonCoordinates: "",
   altFocalPersonPhoto: null as File | null,
+  altFocalPersonFirstName: "",
+  altFocalPersonLastName: "",
   altFocalPersonName: "",
   altFocalPersonContact: "",
   altFocalPersonEmail: "",
-  // map selections
   boundaryGeoJSON: "",
 })

@@ -1,4 +1,5 @@
-import { OfficialLayout } from '@/components/Official/OfficialLayout';
+import { OfficialLayout } from '@/components/Official/officialLayout';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import React from 'react';
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { Landing, LoginFocal } from '../pages/Focal';
@@ -6,10 +7,10 @@ import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/ForgotPa
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/VerificationSignin';
 import {
   CommunityGroups,
-  ForgotPasswordPageDispatcher,
-  LoginDispatcher,
+  LoginOfficial,
   Reports,
   Tabular,
+  VerificationOfficial,
   Visualization
 } from '../pages/Official';
 // TypeScript declaration for window property
@@ -21,6 +22,7 @@ declare global {
 
 import FocalDashboard from '../pages/Focal/Dashboard';
 import SettingLocationPage from "../pages/Official/CommunityGroups/components/SettingLocationPage";
+import { Dispatchers } from '../pages/Official/DispatcherCRUD';
 
 // Protective route for focal pages
 const FocalProtectedRoute: React.FC = () => {
@@ -67,12 +69,12 @@ export const router = createBrowserRouter([
   },
 
   {
-    path: '/login-dispatcher',
-    element: <LoginDispatcher />,
+    path: '/login-official',
+    element: <LoginOfficial />,
   },
   {
-    path: '/forgot-passwo rd-dispatcher',
-    element: <ForgotPasswordPageDispatcher />,
+    path: '/verification-official',
+    element: <VerificationOfficial />,
   },
   {
     path: '/',
@@ -89,6 +91,14 @@ export const router = createBrowserRouter([
       {
         path: 'community-groups',
         element: <CommunityGroups />
+      },
+      {
+        path: 'dispatchers',
+        element: (
+          <ProtectedRoute adminOnly={true}>
+            <Dispatchers />
+          </ProtectedRoute>
+        )
       },
       {
         path: 'tabular',

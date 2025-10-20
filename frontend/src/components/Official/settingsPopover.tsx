@@ -75,7 +75,7 @@ export default function SettingsPopover({ isActive = false, isMobile = false }: 
           icon={<LogOut size={16} />} 
           onClick={() => {
             handleClose();
-            navigate('/login-dispatcher');
+            navigate('/login-official');
           }}
         >
           Logout

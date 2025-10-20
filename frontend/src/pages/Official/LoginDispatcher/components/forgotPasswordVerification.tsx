@@ -5,7 +5,7 @@ import {
     InputOTPSeparator,
     InputOTPSlot,
 } from "@/components/ui/input-otp-focal";
-import resqwave_logo from '/Landing/resqwave_logo.png';
+import { HeaderOfficial } from "./HeaderOfficial";
 
 export function ForgotPasswordVerification({
     code,
@@ -22,12 +22,10 @@ export function ForgotPasswordVerification({
 }) {
     return (
         <div className="min-h-screen flex flex-col primary-background" style={{ position: 'relative', overflow: 'hidden' }}>
+            <HeaderOfficial />
             <div className="loginfocal-radial-gradient" />
             <main className="flex flex-1 flex-col items-center justify-center w-full" style={{ marginTop: '0px', zIndex: 20, position: 'relative' }}>
                 <div className="flex flex-col items-center gap-4 mb-8">
-                    <span className="mb-3">
-                        <img src={resqwave_logo} alt="ResQWave Logo" className="h-12 w-12" />
-                    </span>
                     <h1 className="text-4xl font-semibold text-white mb-1">Enter verification code</h1>
                     <p className="text-[#BABABA] text-center mb-2 text-base max-w-lg">
                         <span className="block mb-1">We want to make sure your information stays safe and secure.</span>

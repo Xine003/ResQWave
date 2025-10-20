@@ -1,49 +1,75 @@
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ExpandIcon, Plus, ZoomOut } from "lucide-react";
 import { useState } from "react";
-import type { CommunityGroupInfoSheetProps } from "../types";
+import type { CommunityGroupDetails } from "../types";
 
-export function CommunityGroupInfoSheet({
+interface CommunityGroupApprovalSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  communityData?: CommunityGroupDetails;
+  onApprove: (communityData: CommunityGroupDetails) => void;
+  onDiscard: (communityData: CommunityGroupDetails) => void;
+}
+
+export function CommunityGroupApprovalSheet({
   open,
   onOpenChange,
   communityData,
-}: CommunityGroupInfoSheetProps) {
+  onApprove,
+  onDiscard,
+}: CommunityGroupApprovalSheetProps) {
   // Image viewer state
-  const [viewerOpen, setViewerOpen] = useState(false)
-  const [viewerUrl, setViewerUrl] = useState<string | null>(null)
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
 
   // Discrete zoom steps and class mappings (no inline styles)
-  const zoomSteps = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3] as const
-  type Zoom = (typeof zoomSteps)[number]
-  const [viewerZoom, setViewerZoom] = useState<Zoom>(1)
-
+  const zoomSteps = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3] as const;
+  type Zoom = (typeof zoomSteps)[number];
+  const [viewerZoom, setViewerZoom] = useState<Zoom>(1);
 
   function openViewer(url: string) {
-    setViewerUrl(url)
-    setViewerZoom(1)
-    setViewerOpen(true)
+    setViewerUrl(url);
+    setViewerZoom(1);
+    setViewerOpen(true);
   }
 
   function zoomIn() {
     setViewerZoom((z) => {
-      const idx = zoomSteps.findIndex((s) => s === z)
-      return zoomSteps[Math.min(zoomSteps.length - 1, idx + 1)]
-    })
-  }
-  function zoomOut() {
-    setViewerZoom((z) => {
-      const idx = zoomSteps.findIndex((s) => s === z)
-      return zoomSteps[Math.max(0, idx - 1)]
-    })
-  }
-  function resetZoomAndClose() {
-    setViewerZoom(1)
-    setViewerOpen(false)
-    setViewerUrl(null)
+      const idx = zoomSteps.findIndex((s) => s === z);
+      return zoomSteps[Math.min(zoomSteps.length - 1, idx + 1)];
+    });
   }
 
+  function zoomOut() {
+    setViewerZoom((z) => {
+      const idx = zoomSteps.findIndex((s) => s === z);
+      return zoomSteps[Math.max(0, idx - 1)];
+    });
+  }
+
+  function resetZoomAndClose() {
+    setViewerZoom(1);
+    setViewerOpen(false);
+    setViewerUrl(null);
+  }
+
+  const handleApprove = () => {
+    if (communityData) {
+      onApprove(communityData);
+      onOpenChange(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    if (communityData) {
+      onDiscard(communityData);
+      onOpenChange(false);
+    }
+  };
+
   // No data yet: don't render static fallback
-  if (!communityData) return null
+  if (!communityData) return null;
 
   return (
     <Sheet
@@ -52,10 +78,10 @@ export function CommunityGroupInfoSheet({
         // If the sheet tries to close while the viewer is open (e.g., outside click/Escape),
         // close the viewer instead and keep the sheet open.
         if (!next && viewerOpen) {
-          setViewerOpen(false)
-          return
+          setViewerOpen(false);
+          return;
         }
-        onOpenChange(next)
+        onOpenChange(next);
       }}
     >
       <SheetContent
@@ -69,16 +95,10 @@ export function CommunityGroupInfoSheet({
         </SheetHeader>
 
         <div className="px-6 py-6 space-y-6">
-          {/* Neighborhood ID */}
+          {/* Request ID */}
           <div className="flex justify-between items-center">
-            <span className="text-white text-sm">Neighborhood ID</span>
+            <span className="text-white text-sm">Request ID</span>
             <span className="text-white text-sm">{communityData.communityId}</span>
-          </div>
-
-          {/* Terminal ID */}
-          <div className="flex justify-between items-center">
-            <span className="text-white text-sm">Terminal ID</span>
-            <span className="text-white text-sm">{communityData.terminalId}</span>
           </div>
 
           {/* Terminal Address */}
@@ -118,7 +138,7 @@ export function CommunityGroupInfoSheet({
           {/* Floodwater Subsidence Duration */}
           <div className="flex justify-between items-center">
             <span className="text-white text-sm">Floodwater Subsidence Duration</span>
-            <span className="text-white text-sm">N/A</span>
+            <span className="text-white text-sm">~1 hr</span>
           </div>
 
           {/* Flood-related hazards */}
@@ -131,14 +151,18 @@ export function CommunityGroupInfoSheet({
                 ))}
               </ul>
             ) : (
-              <p className="text-white text-sm">No hazards recorded</p>
+              <ul className="space-y-1 text-white text-sm">
+                <li>• Strong water current</li>
+                <li>• Risk of landslide or erosion</li>
+                <li>• Roads become impassable</li>
+              </ul>
             )}
           </div>
 
           {/* Other notable information */}
           <div className="bg-[#262626] border border-[#404040] rounded p-4">
             <h3 className="text-white text-sm font-medium mb-3">Other notable information</h3>
-            <p className="text-white text-sm">No additional information</p>
+            <p className="text-white text-sm">3 roads (St. Jhude, St. Perez, St. Lilia) are blocked</p>
           </div>
 
           {/* Focal Persons Section */}
@@ -188,7 +212,7 @@ export function CommunityGroupInfoSheet({
 
           {/* Main Focal Person Details */}
           <div className="flex justify-between items-center">
-            <span className="text-white text-sm font-medium">FOCAL PERSON</span>
+            <span className="text-white text-sm font-medium">NAME</span>
             <span className="text-white text-sm">
               {communityData.focalPerson?.name?.trim() || "N/A"}
             </span>
@@ -269,6 +293,23 @@ export function CommunityGroupInfoSheet({
               {communityData.alternativeFocalPerson?.altEmail?.trim() || "N/A"}
             </span>
           </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4 border-t border-[#2a2a2a]">
+            <Button
+              onClick={handleDiscard}
+              variant="outline"
+              className="flex-1 bg-transparent border border-[#404040] text-white hover:bg-[#262626] hover:text-white py-3 rounded-[5px] font-medium"
+            >
+              Discard
+            </Button>
+            <Button
+              onClick={handleApprove}
+              className="flex-1 bg-[#4285f4] hover:bg-[#3367d6] text-white py-3 rounded-[5px] font-medium"
+            >
+              Approve
+            </Button>
+          </div>
         </div>
       </SheetContent>
 
@@ -324,15 +365,24 @@ export function CommunityGroupInfoSheet({
               <img
                 src={viewerUrl}
                 alt="Expanded view"
-                className="max-w-full max-h-full object-contain transition-transform duration-200"
-                style={{ transform: `scale(${viewerZoom})` }}
+                className={`max-w-full max-h-full object-contain transition-transform duration-200 ${
+                  viewerZoom === 0.5 ? 'scale-50' :
+                  viewerZoom === 0.75 ? 'scale-75' :
+                  viewerZoom === 1 ? 'scale-100' :
+                  viewerZoom === 1.25 ? 'scale-125' :
+                  viewerZoom === 1.5 ? 'scale-150' :
+                  viewerZoom === 1.75 ? 'scale-150' :
+                  viewerZoom === 2 ? 'scale-150' :
+                  viewerZoom === 2.5 ? 'scale-150' :
+                  'scale-150'
+                }`}
               />
             )}
           </div>
         </div>
       )}
     </Sheet>
-  )
+  );
 }
 
-export default CommunityGroupInfoSheet
+export default CommunityGroupApprovalSheet;

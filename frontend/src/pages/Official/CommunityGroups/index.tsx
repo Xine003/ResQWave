@@ -1,18 +1,17 @@
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArchiveRestore, Info, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { createColumns, type CommunityGroup } from "./components/Column"
+import { CommunityGroupApprovalSheet } from "./components/CommunityGroupApprovalSheet"
 import { CommunityGroupInfoSheet } from "./components/CommunityGroupInfoSheet"
 import { CommunityGroupDrawer } from "./components/CreateCommunityGroupSheet"
 import { DataTable } from "./components/DataTable"
-import { predefinedCommunityGroupDetails, predefinedCommunityGroups } from "./data/predefinedCommunityGroups"
+import { predefinedAwaitingGroupDetails, predefinedAwaitingGroups, predefinedCommunityGroupDetails, predefinedCommunityGroups } from "./data/predefinedCommunityGroups"
 import type { CommunityGroupDetails } from "./types"
-
-// active groups are now managed in state (initialized with predefined data)
-
-// Archived groups are also managed in state (start empty)
 
 const makeArchivedColumns = (
   onMoreInfo: (g: CommunityGroup) => void,
@@ -71,53 +70,51 @@ const makeArchivedColumns = (
 ]
 
 export function CommunityGroups() {
-  const [activeTab, setActiveTab] = useState<"active" | "archived">("active")
-   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<"active" | "archived" | "awaiting">("active")
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
+  const [approvalOpen, setApprovalOpen] = useState(false)
+  const [terminalAssignmentOpen, setTerminalAssignmentOpen] = useState(false)
   const [selectedInfoData, setSelectedInfoData] = useState<CommunityGroupDetails | undefined>(undefined)
+  const [selectedApprovalData, setSelectedApprovalData] = useState<CommunityGroupDetails | undefined>(undefined)
+  const [pendingApprovalData, setPendingApprovalData] = useState<CommunityGroupDetails | undefined>(undefined)
+  const [selectedTerminal, setSelectedTerminal] = useState<string>("")
   const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>(predefinedCommunityGroups)
   const [archivedGroups, setArchivedGroups] = useState<CommunityGroup[]>([])
+  const [awaitingGroups, setAwaitingGroups] = useState<CommunityGroup[]>(predefinedAwaitingGroups)
   const [infoById, setInfoById] = useState<Record<string, CommunityGroupDetails>>(predefinedCommunityGroupDetails)
+  const [awaitingInfoById, setAwaitingInfoById] = useState<Record<string, CommunityGroupDetails>>(predefinedAwaitingGroupDetails)
   const [searchVisible, setSearchVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [editingGroup, setEditingGroup] = useState<CommunityGroup | null>(null)
   const [editData, setEditData] = useState<CommunityGroupDetails | undefined>(undefined)
 
-  const generateCommunityId = () => `CG-${Date.now()}`
+  // Available terminals for assignment
+  const availableTerminals = [
+    { id: "RSQW-001", name: "Terminal 001 - Barangay Hall" },
+    { id: "RSQW-002", name: "Terminal 002 - Community Center" },
+    { id: "RSQW-003", name: "Terminal 003 - School Building" },
+    { id: "RSQW-004", name: "Terminal 004 - Health Center" },
+    { id: "RSQW-005", name: "Terminal 005 - Church" },
+  ]
 
   const handleMoreInfo = useCallback((group: CommunityGroup) => {
-    const detailed = infoById[group.id]
-    if (detailed) {
-      setSelectedInfoData(detailed)
+    if (activeTab === "awaiting") {
+      // For awaiting approval, show the approval sheet
+      const detailed = awaitingInfoById[group.id]
+      if (detailed) {
+        setSelectedApprovalData(detailed)
+        setApprovalOpen(true)
+      }
     } else {
-      // Fallback mapping if detailed info is not available
-      setSelectedInfoData({
-        name: group.name,
-        terminalId: group.id.replace("CG-", "RSQW-"),
-        communityId: group.id,
-        individuals: 0,
-        families: 0,
-        kids: 0,
-        seniors: 0,
-        pwds: 0,
-        pregnantWomen: 0,
-        notableInfo: [],
-        focalPerson: {
-          name: group.focalPerson,
-          contactNumber: group.contactNumber,
-          email: "",
-          houseAddress: group.address,
-          coordinates: "",
-        },
-        alternativeFocalPerson: {
-          altName: "",
-          altContactNumber: "",
-          altEmail: "",
-        },
-      })
+      // For active/archived, show the regular info sheet
+      const detailed = infoById[group.id]
+      if (detailed) {
+        setSelectedInfoData(detailed)
+        setInfoOpen(true)
+      }
     }
-    setInfoOpen(true)
-  }, [infoById])
+  }, [infoById, awaitingInfoById, activeTab])
 
   const handleArchive = useCallback((group: CommunityGroup) => {
     setActiveGroups((prev) => prev.filter((g) => g.id !== group.id))
@@ -136,6 +133,68 @@ export function CommunityGroups() {
       return rest
     })
   }, [])
+
+  const handleApprove = useCallback((communityData: CommunityGroupDetails) => {
+    // Store the pending approval data and open terminal assignment dialog
+    setPendingApprovalData(communityData)
+    setSelectedTerminal("")
+    setApprovalOpen(false) // Close the approval sheet
+    setTerminalAssignmentOpen(true) // Open terminal assignment dialog
+  }, [])
+
+  const handleTerminalAssignment = useCallback((terminalId: string) => {
+    if (!pendingApprovalData) return
+
+    // Move from awaiting to active groups with assigned terminal
+    const awaitingGroup = awaitingGroups.find(g => g.id === pendingApprovalData.communityId)
+    if (awaitingGroup) {
+      // Generate new RSQW ID for approved group
+      const newId = `RSQW-${String(Date.now()).slice(-3)}`
+      const approvedGroup: CommunityGroup = {
+        ...awaitingGroup,
+        id: newId,
+        status: "OFFLINE"
+      }
+      
+      // Add to active groups
+      setActiveGroups(prev => [approvedGroup, ...prev])
+      
+      // Add detailed info with new ID and assigned terminal
+      const updatedDetails = { 
+        ...pendingApprovalData, 
+        communityId: newId, 
+        terminalId: terminalId 
+      }
+      setInfoById(prev => ({ ...prev, [newId]: updatedDetails }))
+      
+      // Remove from awaiting
+      setAwaitingGroups(prev => prev.filter(g => g.id !== awaitingGroup.id))
+      setAwaitingInfoById(prev => {
+        const { [awaitingGroup.id]: _omit, ...rest } = prev
+        return rest
+      })
+
+      // Switch to active tab to show the newly approved group
+      setActiveTab("active")
+    }
+
+    // Clean up and close dialog
+    setPendingApprovalData(undefined)
+    setSelectedTerminal("")
+    setTerminalAssignmentOpen(false)
+  }, [pendingApprovalData, awaitingGroups])
+
+  const handleDiscard = useCallback((communityData: CommunityGroupDetails) => {
+    // Remove from awaiting groups
+    const awaitingGroup = awaitingGroups.find(g => g.id === communityData.communityId)
+    if (awaitingGroup) {
+      setAwaitingGroups(prev => prev.filter(g => g.id !== awaitingGroup.id))
+      setAwaitingInfoById(prev => {
+        const { [awaitingGroup.id]: _omit, ...rest } = prev
+        return rest
+      })
+    }
+  }, [awaitingGroups])
 
   const handleEdit = useCallback((group: CommunityGroup) => {
     setEditingGroup(group)
@@ -160,9 +219,9 @@ export function CommunityGroups() {
         coordinates: "",
       },
       alternativeFocalPerson: {
-        name: "",
-        contactNumber: "",
-        email: "",
+        altName: "",
+        altContactNumber: "",
+        altEmail: "",
       },
     }
     
@@ -172,13 +231,13 @@ export function CommunityGroups() {
 
   const activeColumns = useMemo(() => createColumns({ onMoreInfo: handleMoreInfo, onEdit: handleEdit, onArchive: handleArchive }), [handleMoreInfo, handleEdit, handleArchive])
   const archivedColumns = useMemo(() => makeArchivedColumns(handleMoreInfo, handleRestore, handleDeletePermanent), [handleMoreInfo, handleRestore, handleDeletePermanent])
+  const awaitingColumns = useMemo(() => createColumns({ onMoreInfo: handleMoreInfo }), [handleMoreInfo])
 
   // Filter function for search
   const filterGroups = (groups: CommunityGroup[]) => {
     if (!searchQuery.trim()) return groups
     
     return groups.filter((group) =>
-      group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       group.focalPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
       group.contactNumber.includes(searchQuery) ||
       group.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -188,9 +247,10 @@ export function CommunityGroups() {
 
   const filteredActiveGroups = filterGroups(activeGroups)
   const filteredArchivedGroups = filterGroups(archivedGroups)
+  const filteredAwaitingGroups = filterGroups(awaitingGroups)
 
-  const tableData = activeTab === "active" ? filteredActiveGroups : filteredArchivedGroups
-  const tableColumns = activeTab === "active" ? activeColumns : archivedColumns
+  const tableData = activeTab === "active" ? filteredActiveGroups : activeTab === "archived" ? filteredArchivedGroups : filteredAwaitingGroups
+  const tableColumns = activeTab === "active" ? activeColumns : activeTab === "archived" ? archivedColumns : awaitingColumns
 
   // Reopen the drawer automatically if we return from the map flow
   useEffect(() => {
@@ -198,8 +258,10 @@ export function CommunityGroups() {
       try {
         const flag = sessionStorage.getItem("cg_reopen_sheet")
         if (flag === "1") {
+          // Clear the flag immediately to prevent automatic reopening on subsequent visits
+          sessionStorage.removeItem("cg_reopen_sheet")
+          
           setDrawerOpen(true)
-          // Do not clear here; let the drawer clear when saving/closing intentionally
           
           // Also restore edit state if it was persisted
           const snapshot = sessionStorage.getItem("cg_form_snapshot")
@@ -225,9 +287,9 @@ export function CommunityGroups() {
         }
       } catch {}
     }
+    
+    // Only run on initial mount, not on focus events
     maybeReopen()
-    window.addEventListener("focus", maybeReopen)
-    return () => window.removeEventListener("focus", maybeReopen)
   }, [])
 
   return (
@@ -235,7 +297,7 @@ export function CommunityGroups() {
       <div className="w-full max-w-9xl mx-auto flex-1 flex flex-col min-h-0">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-            <h1 className="text-2xl font-semibold text-white">Community Groups</h1>
+            <h1 className="text-2xl font-semibold text-white">Neighborhood Groups</h1>
             <div className="flex items-center gap-1 bg-[#262626] rounded-[5px] p-1">
               <button
                 onClick={() => setActiveTab("active")}
@@ -243,7 +305,7 @@ export function CommunityGroups() {
                   activeTab === "active" ? "bg-[#404040] text-white" : "bg-transparent text-[#a1a1a1] hover:text-white"
                 }`}
               >
-                Active Groups
+                Active
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{activeGroups.length}</span>
               </button>
               <button
@@ -254,8 +316,19 @@ export function CommunityGroups() {
                     : "bg-transparent text-[#a1a1a1] hover:text-white"
                 }`}
               >
-                Archived Groups
+                Archived
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{archivedGroups.length}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("awaiting")}
+                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
+                  activeTab === "awaiting"
+                    ? "bg-[#404040] text-white"
+                    : "bg-transparent text-[#a1a1a1] hover:text-white"
+                }`}
+              >
+                Awaiting Approval
+                <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{awaitingGroups.length}</span>
               </button>
             </div>
           </div>
@@ -265,7 +338,7 @@ export function CommunityGroups() {
             }`}>
               <Input
                 type="text"
-                placeholder="Search community groups..."
+                placeholder="Search neighborhood groups..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-64 bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4] transition-all duration-300"
@@ -300,7 +373,7 @@ export function CommunityGroups() {
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Add New Community Group
+              Add New Neighborhood Group
             </Button>
             <CommunityGroupDrawer
               open={drawerOpen}
@@ -310,6 +383,12 @@ export function CommunityGroups() {
                   // Clear edit state when closing
                   setEditingGroup(null)
                   setEditData(undefined)
+                  
+                  // Clear any sessionStorage flags that might cause the drawer to reopen
+                  try {
+                    sessionStorage.removeItem("cg_reopen_sheet")
+                    sessionStorage.removeItem("cg_form_snapshot")
+                  } catch {}
                 }
               }}
               editData={editData}
@@ -343,8 +422,8 @@ export function CommunityGroups() {
                   setEditingGroup(null)
                   setEditData(undefined)
                 } else {
-                  // Add new group (existing logic)
-                  const newId = generateCommunityId()
+                  // Add new group
+                  const newId = `RSQW-${String(Date.now()).slice(-3)}`
                   const row: CommunityGroup = {
                     id: newId,
                     name: infoData.name,
@@ -380,6 +459,78 @@ export function CommunityGroups() {
         onOpenChange={setInfoOpen}
         communityData={selectedInfoData}
       />
+
+      {/* Approval Sheet */}
+      <CommunityGroupApprovalSheet
+        open={approvalOpen}
+        onOpenChange={setApprovalOpen}
+        communityData={selectedApprovalData}
+        onApprove={handleApprove}
+        onDiscard={handleDiscard}
+      />
+
+      {/* Terminal Assignment Dialog */}
+      <Dialog open={terminalAssignmentOpen} onOpenChange={setTerminalAssignmentOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-[#171717] border-[#2a2a2a] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white">Assign Terminal</DialogTitle>
+            <DialogDescription className="text-[#a1a1a1]">
+              Please select a terminal to assign to this community group.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="terminal" className="text-right text-white">
+                Terminal
+              </label>
+              <div className="col-span-3">
+                <Select value={selectedTerminal} onValueChange={setSelectedTerminal}>
+                  <SelectTrigger className="bg-[#262626] border-[#404040] text-white">
+                    <SelectValue placeholder="Select a terminal" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#262626] border-[#404040]">
+                    {availableTerminals.map((terminal) => (
+                      <SelectItem 
+                        key={terminal.id} 
+                        value={terminal.id}
+                        className="text-white hover:bg-[#404040] focus:bg-[#404040]"
+                      >
+                        {terminal.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setTerminalAssignmentOpen(false)
+                setPendingApprovalData(undefined)
+                setSelectedTerminal("")
+              }}
+              className="bg-transparent border-[#404040] text-white hover:bg-[#262626]"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (selectedTerminal) {
+                  handleTerminalAssignment(selectedTerminal)
+                }
+              }}
+              disabled={!selectedTerminal}
+              className="bg-[#4285f4] hover:bg-[#3367d6] text-white disabled:opacity-50"
+            >
+              Assign Terminal
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

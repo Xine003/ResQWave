@@ -1,10 +1,11 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip-white";
-import { ClipboardCheck, Radio, Users } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { ClipboardCheck, Radio, UserCog, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import SettingsPopover from "./SettingsPopover";
+import SettingsPopover from "./settingsPopover";
 import resqwave_logo from "/Landing/resqwave_logo.png";
 
-const navigationItems = [
+const baseNavigationItems = [
   {
     icon: Radio,
     label: "Visualization",
@@ -22,9 +23,24 @@ const navigationItems = [
   },
 ];
 
-export function Sidebar() {
+const adminOnlyItems = [
+  {
+    icon: UserCog,
+    label: "Dispatchers",
+    path: "/dispatchers",
+  },
+];
+
+export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin } = useAuth();
+
+  // Combine navigation items based on user role
+  const navigationItems = [
+    ...baseNavigationItems,
+    ...(isAdmin() ? adminOnlyItems : [])
+  ];
 
   return (
     <>
