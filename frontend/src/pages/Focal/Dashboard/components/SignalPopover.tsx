@@ -38,7 +38,7 @@ export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, 
     if (!popover) return null;
 
     // For offline/gray popovers we want the box to sit closer above the signal dot
-    const offsetY = popover?.status === 'online' ? 375 : 185;
+    const offsetY = popover?.status === 'online' ? 345 : 185;
 
     return (
         <div id="signal-popover-wrapper" style={{ position: 'absolute', left: 0, top: 0, transform: `translate(${(popover.screen.x - 200)}px, ${(popover.screen.y - offsetY)}px)`, zIndex: 'var(--z-map-popover)', pointerEvents: 'none' }}>
@@ -114,7 +114,7 @@ export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, 
                     )}
 
                     {/* Action button - only show for the green (online) community signal */}
-                    {popover?.status === 'online' ? (
+                    {/* {popover?.status === 'online' ? (
                         <div className="block">
                             <button
                                 onClick={() => {
@@ -133,7 +133,7 @@ export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, 
                             </button>
                         </div>
 
-                    ) : null}
+                    ) : null} */}
 
                     {/* Downward pointer/arrow */}
                     <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: '-23px', width: 0, height: 0, borderLeft: '20px solid transparent', borderRight: '20px solid transparent', borderTop: '24px solid rgba(0,0,0,0.80)' }} />

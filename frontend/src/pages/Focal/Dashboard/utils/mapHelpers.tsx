@@ -2,7 +2,35 @@ import type React from 'react';
 import type mapboxgl from "mapbox-gl";
 
 export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommunitySignal: any) {
-    // offline signals source
+    // Helper to create a GeoJSON circle polygon from center and radius (meters)
+    function createGeoJSONCircle(center: [number, number], radiusInMeters: number, points = 64): GeoJSON.Feature<GeoJSON.Polygon> {
+        const coords: [number, number][] = [];
+        const earthRadius = 6378137;
+        const lat = center[1] * Math.PI / 180;
+        const lon = center[0] * Math.PI / 180;
+        for (let i = 0; i < points; i++) {
+            const angle = (i * 360 / points) * Math.PI / 180;
+            const dx = Math.cos(angle) * radiusInMeters / earthRadius;
+            const dy = Math.sin(angle) * radiusInMeters / earthRadius;
+            const latOffset = lat + dy;
+            const lonOffset = lon + dx / Math.cos(lat);
+            coords.push([
+                lonOffset * 180 / Math.PI,
+                latOffset * 180 / Math.PI
+            ]);
+        }
+        coords.push(coords[0]); // close the polygon
+        return {
+            type: "Feature",
+            geometry: {
+                type: "Polygon",
+                coordinates: [coords]
+            },
+            properties: {}
+        };
+    }
+
+    // Only add signal dots (no radius overlays by default)
     if (!map.getSource("offline-signals")) {
         map.addSource("offline-signals", {
             type: "geojson",
@@ -16,12 +44,10 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
             }
         });
     } else {
-        // update data if source exists
         const s = map.getSource("offline-signals") as mapboxgl.GeoJSONSource;
         s.setData({ type: "FeatureCollection", features: otherSignals.map((s2) => ({ type: "Feature", properties: s2.properties, geometry: { type: "Point", coordinates: s2.coordinates } })) });
     }
 
-    // Add a single static gray circle for offline signals
     if (!map.getLayer("offline-core")) {
         map.addLayer({
             id: "offline-core",
@@ -37,7 +63,6 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
         });
     }
 
-    // distress signal source
     if (!map.getSource("distress-signal")) {
         map.addSource("distress-signal", {
             type: "geojson",
@@ -51,7 +76,6 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
         s.setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: OwnCommunitySignal.properties, geometry: { type: "Point", coordinates: OwnCommunitySignal.coordinates } }] });
     }
 
-    // Add a single static green circle for distress signal
     if (!map.getLayer("distress-core")) {
         map.addLayer({
             id: "distress-core",
@@ -66,7 +90,11 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
             }
         });
     }
+
+    // Expose helper for click handler
+    (map as any).createGeoJSONCircle = createGeoJSONCircle;
 }
+
 
 export const makeTooltip = (text: string): React.ReactElement => (
     <div style={{ position: 'relative', left: '-7px' }}>

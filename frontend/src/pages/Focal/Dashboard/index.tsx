@@ -84,7 +84,7 @@ export default function Dashboard() {
             try {
 
                 const floodFiles = [
-                    { id: "metro-manila", url: "/Landing/MetroManila_Flood.geojson" },
+                    { id: "metro-manila", url: "/MetroManila_Flood.geojson" },
                     // { id: "bulacan", url: "/Landing/Bulacan_Flood.geojson" },
                 ];
                 floodFiles.forEach(file => {
@@ -172,64 +172,91 @@ export default function Dashboard() {
                     map.on('click', layerId, (e: any) => {
                         const f = e.features?.[0];
                         const coord = (f?.geometry?.coordinates as [number, number]) || [e.lngLat.lng, e.lngLat.lat];
-                        let boundary = null;
-                        // Find boundary for clicked signal using deviceId
+                        // Remove previous radius overlay
+                        if (map.getLayer('signal-radius')) map.removeLayer('signal-radius');
+                        if (map.getSource('signal-radius')) map.removeSource('signal-radius');
+
+                        // Show radius overlay for clicked signal
                         const deviceId = f?.properties?.deviceId;
+                        let radius = 5000;
+                        let color = '#22c55e';
                         if (deviceId) {
                             if (deviceId === OwnCommunitySignal.properties.deviceId) {
-                                boundary = OwnCommunitySignal.boundary;
+                                radius = typeof OwnCommunitySignal.radius === 'number' ? OwnCommunitySignal.radius : 5000;
+                                color = '#22c55e';
                             } else {
                                 const found = otherSignals.find(s => s.properties.deviceId === deviceId);
-                                if (found) boundary = found.boundary;
+                                if (found) {
+                                    radius = typeof found.radius === 'number' ? found.radius : 5000;
+                                    color = '#6b7280';
+                                }
                             }
                         }
-
-                        // Remove previous boundary layer/source
-                        if (map.getLayer('signal-boundary')) map.removeLayer('signal-boundary');
-                        if (map.getLayer('signal-boundary-line')) map.removeLayer('signal-boundary-line');
-                        if (map.getSource('signal-boundary')) map.removeSource('signal-boundary');
-
-                        if (boundary) {
-                            // Determine color by signal status
-                            let fillColor = '#2CBE00';
-                            let lineColor = '#2CBE00';
-                            let opacity = 0.1;
-                            let status = f?.properties?.status;
-                            if (status === 'offline') {
-                                fillColor = '#0A0A0A';
-                                lineColor = '#707070';
-                                opacity = 0.1;
+                        // Animated pulsing wave effect
+                        if (typeof (map as any).createGeoJSONCircle === 'function') {
+                            // Remove any previous animation frame
+                            if ((map as any)._pulseFrame) {
+                                cancelAnimationFrame((map as any)._pulseFrame);
+                                (map as any)._pulseFrame = null;
                             }
-                            map.addSource('signal-boundary', {
+                            // Animation config
+                            interface PulseConfig {
+                                minRadius: number;
+                                maxRadius: number;
+                                duration: number;
+                                color: string;
+                                opacity: number;
+                            }
+                            const pulseConfig: PulseConfig = {
+                                minRadius: 0, // start at the signal point
+                                maxRadius: radius, // expand outward
+                                duration: 2000, // ms for one pulse
+                                color,
+                                opacity: 0.18
+                            };
+                            // Add source and layer for the pulse
+                            if (map.getLayer('signal-radius')) map.removeLayer('signal-radius');
+                            if (map.getSource('signal-radius')) map.removeSource('signal-radius');
+                            map.addSource('signal-radius', {
                                 type: 'geojson',
-                                data: {
-                                    type: 'Feature',
-                                    properties: {},
-                                    geometry: {
-                                        type: 'Polygon',
-                                        coordinates: [boundary]
-                                    }
-                                }
+                                data: (map as any).createGeoJSONCircle(coord, pulseConfig.minRadius)
                             });
                             map.addLayer({
-                                id: 'signal-boundary',
+                                id: 'signal-radius',
                                 type: 'fill',
-                                source: 'signal-boundary',
+                                source: 'signal-radius',
                                 paint: {
-                                    'fill-color': fillColor,
-                                    'fill-opacity': opacity
+                                    'fill-color': pulseConfig.color,
+                                    'fill-opacity': pulseConfig.opacity
                                 }
                             });
-                            map.addLayer({
-                                id: 'signal-boundary-line',
-                                type: 'line',
-                                source: 'signal-boundary',
-                                paint: {
-                                    'line-color': lineColor,
-                                    'line-width': 3,
-                                    'line-dasharray': [2, 4]
+                            // Animation loop (play ONCE, then show static circle)
+                            function animatePulse(startTime: number) {
+                                const now = performance.now();
+                                const elapsed = now - startTime;
+                                const t = Math.min(elapsed / pulseConfig.duration, 1);
+                                // Ease out for radius only; keep opacity constant
+                                const eased = t < 0.7 ? t / 0.7 : 1;
+                                const currentRadius = pulseConfig.minRadius + (pulseConfig.maxRadius - pulseConfig.minRadius) * eased;
+                                const currentOpacity = pulseConfig.opacity;
+                                // Update source data and layer opacity
+                                const source = map.getSource('signal-radius') as mapboxgl.GeoJSONSource;
+                                if (source) {
+                                    source.setData((map as any).createGeoJSONCircle(coord, currentRadius));
                                 }
-                            });
+                                map.setPaintProperty('signal-radius', 'fill-opacity', currentOpacity);
+                                if (t < 1) {
+                                    (map as any)._pulseFrame = requestAnimationFrame(() => animatePulse(startTime));
+                                } else {
+                                    // Animation done: show static circle at max radius, full opacity
+                                    if (source) {
+                                        source.setData((map as any).createGeoJSONCircle(coord, pulseConfig.maxRadius));
+                                    }
+                                    map.setPaintProperty('signal-radius', 'fill-opacity', pulseConfig.opacity);
+                                    (map as any)._pulseFrame = null;
+                                }
+                            }
+                            (map as any)._pulseFrame = requestAnimationFrame(() => animatePulse(performance.now()));
                         }
 
                         try {
@@ -410,15 +437,7 @@ export default function Dashboard() {
         }
         // Update the boundary for the currently edited signal
         // We'll assume the last clicked signal is stored in popover
-        if (popover && newBoundary) {
-            const deviceId = popover.deviceId;
-            if (deviceId === OwnCommunitySignal.properties.deviceId) {
-                OwnCommunitySignal.boundary = newBoundary;
-            } else {
-                const found = otherSignals.find(s => s.properties.deviceId === deviceId);
-                if (found) found.boundary = newBoundary;
-            }
-        }
+        // boundary editing is deprecated; no longer update boundary property
 
         const featureCollection: GeoJSON.FeatureCollection = {
             type: "FeatureCollection",
@@ -694,13 +713,12 @@ export default function Dashboard() {
                 infoBubble={infoBubble}
                 infoBubbleVisible={infoBubbleVisible}
                 onClose={() => {
-                    // remove any temporary signal boundary overlay when popover closes
+                    // remove any temporary signal radius overlay when popover closes
                     const map = mapRef.current;
                     if (!map) return;
                     try {
-                        if (map.getLayer('signal-boundary')) map.removeLayer('signal-boundary');
-                        if (map.getLayer('signal-boundary-line')) map.removeLayer('signal-boundary-line');
-                        if (map.getSource('signal-boundary')) map.removeSource('signal-boundary');
+                        if (map.getLayer('signal-radius')) map.removeLayer('signal-radius');
+                        if (map.getSource('signal-radius')) map.removeSource('signal-radius');
                     } catch (e) { /* ignore */ }
                 }}
             />
