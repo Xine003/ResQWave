@@ -26,6 +26,7 @@ export interface CommunityFormData {
   altFocalPersonName: string
   altFocalPersonContact: string
   altFocalPersonEmail: string
+  boundaryGeoJSON: string
 }
 
 export interface PhotoUrls {

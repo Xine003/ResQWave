@@ -13,10 +13,6 @@ import { DataTable } from "./components/DataTable"
 import { predefinedAwaitingGroupDetails, predefinedAwaitingGroups, predefinedCommunityGroupDetails, predefinedCommunityGroups } from "./data/predefinedCommunityGroups"
 import type { CommunityGroupDetails } from "./types"
 
-// active groups are now managed in state (initialized with predefined data)
-
-// Archived groups are also managed in state (start empty)
-
 const makeArchivedColumns = (
   onMoreInfo: (g: CommunityGroup) => void,
   onRestore?: (g: CommunityGroup) => void,
@@ -75,7 +71,7 @@ const makeArchivedColumns = (
 
 export function CommunityGroups() {
   const [activeTab, setActiveTab] = useState<"active" | "archived" | "awaiting">("active")
-   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
   const [approvalOpen, setApprovalOpen] = useState(false)
   const [terminalAssignmentOpen, setTerminalAssignmentOpen] = useState(false)
@@ -92,8 +88,6 @@ export function CommunityGroups() {
   const [searchQuery, setSearchQuery] = useState("")
   const [editingGroup, setEditingGroup] = useState<CommunityGroup | null>(null)
   const [editData, setEditData] = useState<CommunityGroupDetails | undefined>(undefined)
-
-  const generateCommunityId = () => `CG-${Date.now()}`
 
   // Available terminals for assignment
   const availableTerminals = [
@@ -225,9 +219,9 @@ export function CommunityGroups() {
         coordinates: "",
       },
       alternativeFocalPerson: {
-        name: "",
-        contactNumber: "",
-        email: "",
+        altName: "",
+        altContactNumber: "",
+        altEmail: "",
       },
     }
     
@@ -428,8 +422,8 @@ export function CommunityGroups() {
                   setEditingGroup(null)
                   setEditData(undefined)
                 } else {
-                  // Add new group (existing logic)
-                  const newId = generateCommunityId()
+                  // Add new group
+                  const newId = `RSQW-${String(Date.now()).slice(-3)}`
                   const row: CommunityGroup = {
                     id: newId,
                     name: infoData.name,

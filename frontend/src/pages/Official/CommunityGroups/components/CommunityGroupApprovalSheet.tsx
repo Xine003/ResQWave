@@ -295,19 +295,19 @@ export function CommunityGroupApprovalSheet({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col gap-3 pt-4 border-t border-[#2a2a2a]">
-            <Button
-              onClick={handleApprove}
-              className="w-full bg-[#4285f4] hover:bg-[#3367d6] text-white py-3 rounded-[5px] font-medium"
-            >
-              Approve
-            </Button>
+          <div className="flex gap-3 pt-4 border-t border-[#2a2a2a]">
             <Button
               onClick={handleDiscard}
               variant="outline"
-              className="w-full bg-transparent border border-[#404040] text-white hover:bg-[#262626] hover:text-white py-3 rounded-[5px] font-medium"
+              className="flex-1 bg-transparent border border-[#404040] text-white hover:bg-[#262626] hover:text-white py-3 rounded-[5px] font-medium"
             >
               Discard
+            </Button>
+            <Button
+              onClick={handleApprove}
+              className="flex-1 bg-[#4285f4] hover:bg-[#3367d6] text-white py-3 rounded-[5px] font-medium"
+            >
+              Approve
             </Button>
           </div>
         </div>
