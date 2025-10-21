@@ -47,19 +47,19 @@ export default function SettingLocationPage() {
 
     // Resize guards
     map.on("load", () => {
-      try { ensureSquareBlueImage(map) } catch {}
-      try { map.resize() } catch {}
-      setTimeout(() => { try { map.resize() } catch {} }, 100)
+      try { ensureSquareBlueImage(map) } catch { }
+      try { map.resize() } catch { }
+      setTimeout(() => { try { map.resize() } catch { } }, 100)
     })
     let ro: ResizeObserver | null = null
     try {
-      ro = new ResizeObserver(() => { try { map.resize() } catch {} })
+      ro = new ResizeObserver(() => { try { map.resize() } catch { } })
       if (mapContainerRef.current) ro.observe(mapContainerRef.current)
-    } catch {}
+    } catch { }
 
     return () => {
-      try { ro && mapContainerRef.current && ro.unobserve(mapContainerRef.current) } catch {}
-      try { map.remove() } catch {}
+      try { ro && mapContainerRef.current && ro.unobserve(mapContainerRef.current) } catch { }
+      try { map.remove() } catch { }
       mapRef.current = null
     }
   }, [])
@@ -68,13 +68,13 @@ export default function SettingLocationPage() {
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    try { map.setStyle(`mapbox://styles/mapbox/${baseStyle}`) } catch {}
+    try { map.setStyle(`mapbox://styles/mapbox/${baseStyle}`) } catch { }
     // After style change, the sprite resets. Re-add custom icon soon after style data is available.
     try {
       map.once("styledata", () => {
-        try { ensureSquareBlueImage(map) } catch {}
+        try { ensureSquareBlueImage(map) } catch { }
       })
-    } catch {}
+    } catch { }
   }, [baseStyle])
 
   // Phase handling: only terminal phase (pin placement)
@@ -148,7 +148,7 @@ export default function SettingLocationPage() {
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-4 py-3 border-b border-[#2a2a2a] bg-[#171717] backdrop-blur-sm">
         <div className="font-semibold text-base">{title}</div>
-        
+
         <div className="ml-auto flex gap-2">
           {!terminalSaved && (
             <>

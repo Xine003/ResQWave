@@ -370,7 +370,7 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
                                         >
                                             <div>
                                                 <div style={{ fontWeight: 400, letterSpacing: 0.2 }}>{r.id}</div>
-                                                <div style={{ fontSize: 13, color: '#cfcfcf', marginTop: 6 }}>Report accomplished on {r.date}</div>
+                                                <div style={{ fontSize: 13, color: '#cfcfcf', marginTop: 6 }}>Accomplished on {r.date}</div>
                                             </div>
 
                                             <button

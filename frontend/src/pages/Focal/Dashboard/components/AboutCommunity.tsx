@@ -35,7 +35,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
     const [viewerZoom, setViewerZoom] = useState(1);
     const [viewerRotate, setViewerRotate] = useState(0);
 
-    // ensure community data hook is also called unconditionally
+    // Always use the latest community data from the hook (ensures About tab updates live)
     const { data } = useCommunityData();
 
     if (!mounted) return null;
@@ -107,11 +107,9 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         transition: `opacity ${ANIM_MS}ms ease, transform ${ANIM_MS}ms cubic-bezier(.2,.9,.2,1)`,
     };
 
-    const statsTop = [String(data.stats.individuals), String(data.stats.families), String(data.stats.kids)];
-    const statsTopLabels = ['Individuals', 'Families', 'Kids'];
-
-    const statsBottom = [String(data.stats.seniors), String(data.stats.pwds), String(data.stats.pregnant)];
-    const statsBottomLabels = ['Seniors', 'PWDs', 'Pregnant Women'];
+    // Only show No. of Residents and No. of Households
+    const statsTop = [String(data.stats.noOfResidents), String(data.stats.noOfHouseholds)];
+    const statsTopLabels = ['No. of Residents', 'No. of Households'];
 
     return (
         <div style={overlayStyle}>
@@ -123,84 +121,87 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                     <div>
                         <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: 0.6 }}>{data.groupName}</h2>
-                        <div style={{ marginTop: 6, color: '#fff', fontSize: 13, fontWeight: 300 }}>Registered At: {data.registeredAt} <span style={{ fontWeight: 200, opacity: 0.5 }}> &nbsp; | &nbsp; </span> Last Updated At: {data.updatedAt}</div>
+                        <div style={{ marginTop: 6, color: '#A3A3A3', fontSize: 13, fontWeight: 300 }}>Registered At: {data.registeredAt} <span style={{ fontWeight: 200, opacity: 0.5 }}> &nbsp; | &nbsp; </span> Last Updated At: {data.updatedAt}</div>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
-                    {/* white input-like header */}
-                    <div style={{ background: '#fff', color: '#111', padding: '10px 17px', borderRadius: 4, fontWeight: 600, fontSize: 15 }}>Community Information</div>
+                <div style={{ marginTop: 25, display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
 
                     {/* IDs rows: stacked with divider, label left and value right */}
                     <div style={{ overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
-                            <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>TERMINAL ID</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
+                            <div style={{ color: '#fff', fontSize: 15, fontWeight: 400, letterSpacing: 0.6 }}>Terminal ID</div>
                             <div style={{ fontWeight: 200, color: '#fff' }}>{data.terminalId}</div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
-                            <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>COMMUNITY ID</div>
-                            <div style={{ fontWeight: 200, color: '#fff' }}>{data.communityId}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
+                            <div style={{ color: '#fff', fontSize: 15, fontWeight: 400, letterSpacing: 0.6 }}>Terminal Address</div>
+                            <div style={{ fontWeight: 200, color: '#fff' }}>{data.address ?? 'N/A'}</div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
+                            <div style={{ color: '#fff', fontSize: 15, fontWeight: 400, letterSpacing: 0.6 }}>Coordinates</div>
+                            <div style={{ fontWeight: 200, color: '#fff' }}>{data.coordinates ?? 'N/A'}</div>
                         </div>
                     </div>
 
-                    {/* stats pills */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                        {statsTop.map((count, i) => (
-                            <div
-                                key={`${count}-${i}`}
-                                style={{
-                                    background: '#262626',
-                                    padding: '19px 14px',
-                                    borderRadius: 6,
-                                    color: '#fff',
-                                    fontSize: 13,
-                                    textAlign: 'center',
-                                    border: '1px solid #404040',
-                                    display: 'flex',
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 5,
-                                    whiteSpace: 'nowrap'
-                                }}
-                            >
-                                <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1 }}>{count}</div>
-                                <div style={{ opacity: 0.9, fontSize: 14, lineHeight: 1, marginLeft: 0 }}>{statsTopLabels[i]}</div>
-                            </div>
-                        ))}
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: -5 }}>
-                        {statsBottom.map((count, i) => (
-                            <div
-                                key={`${count}-${i}`}
-                                style={{
-                                    background: '#262626',
-                                    padding: '19px 14px',
-                                    borderRadius: 6,
-                                    color: '#fff',
-                                    fontSize: 13,
-                                    textAlign: 'center',
-                                    border: '1px solid #404040',
-                                    display: 'flex',
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 5,
-                                    whiteSpace: 'nowrap'
-                                }}
-                            >
-                                <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1 }}>{count}</div>
-                                <div style={{ opacity: 0.9, fontSize: 14, lineHeight: 1, marginLeft: 0 }}>{statsBottomLabels[i]}</div>
-                            </div>
-                        ))}
+                    {/* Focal persons header */}
+                    <div style={{ marginTop: 19, background: '#fff', color: '#111', padding: '10px 18px', borderRadius: 6, fontSize: 15, fontWeight: 600 }}>Neighborhood Information</div>
+
+
+                    {/* IDs rows: stacked with divider, label left and value right */}
+                    <div style={{ overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
+                            <div style={{ color: '#fff', fontSize: 15, fontWeight: 400, letterSpacing: 0.6 }}>No. of Households</div>
+                            <div style={{ fontWeight: 200, color: '#fff' }}>{
+                                // Show range string if available, else fallback to number or N/A
+                                data.stats && typeof data.stats.noOfHouseholds === 'string' && data.stats.noOfHouseholds
+                                    ? data.stats.noOfHouseholds
+                                    : (data.stats && data.stats.noOfHouseholds !== undefined ? data.stats.noOfHouseholds : 'N/A')
+                            }</div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
+                            <div style={{ color: '#fff', fontSize: 15, fontWeight: 400, letterSpacing: 0.6 }}>No. of Residents</div>
+                            <div style={{ fontWeight: 200, color: '#fff' }}>{
+                                data.stats && typeof data.stats.noOfResidents === 'string' && data.stats.noOfResidents
+                                    ? data.stats.noOfResidents
+                                    : (data.stats && data.stats.noOfResidents !== undefined ? data.stats.noOfResidents : 'N/A')
+                            }</div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
+                            <div style={{ color: '#fff', fontSize: 15, fontWeight: 400, letterSpacing: 0.6 }}>Floodwater Subsidence Duration</div>
+                            <div style={{ fontWeight: 200, color: '#fff' }}>~ &nbsp;{data.floodwaterSubsidenceDuration ?? 'N/A'}</div>
+                        </div>
                     </div>
 
                     {/* note */}
-                    <div style={{ background: '#262626', padding: '15px 21px', borderRadius: 6, color: '#fff', border: '1px solid #404040', fontSize: 14, fontWeight: 400 }}>• <span>&nbsp;</span>{data.note}</div>
+                    <div style={{ background: '#262626', padding: '22px 22px', borderRadius: 6, color: '#fff', border: '1px solid #404040', fontSize: 14, fontWeight: 400 }}>
+                        <div style={{ fontWeight: 400, fontSize: 15, marginBottom: 10 }}>Flood-related hazards</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 3 }}>
+                            {data.hazards.map((hazard, idx) => (
+                                <span key={idx} style={{ display: 'flex', alignItems: 'center', fontWeight: 400, fontSize: 15 }}>
+                                    <span style={{ display: 'inline-block', width: 4, height: 4, borderRadius: '50%', background: '#fff', marginRight: 10, flexShrink: 0 }} />
+                                    {hazard}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
 
-                    {/* Focal persons header */}
-                    <div style={{ marginTop: 10, background: '#fff', color: '#111', padding: '10px 18px', borderRadius: 6, fontWeight: 600 }}>Focal Persons</div>
+                    <div style={{ background: '#262626', padding: '22px 22px', borderRadius: 6, color: '#fff', border: '1px solid #404040', fontSize: 14, fontWeight: 400 }}>
+                        <div style={{ fontWeight: 400, fontSize: 15, marginBottom: 10 }}>Other notable information</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 3 }}>
+                            {data.otherInfo.map((info, idx) => (
+                                <span key={idx} style={{ display: 'flex', alignItems: 'center', fontWeight: 400, fontSize: 15 }}>
+                                    <span style={{ display: 'inline-block', width: 4, height: 4, borderRadius: '50%', background: '#fff', marginRight: 10, flexShrink: 0 }} />
+                                    {info}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+
+                    {/* Focal persons profile picture */}
+                    <div style={{ marginTop: 19, background: '#fff', color: '#111', padding: '10px 18px', borderRadius: 6, fontSize: 15, fontWeight: 600 }}>Focal Persons</div>
+
 
                     {/* Focal person image-only cards (no text) - render only when photo exists */}
                     {data?.focal?.photo ? (
@@ -233,8 +234,6 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                         </div>
                     ) : null}
 
-                    {/* altPhoto intentionally not shown in About modal */}
-
                 </div>
 
                 {/* IDs rows: stacked with divider, label left and value right */}
@@ -248,28 +247,56 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                         <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.contact}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
-                        <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>HOUSE ADDRESS</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.address}</div>
+                        <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>EMAIL</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.email ?? 'N/A'}</div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
-                        <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>COORDINATES</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.coordinates}</div>
+                </div>
+
+                {/* altPhoto */}
+
+                {data?.altFocal?.photo ? (
+                    <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center', marginTop: 25 }}>
+                        <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
+                            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${data.altFocal.photo})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                            <img src={data.altFocal.photo || ''} alt="Alt Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                            <button
+                                aria-label="Expand"
+                                onClick={() => openViewer(data.altFocal.photo!)}
+                                style={{
+                                    position: 'absolute',
+                                    right: 15,
+                                    bottom: 15,
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 4,
+                                    background: '#fff',
+                                    border: 'none',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                                }}
+                            >
+                                <Expand size={15} color="#111" />
+                            </button>
+                        </div>
                     </div>
+                ) : null}
+
+                {/* IDs rows: stacked with divider, label left and value right */}
+                <div style={{ overflow: 'hidden', marginTop: 13 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>ALTERNATIVE FOCAL PERSON</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.altFocal}</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.altFocal?.name ?? 'N/A'}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>CONTACT NO.</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.focal.altContact ?? ''}</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.altFocal?.contact ?? 'N/A'}</div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
-                        <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>TERMINAL ID</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.terminalId}</div>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
-                        <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>COMMUNITY ID</div>
-                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.communityId}</div>
+                        <div style={{ color: '#fff', fontSize: 14, fontWeight: 400, letterSpacing: 0.6 }}>EMAIL</div>
+                        <div style={{ fontWeight: 200, color: '#fff' }}>{data.altFocal?.email ?? 'N/A'}</div>
                     </div>
                 </div>
 
