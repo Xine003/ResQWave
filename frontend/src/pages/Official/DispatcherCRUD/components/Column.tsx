@@ -1,12 +1,11 @@
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Archive, Edit, Info } from "lucide-react"
-import type { CommunityColumnsOptions, CommunityGroup } from "../types"
+import type { Dispatcher, DispatcherColumnsOptions } from "../types"
 
-export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<CommunityGroup>[] => [
+export const createColumns = (opts: DispatcherColumnsOptions): ColumnDef<Dispatcher>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -14,7 +13,7 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
         checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
-        className="data-[state=checked]:bg-[#4285f4] data-[state=checked]:border-[#4285f4]"
+        className="border-black data-[state=checked]:bg-[#4285f4] data-[state=checked]:border-[#4285f4] data-[state=unchecked]:border-black"
         onClick={(e) => e.stopPropagation()}
       />
     ),
@@ -32,30 +31,11 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
   },
   {
     accessorKey: "id",
-    header: "Neighborhood ID",
+    header: "ID",
     cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("id")}</div>,
   },
   {
-    accessorKey: "status",
-    header: "Terminal Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string
-      return (
-        <Badge
-          variant={status === "ONLINE" ? "default" : "secondary"}
-          className={
-            status === "ONLINE"
-              ? "bg-green-500/20 text-green-500 border-green-500 hover:bg-green-500/70 h-7"
-              : "bg-[#171717] text-[#404040] border-[#404040] hover:bg-gray-500/70 h-7"
-          }
-        >
-          {status}
-        </Badge>
-      )
-    },
-  },
-  {
-    accessorKey: "focalPerson",
+    accessorKey: "name",
     header: ({ column }) => {
       return (
         <Button
@@ -63,7 +43,7 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent focus:bg-transparent active:bg-transparent"
         >
-          Focal Person
+          Name
           <svg className="ml-2 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
@@ -75,7 +55,7 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
         </Button>
       )
     },
-    cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("focalPerson")}</div>,
+    cell: ({ row }) => <div className="text-white font-medium">{row.getValue("name")}</div>,
   },
   {
     accessorKey: "contactNumber",
@@ -83,12 +63,12 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
     cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("contactNumber")}</div>,
   },
   {
-    accessorKey: "address",
-    header: "Address",
-    cell: ({ row }) => <div className="text-[#a1a1a1] truncate max-w-[200px]">{row.getValue("address")}</div>,
+    accessorKey: "email",
+    header: "Email",
+    cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("email")}</div>,
   },
   {
-    accessorKey: "registeredAt",
+    accessorKey: "createdAt",
     header: ({ column }) => {
       return (
         <Button
@@ -96,7 +76,7 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           className="h-auto p-0 font-medium text-black hover:text-gray-700 hover:bg-transparent focus:bg-transparent active:bg-transparent"
         >
-          Registered At
+          Created At
           <svg className="ml-2 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
@@ -108,20 +88,20 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
         </Button>
       )
     },
-    cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("registeredAt")}</div>,
+    cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("createdAt")}</div>,
     sortingFn: (rowA, rowB, columnId) => {
       // Sort by date ascending (oldest to newest)
       const a = new Date(rowA.getValue(columnId))
       const b = new Date(rowB.getValue(columnId))
       return a.getTime() - b.getTime()
     },
-  sortDescFirst: false, 
+    sortDescFirst: false,
   },
   {
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-  return (
+      return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -141,56 +121,56 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-        align="start" side="left" sideOffset={2}
-        className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
-      >
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.stopPropagation()
-            opts.onMoreInfo(row.original)
-          }}
-          className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
-        >
-          <Info className="mr-2 h-4 w-4 text-white" />
-          <span>More Info</span>
-        </DropdownMenuItem>
-        
-        {/* Show Edit only if onEdit callback is provided (typically for archived groups) */}
-        {opts.onEdit && (
-          <DropdownMenuItem 
-            onClick={(e) => {
-              e.stopPropagation()
-              opts.onEdit?.(row.original)
-            }}
-            className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+            align="start" 
+            side="left" 
+            sideOffset={2}
+            className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
           >
-            <Edit className="mr-2 h-4 w-4 text-white" />
-            <span>Edit</span>
-          </DropdownMenuItem>
-        )}
-        
-        <DropdownMenuSeparator className="bg-[#404040]" />
-        
-        {/* Show Archive only if onArchive callback is provided (typically for active groups) */}
-        {opts.onArchive && (
-          <DropdownMenuItem
-            onClick={(e) => {
-              e.stopPropagation()
-              opts.onArchive?.(row.original)
-            }}
-            className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000]"
-          >
-            <Archive className="mr-2 h-4 w-4 text-[#FF0000]" />
-            <span>Archive</span>
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation()
+                opts.onMoreInfo(row.original)
+              }}
+              className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+            >
+              <Info className="mr-2 h-4 w-4 text-white" />
+              <span>More Info</span>
+            </DropdownMenuItem>
+            
+            {/* Show Edit only if onEdit callback is provided (typically for active dispatchers) */}
+            {opts.onEdit && (
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation()
+                  opts.onEdit?.(row.original)
+                }}
+                className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+              >
+                <Edit className="mr-2 h-4 w-4 text-white" />
+                <span>Edit</span>
+              </DropdownMenuItem>
+            )}
+            
+            <DropdownMenuSeparator className="bg-[#404040]" />
+            
+            {/* Show Archive only if onArchive callback is provided (typically for active dispatchers) */}
+            {opts.onArchive && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  opts.onArchive?.(row.original)
+                }}
+                className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000] text-sm"
+              >
+                <Archive className="mr-2 h-4 w-4 text-[#FF0000]" />
+                <span>Archive</span>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
         </DropdownMenu>
       )
     },
-  }, 
+  },
 ]
 
-// Re-export for backward compatibility if other modules imported the type from this file
-export type { CommunityGroup } from "../types"
-
+export type { Dispatcher }

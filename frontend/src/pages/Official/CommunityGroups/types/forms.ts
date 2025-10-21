@@ -3,19 +3,26 @@
 export interface CommunityFormData {
   assignedTerminal: string
   communityGroupName: string
-  totalIndividuals: number
-  totalFamilies: number
+  totalIndividuals: number | string
+  totalFamilies: number | string
   totalKids: number
   totalSeniorCitizen: number
   totalPregnantWomen: number
   totalPWDs: number
+  floodwaterDuration: string
+  floodHazards: string[]
+  notableInfo: string
   focalPersonPhoto: File | null
+  focalPersonFirstName: string
+  focalPersonLastName: string
   focalPersonName: string
   focalPersonContact: string
   focalPersonEmail: string
   focalPersonAddress: string
   focalPersonCoordinates: string
   altFocalPersonPhoto: File | null
+  altFocalPersonFirstName: string
+  altFocalPersonLastName: string
   altFocalPersonName: string
   altFocalPersonContact: string
   altFocalPersonEmail: string

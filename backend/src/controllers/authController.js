@@ -56,6 +56,9 @@ const register = async (req, res) => {
 const adminLogin = async (req, res) => {
     try {
         const {name, password} = req.body;
+        if (!name || !password) {
+            return res.json(400).json({message: "Name and Password are Required."});
+        }
 
         // Find Admin
         const admin = await adminRepo.findOne({ where: { name } });
@@ -68,6 +71,17 @@ const adminLogin = async (req, res) => {
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid Credentials" });
         }
+
+        // Create a session for Admin (No 2FA Needed)
+        const sessionID = crypto.randomUUID();
+        const expiry = new Date(Date.now() + 60 * 60 * 1000);
+        await loginVerificationRepo.save({
+            userID: admin.id,
+            userType: "admin",
+            code: "OK",
+            sessionID,
+            expiry,
+        })
 
         // Create JWT
         const token = jwt.sign(
@@ -222,7 +236,9 @@ const logout = async (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         // Delete the Session
-        await loginVerificationRepo.delete({sessionID: decoded.sessionID});
+        if(decoded.sessionID) {
+            await loginVerificationRepo.delete({sessionID: decoded.sessionID});
+        }
 
         res.json({message: "Logged Out Succesfully"});
     } catch (err) {

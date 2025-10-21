@@ -3,6 +3,7 @@ const router = express.Router();
 
 const {
     createFocalPerson,
+    approveFocalRegistration,
     getFocalPerson,
     getFocalPersons,
     updateFocalPerson,
@@ -16,6 +17,7 @@ const { uploadFocalPhotos } = require("../middleware/uploadFocalPhotos");
 
 // CRUD
 router.post("/", createFocalPerson);
+router.post("/:id/approve", approveFocalRegistration);
 router.get("/", getFocalPersons);
 router.get("/:id", getFocalPerson);
 router.get("/:id/photo", getFocalPhoto);
