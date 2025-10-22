@@ -11,6 +11,7 @@ const {
 const createDispatcher = async(req, res) => {
     try {
         const {name, email, contactNumber, password} = req.body;
+        const photoFile = req.file || req.files?.photo?.[0];
 
         // Check if the email exists
         const existingEmail = await dispatcherRepo.findOne({ where: {email} });
@@ -50,7 +51,8 @@ const createDispatcher = async(req, res) => {
             contactNumber,
             email,
             password: hashedPassword,
-            createdBy: req.user && req.user.id ? req.user.id : null
+            createdBy: req.user && req.user.id ? req.user.id : null,
+            ...(photoFile?.buffer ? {photo: photoFile.buffer} : {}),
         });
 
         await dispatcherRepo.save(dispatcher);
@@ -60,7 +62,7 @@ const createDispatcher = async(req, res) => {
         await deleteCache("dispatcher:archived");
 
         // Return temporary password only when defaulted to ID
-        const responseBody = { message: "Dispatcher Created", dispatcher };
+        const responseBody = { message: "Dispatcher Created"};
         if (!password) {
             responseBody.temporaryPassword = plainPassword;
         }
@@ -75,56 +77,89 @@ const createDispatcher = async(req, res) => {
 // READ Dispatchers (Exclude Archived)
 const getDispatchers = async (req, res) => {
     try {
-
         const cacheKey = "dispatchers:active";
         const cached = await getCache(cacheKey);
         if (cached) return res.json(cached);
 
-        const dispatchers = await dispatcherRepo.find({where: {archived: false} });
+        const dispatchers = await dispatcherRepo.find({
+            where: { archived: false },
+            select: ["id", "name", "contactNumber", "email", "createdAt"]
+        });
+
         await setCache(cacheKey, dispatchers, 60);
         res.json(dispatchers);
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - READ Dispatcher"});
+        res.status(500).json({ message: "Server Error - READ Dispatcher" });
     }
 };
+
 
 // READ One Dispatcher
 const getDispatcher = async (req, res) => {
     try {
-       const { id } = req.params;
+        const { id } = req.params;
+        const cacheKey = `dispatcher:${id}`;
 
-       const cacheKey = `dispatcher:${id}`;
-       const cached = await getCache(cacheKey);
-       if(cached) return res.json(cached);
+        // Check cache
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
 
-       const dispatcher = await dispatcherRepo.findOne({where: {id} });
-       if (!dispatcher) {
-        return res.status(404).json({message: "Dispatcher Does Not Exist"});
-       }
-       await setCache(cacheKey, dispatcher, 120);
-       res.json(dispatcher);
+        // Fetch dispatcher (all columns)
+        const dispatcher = await dispatcherRepo.findOne({ where: { id } });
+
+        if (!dispatcher) {
+            return res.status(404).json({ message: "Dispatcher Does Not Exist" });
+        }
+
+        // Exclude password field
+        const { password, ...safeData } = dispatcher;
+
+        // Save to cache without password
+        await setCache(cacheKey, safeData, 120);
+
+        // Return the dispatcher (all info except password)
+        res.json(safeData);
+
     } catch (err) {
-        console.error(err)
-        res.status(500).json({message: "Server Error - ONE Dispatcher"});
+        console.error(err);
+        res.status(500).json({ message: "Server Error - ONE Dispatcher" });
     }
 };
+
+
 
 // UPDATE Dispatcher
 const updateDispatcher = async (req, res) => {
     try {
         const { id } = req.params;
-        const {name, email, contactNumber, password} = req.body;
+        const {name, email, contactNumber, password, removePhoto} = req.body || {};
+        const photoFile = req.file || req.files?.photo?.[0];
 
-        const dispatcher = await dispatcherRepo.findOne({where: {id} });
-        if (!dispatcher) {
-            return res.status(404).json({message: "Dispatcher Not Found"});
+        const dispatcher = await dispatcherRepo.findOne({ where: { id } });
+        if (!dispatcher) return res.status(404).json({ message: "Dispatcher Not Found" });
+
+        // Uniqueness checks if changing email/contact
+        if (email && email !== dispatcher.email) {
+            const emailInUse = await dispatcherRepo.findOne({ where: { email } });
+            if (emailInUse) return res.status(409).json({ message: "Email already in use" });
+            dispatcher.email = email;
+        }
+        if (contactNumber && contactNumber !== dispatcher.contactNumber) {
+            const numberInUse = await dispatcherRepo.findOne({ where: { contactNumber } });
+            if (numberInUse) return res.status(409).json({ message: "Contact number already in use" });
+            dispatcher.contactNumber = contactNumber;
         }
 
         if (name) dispatcher.name = name;
-        if (email) dispatcher.email = email;
-        if (contactNumber) dispatcher.contactNumber = contactNumber;
         if (password) dispatcher.password = await bcrypt.hash(password, 10);
+
+        // Photo update: replace if new file; otherwise keep existing
+        if (photoFile?.buffer) {
+          dispatcher.photo = photoFile.buffer;
+        } else if (String(removePhoto).toLowerCase() === "true") {
+            dispatcher.photo = null;
+        }
 
         await dispatcherRepo.save(dispatcher);
 
@@ -133,14 +168,14 @@ const updateDispatcher = async (req, res) => {
         await deleteCache("dispatchers:archived");
         await deleteCache(`dispatcher:${id}`);
 
-        res.json({message: "Dispatcher Updated", dispatcher});
+        res.json({ message: "Dispatcher Updated" });
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - UPDATE Dispatcher"});
+        res.status(500).json({ message: "Server Error - UPDATE Dispatcher" });
     }
 };
 
-// ARCHIVE Dispatcher
+// ARCHIVE/DELETE Dispatcher
 const archiveDispatcher = async (req, res) => {
     try {
         const { id } = req.params;
@@ -169,16 +204,21 @@ const archiveDispatchers = async (req, res) => {
     try {
         const cacheKey = "dispatchers:archived";
         const cached = await getCache(cacheKey);
-        if(cached) return res.json(cached);
+        if (cached) return res.json(cached);
 
-        const archivedDispatchers = await dispatcherRepo.find({where: {archived: true} });
-        await setCache(cacheKey, archivedDispatchers, 120)
+        const archivedDispatchers = await dispatcherRepo.find({
+            where: { archived: true },
+            select: ["id", "name", "contactNumber", "email", "updatedAt"] // using updatedAt instead of archivedAt 
+        });
+
+        await setCache(cacheKey, archivedDispatchers, 120);
         res.json(archivedDispatchers);
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - ARCHIVED Dispatchers"});
+        res.status(500).json({ message: "Server Error - ARCHIVED Dispatchers" });
     }
 };
+
 
 module.exports = {
     createDispatcher,

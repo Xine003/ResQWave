@@ -9,12 +9,15 @@ const {
     archiveDispatchers,
 } = require("../controllers/dispatcherController");
 
+const { uploadSinglePhoto } = require("../middleware/uploadFocalPhotos");
+
+
 // CRUD + Archived
-router.post("/", createDispatcher);
+router.post("/", uploadSinglePhoto, createDispatcher);
 router.get ("/", getDispatchers);
 router.get ("/archived", archiveDispatchers);
 router.get ("/:id", getDispatcher);
-router.put ("/:id", updateDispatcher);
+router.put ("/:id", uploadSinglePhoto, updateDispatcher);
 router.delete ("/:id", archiveDispatcher);
 
 

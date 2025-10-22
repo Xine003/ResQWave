@@ -487,52 +487,42 @@ const updateFocalPerson = async (req, res) => {
 
 // UPDATE Password
 const changePassword = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { currentPassword, newPassword, confirmPassword} = req.body;
+  try {
+    const isSelfRoute = req.path.includes("/me/");
+    const actorId = req.user?.id;
+    if (!actorId) return res.status(401).json({ message: "Unauthorized" });
 
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            return res.json(400).json({message: "Current Password, New Password and Confirm Password cannot be empty."})
-        }
+    const { currentPassword, newPassword } = req.body || {};
+    if (!newPassword) return res.status(400).json({ message: "New password is required" });
 
-        if (newPassword !== confirmPassword) {
-            return res.json(400).json({message: "New Password and Confirm Password are not matched"})
-        }
+    let targetId = actorId;
 
-        // Password Policy
-        const policy = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
-        if (!policy.test(newPassword)) {
-            return res.status(400).json({message: "Password must atleast have 1 Capital, 1 Number and 1 Special Character"});
-        }
-
-        const focalPerson = await focalPersonRepo.findOne({where: {id} });
-        if (!focalPerson) {
-            return res.status(404).json({message: "Focal Person Not Found"});
-        }
-
-        const ok = await bcrypt.compare(currentPassword, focalPerson.password);
-        if (!ok) {
-            return res.status(400).json({message: "Current Password is incorrect."});
-        }
-
-        const same = await bcrypt.compare(newPassword, focalPerson.password);
-        if (same) return res.status(400).json({message: "New Password must be different from current password"});
-
-        focalPerson.password = await bcrypt.hash(newPassword, 10);
-        await focalPersonRepo.save(focalPerson);
-
-        // Invalidate
-        await deleteCache(`focalPerson:${id}`);
-        await deleteCache("focalPersons:all");
-
-        return res.json({message: "Password Updated"});
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({message: "Server Error"});
+    if (!isSelfRoute && req.params?.id) {
+      const role = req.user?.role || "";
+      const isPrivileged = ["admin", "dispatcher"].includes(role.toLowerCase());
+      if (!isPrivileged) return res.status(403).json({ message: "Forbidden" });
+      targetId = req.params.id;
+    } else {
+      if (!currentPassword) return res.status(400).json({ message: "Current password is required" });
     }
-};
 
+    const focal = await focalPersonRepo.findOne({ where: { id: targetId } });
+    if (!focal) return res.status(404).json({ message: "Focal person not found" });
 
+    if (isSelfRoute) {
+      const ok = await bcrypt.compare(String(currentPassword || ""), focal.password || "");
+      if (!ok) return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    const hashed = await bcrypt.hash(String(newPassword), 10);
+    await focalPersonRepo.update({ id: targetId }, { password: hashed });
+
+    return res.json({ message: "Password updated" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error - CHANGE PASSWORD" });
+  }
+}
 
 module.exports = {
     createFocalPerson,

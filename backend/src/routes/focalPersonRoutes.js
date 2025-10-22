@@ -25,6 +25,7 @@ router.get("/:id", getFocalPerson);
 router.get("/:id/photo", getFocalPhoto);
 router.get("/:id/altPhoto", getAlternativeFocalPhoto);
 router.put("/:id", updateFocalPerson);
+router.put("/me/changePassword", changePassword);
 router.put("/:id/changePassword", changePassword);
 router.put("/:id/photos", uploadFocalPhotos, updateFocalPhotos);
 

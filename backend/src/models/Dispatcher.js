@@ -30,6 +30,10 @@ module.exports = new EntitySchema ({
             length: 255,
             nullable: false,
         },
+        photo: {
+            type: "longblob",
+            nullable: true,
+        },
         createdBy: {
             type: "varchar",
             length: 255,

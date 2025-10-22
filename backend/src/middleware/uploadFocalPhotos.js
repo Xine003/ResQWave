@@ -9,12 +9,14 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-module.exports.uploadFocalPhotos = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 2 * 1024 * 1024 },
-}).fields([
+const limits = { fileSize: 2 * 1024 * 1024 };
+
+const uploadFocalPhotos = multer({ storage, fileFilter, limits }).fields([
   { name: "photo", maxCount: 1 },
   { name: "altPhoto", maxCount: 1 },
   { name: "alternativeFPImage", maxCount: 1 },
 ]);
+
+const uploadSinglePhoto = multer({ storage, fileFilter, limits }).single("photo");
+
+module.exports = { uploadFocalPhotos, uploadSinglePhoto };
