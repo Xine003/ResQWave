@@ -42,14 +42,14 @@ export function LandingHeader({ navOpen, setNavOpen }: { navOpen: boolean, setNa
       </div>
       {/* Desktop nav and button */}
       <div className="hidden md:flex  items-center justify-end gap-4">
-        <Button className="bg-gradient-to-b from-[#868686] to-[#5B5B5B] hover:from-[#767676] hover:to-[#4B4B4B] transition-colors
+        <Button className="bg-gradient-to-b from-[#3B82F6] to-[#70A6FF] hover:from-[#2563eb] hover:to-[#60a5fa]  transition-colors
              duration-300 cursor-pointer text-white text-[14px] px-8 py-2 rounded ml-1 font-medium" onClick={() => navigate('/login-focal')}>
           Login
         </Button>
-        <Button className="bg-gradient-to-t from-[#3B82F6] to-[#5898FF] hover:from-[#2563eb] hover:to-[#60a5fa] transition-colors
+        {/* <Button className="bg-gradient-to-t from-[#3B82F6] to-[#5898FF] hover:from-[#2563eb] hover:to-[#60a5fa] transition-colors
             duration-300 cursor-pointer text-white text-[14px] px-6 py-2 rounded ml-1 font-medium" onClick={() => navigate('/register-focal')}>
           Register
-        </Button>
+        </Button> */}
       </div>
       {/* Mobile hamburger */}
       <button
@@ -68,12 +68,12 @@ export function LandingHeader({ navOpen, setNavOpen }: { navOpen: boolean, setNa
             <a href="#impact" className="hover:text-blue-400 transition w-full" onClick={() => setNavOpen(false)}>Impact</a>
             <a href="#faqs" className="hover:text-blue-400 transition w-full" onClick={() => setNavOpen(false)}>FAQs</a>
           </nav>
-          <Button className="bg-gradient-to-b from-[#868686] to-[#5B5B5B] hover:from-[#767676] hover:to-[#4B4B4B] text-white px-8 py-2 rounded w-full cursor-pointer" onClick={() => { setNavOpen(false); navigate('/login-focal'); }}>
+          <Button className="bg-gradient-to-b from-[#3B82F6] to-[#70A6FF] hover:from-[#2563eb] hover:to-[#60a5fa]  text-white px-8 py-2 rounded w-full cursor-pointer" onClick={() => { setNavOpen(false); navigate('/login-focal'); }}>
             Login
           </Button>
-          <Button className="from-[#3B82F6] to-[#70A6FF] hover:from-[#2563eb] hover:to-[#60a5fa] text-white px-6 py-2 rounded w-full cursor-pointer" onClick={() => { setNavOpen(false); navigate('/register-focal'); }}>
+          {/* <Button className="from-[#3B82F6] to-[#70A6FF] hover:from-[#2563eb] hover:to-[#60a5fa] text-white px-6 py-2 rounded w-full cursor-pointer" onClick={() => { setNavOpen(false); navigate('/register-focal'); }}>
             Register
-          </Button>
+          </Button> */}
         </div>
       )}
     </header>

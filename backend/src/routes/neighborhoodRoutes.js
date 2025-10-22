@@ -11,7 +11,7 @@ const {
   getArchivedNeighborhoods,
 } = require("../controllers/neighborhoodController");
 const { requireRole } = require("../middleware/authMiddleware");
-
+const { uploadFocalPhotos } = require("../middleware/uploadFocalPhotos");
 
 // CRUD + Archived 
 router.get("/archived", getArchivedNeighborhoods);
@@ -26,6 +26,12 @@ router.get("/", getNeighborhoods);
 router.get("/:id", getNeighborhood);
 router.put("/:id", updateNeighborhood);
 router.delete("/:id", archivedNeighborhood);
+
+// Upload alternative focal person photo
+router.post("/:id/alt-photo", uploadFocalPhotos, requireRole("focalPerson"), require("../controllers/neighborhoodController").uploadAltFocalPhoto);
+
+// Get alternative focal person photo (returns image blob)
+router.get("/:id/alt-photo", requireRole("focalPerson"), require("../controllers/neighborhoodController").getAltFocalPhoto);
 
 
 module.exports = router;

@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import AccountSettingsModal from "./components/AccountSettingsModal";
 import AboutCommunity from "./components/AboutCommunity";
 import EditAboutCommunity from "./components/EditAboutCommunity";
+import { CommunityDataProvider } from "./context/CommunityDataContext";
 import HistoryCommunity from "./components/HistoryCommunity";
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
@@ -50,11 +51,6 @@ export default function Dashboard() {
     const popoverRef = useRef<typeof popover>(popover);
     useEffect(() => { popoverRef.current = popover; }, [popover]);
 
-    // Alerts are handled by the DashboardAlerts component (centralized)
-
-
-
-    // addCustomLayers moved to utils/mapHelpers and imported above
     useEffect(() => {
         if (!mapContainer.current) return;
         const map = new mapboxgl.Map({
@@ -79,7 +75,6 @@ export default function Dashboard() {
             } catch (e) { }
 
             addCustomLayers(map, otherSignals, OwnCommunitySignal);
-            // Add flood polygons source + layer
             // Add flood polygons source + layer
             try {
 
@@ -123,9 +118,6 @@ export default function Dashboard() {
             } catch (e) {
                 console.warn("[Dashboard] could not add flood polygons sources/layers", e);
             }
-
-
-
 
             // Move signal dot layers above draw layers
             const drawLayerIds = [
@@ -178,16 +170,14 @@ export default function Dashboard() {
 
                         // Show radius overlay for clicked signal
                         const deviceId = f?.properties?.deviceId;
-                        let radius = 5000;
+                        let radius = 70; // Always use hardcoded value
                         let color = '#22c55e';
                         if (deviceId) {
                             if (deviceId === OwnCommunitySignal.properties.deviceId) {
-                                radius = typeof OwnCommunitySignal.radius === 'number' ? OwnCommunitySignal.radius : 5000;
                                 color = '#22c55e';
                             } else {
                                 const found = otherSignals.find(s => s.properties.deviceId === deviceId);
                                 if (found) {
-                                    radius = typeof found.radius === 'number' ? found.radius : 5000;
                                     color = '#6b7280';
                                 }
                             }
@@ -326,11 +316,6 @@ export default function Dashboard() {
                     // ignore
                 }
             });
-            // fly into the area
-            setTimeout(() => {
-                cinematicMapEntrance(map, distressCoord);
-            }, 600);
-
             // Map loaded state
             setMapLoaded(true);
         });
@@ -340,6 +325,21 @@ export default function Dashboard() {
             map.remove();
         };
     }, []);
+
+    // Flyover animation: only trigger when map is loaded and distressCoord is valid (not [0,0])
+    useEffect(() => {
+        if (!mapRef.current || !mapLoaded) return;
+        // Only fly if distressCoord is not [0,0]
+        if (Array.isArray(distressCoord) && (distressCoord[0] !== 0 || distressCoord[1] !== 0)) {
+            cinematicMapEntrance(mapRef.current, distressCoord);
+        }
+    }, [mapLoaded, distressCoord]);
+
+    // Ensure signal layers update when signals change and map is loaded
+    useEffect(() => {
+        if (!mapRef.current || !mapLoaded) return;
+        addCustomLayers(mapRef.current, otherSignals, OwnCommunitySignal);
+    }, [otherSignals, OwnCommunitySignal, mapLoaded]);
 
     // makeTooltip moved to utils/mapHelpers and imported above
 
@@ -661,6 +661,16 @@ export default function Dashboard() {
 
     return (
         <div style={{ minHeight: "100vh", width: "100%", position: "relative", background: "#222", overflow: "hidden" }}>
+            {/* Debug Panel: Shows signal data used in the map */}
+            {/* <div style={{ position: 'fixed', top: 10, right: 10, zIndex: 9999, background: '#18181b', color: '#fff', padding: 16, borderRadius: 8, maxWidth: 420, fontSize: 13, boxShadow: '0 2px 16px rgba(0,0,0,0.18)', opacity: 0.95 }}>
+                <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 15 }}>Debug: Map Signal Data</div>
+                <div style={{ maxHeight: 220, overflow: 'auto', fontFamily: 'monospace', fontSize: 12, background: '#23232a', padding: 8, borderRadius: 6 }}>
+                    <div><b>Own Community Signal:</b></div>
+                    <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', marginBottom: 8 }}>{JSON.stringify(OwnCommunitySignal, null, 2)}</pre>
+                    <div><b>Other Signals:</b></div>
+                    <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(otherSignals, null, 2)}</pre>
+                </div>
+            </div> */}
             <Header
                 editBoundaryOpen={editBoundaryOpen}
                 editAboutOpen={editAboutOpen}
@@ -725,12 +735,14 @@ export default function Dashboard() {
 
             <MapControls mapRef={mapRef} mapLoaded={mapLoaded} makeTooltip={makeTooltip} addCustomLayers={(m) => addCustomLayers(m, otherSignals, OwnCommunitySignal)} editBoundaryOpen={editBoundaryOpen} handleDeleteBoundary={handleDeleteBoundary} />
 
-            <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
 
-            <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(_data: any) => {
-                // show the centered success alert with a custom message
-                try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch (e) { }
-            }} center={aboutCenter} />
+            <CommunityDataProvider>
+                <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
+                <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(_data: any) => {
+                    // show the centered success alert with a custom message
+                    try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch (e) { }
+                }} center={aboutCenter} />
+            </CommunityDataProvider>
 
             <HistoryCommunity open={historyOpen} onClose={() => { setHistoryOpen(false); setActiveTab('community'); }} center={historyCenter} />
 

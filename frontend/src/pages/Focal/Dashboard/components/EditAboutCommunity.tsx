@@ -1,9 +1,9 @@
-import { Button } from '@/components/ui/button';
+// import { Button } from '@/components/ui/button';
 import { DropdownIcon } from '@/components/ui/DropdownIcon';
 
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Input } from '@/components/ui/input';
-import { Trash, Upload, HelpCircle } from 'lucide-react';
+import { Trash, Upload } from 'lucide-react';
 import {
     AlertDialog,
     AlertDialogContent,
@@ -14,7 +14,9 @@ import {
     AlertDialogAction,
     AlertDialogCancel,
 } from '@/components/ui/alert-dialog-focal';
-import useCommunityData from '../hooks/useCommunityData';
+import { useCommunityDataContext } from '../context/CommunityDataContext';
+import { useFocalAuth } from '../../context/focalAuthContext';
+import { apiFetch } from '@/lib/api';
 
 type EditAboutProps = {
     open: boolean;
@@ -78,9 +80,12 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     }, [open]);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+    // Main focal photo (not used for alt focal upload)
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+    // Alt focal photo (for upload and display)
     const [altPhotoUrl, setAltPhotoUrl] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [altPhotoFile, setAltPhotoFile] = useState<File | null>(null);
+    // const fileInputRef = useRef<HTMLInputElement | null>(null);
     const mainFileInputRef = useRef<HTMLInputElement | null>(null);
     // expose imperative method to parent with optional continue callback
     const pendingContinueRef = useRef<(() => void) | null>(null);
@@ -91,7 +96,18 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
         },
     }));
     // community data hook (shared mock store)
-    const { data, setData } = useCommunityData();
+    const { data, refetch } = useCommunityDataContext();
+    const { token } = useFocalAuth();
+
+    // Local state for hazards (checkboxes)
+    const [selectedHazards, setSelectedHazards] = useState<string[]>([]);
+
+    // Keep selectedHazards in sync with backend data when modal opens or data changes
+    useEffect(() => {
+        if (open && Array.isArray(data?.hazards)) {
+            setSelectedHazards(data.hazards);
+        }
+    }, [open, data?.hazards]);
 
     // editable fields (will be initialized from the shared hook when opened)
     const [groupName, setGroupName] = useState('');
@@ -159,28 +175,49 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     useEffect(() => {
         if (!open) return;
         if (!data) return;
-        setGroupName(data.groupName ?? '');
+        setGroupName(data?.groupName ?? '');
         // If value is a string (range), fallback to 0 for number input, dropdown will handle the string
-        setNoOfResidents(typeof data.stats?.noOfResidents === 'number' ? data.stats.noOfResidents : 0);
-        setNoOfHouseholds(typeof data.stats?.noOfHouseholds === 'number' ? data.stats.noOfHouseholds : 0);
-        setOtherInfo(Array.isArray(data.otherInfo) ? data.otherInfo.join('\n') : '');
+        setNoOfResidents(typeof data?.stats?.noOfResidents === 'number' ? data.stats.noOfResidents : 0);
+        setNoOfHouseholds(typeof data?.stats?.noOfHouseholds === 'number' ? data.stats.noOfHouseholds : 0);
+        setOtherInfo(Array.isArray(data?.otherInfo) ? data.otherInfo.join('\n') : '');
 
-        setFocalName(data.focal?.name ?? '');
-        setFocalContact(data.focal?.contact ?? '');
-        setFocalEmail(data.focal?.email ?? '');
-        setFocalAddress(data.address ?? '');
-        setFocalCoordinates(data.coordinates ?? '');
-        setAltFocalName(data.altFocal?.name ?? '');
-        setAltFocalContact(data.altFocal?.contact ?? '');
-        setAltFocalEmail(data.altFocal?.email ?? '');
-        setPhotoUrl(data.focal?.photo ?? null);
-        setAltPhotoUrl(data.altFocal?.photo ?? null);
+        setFocalName(data?.focal?.name ?? '');
+        setFocalContact(data?.focal?.contact ?? '');
+        setFocalEmail(data?.focal?.email ?? '');
+        setFocalAddress(data?.address ?? '');
+        setFocalCoordinates(data?.coordinates ?? '');
+        setAltFocalName(data?.altFocal?.name ?? '');
+        setAltFocalContact(data?.altFocal?.contact ?? '');
+        setAltFocalEmail(data?.altFocal?.email ?? '');
+        setPhotoUrl(data?.focal?.photo ?? null);
+        // Fetch alt focal photo from backend if available
+        if (data?.groupName) {
+            fetchAltFocalPhoto(data.groupName);
+        } else {
+            setAltPhotoUrl(null);
+        }
 
         // Set dropdowns to show data if available
-        setHouseholdsRange(data.stats?.noOfHouseholds ? String(data.stats.noOfHouseholds) : '');
-        setResidentsRange(data.stats?.noOfResidents ? String(data.stats.noOfResidents) : '');
-        setFloodwaterRange(data.floodwaterSubsidenceDuration ?? '');
-    }, [open, data?.stats?.noOfHouseholds, data?.stats?.noOfResidents, data?.floodwaterSubsidenceDuration]);
+        setHouseholdsRange(data?.stats?.noOfHouseholds ? String(data.stats.noOfHouseholds) : '');
+        setResidentsRange(data?.stats?.noOfResidents ? String(data.stats.noOfResidents) : '');
+        setFloodwaterRange(data?.floodwaterSubsidenceDuration ?? '');
+        // Hazards are now synced in a separate effect above
+    }, [open, data?.stats?.noOfHouseholds, data?.stats?.noOfResidents, data?.floodwaterSubsidenceDuration, data?.hazards, data?.groupName]);
+
+    // Fetch alt focal photo from backend
+    const fetchAltFocalPhoto = async (neighborhoodId: string) => {
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/neighborhood/${neighborhoodId}/alt-photo`, {
+                credentials: 'include',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (!res.ok) return setAltPhotoUrl(null);
+            const blob = await res.blob();
+            setAltPhotoUrl(URL.createObjectURL(blob));
+        } catch {
+            setAltPhotoUrl(null);
+        }
+    };
 
     // revoke object URLs when photo changes / on unmount
     useEffect(() => {
@@ -256,7 +293,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                 >
                                     {householdsRange
                                         ? householdsRange
-                                        : (data.stats?.noOfHouseholds ? String(data.stats.noOfHouseholds) : <span style={{ color: '#A3A3A3' }}>Select a range</span>)}
+                                        : (data?.stats?.noOfHouseholds ? String(data.stats.noOfHouseholds) : <span style={{ color: '#A3A3A3' }}>Select a range</span>)}
                                     <span style={{ marginLeft: 8 }}><DropdownIcon open={householdsDropdownOpen} /></span>
                                 </button>
                                 {householdsDropdownOpen && (
@@ -287,7 +324,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                 >
                                     {residentsRange
                                         ? residentsRange
-                                        : (data.stats?.noOfResidents ? String(data.stats.noOfResidents) : <span style={{ color: '#A3A3A3' }}>Select a range</span>)}
+                                        : (data?.stats?.noOfResidents ? String(data.stats.noOfResidents) : <span style={{ color: '#A3A3A3' }}>Select a range</span>)}
                                     <span style={{ marginLeft: 8 }}><DropdownIcon open={residentsDropdownOpen} /></span>
                                 </button>
                                 {residentsDropdownOpen && (
@@ -318,7 +355,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                 >
                                     {floodwaterRange
                                         ? floodwaterRange
-                                        : (data.floodwaterSubsidenceDuration ? data.floodwaterSubsidenceDuration : <span style={{ color: '#A3A3A3' }}>Select a range</span>)}
+                                        : (data?.floodwaterSubsidenceDuration ? data.floodwaterSubsidenceDuration : <span style={{ color: '#A3A3A3' }}>Select a range</span>)}
                                     <span style={{ marginLeft: 8 }}><DropdownIcon open={floodwaterDropdownOpen} /></span>
                                 </button>
                                 {floodwaterDropdownOpen && (
@@ -352,14 +389,24 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                 "Roads become impassable (Hindi madaanan ang mga kalsada)",
                                 "Electrical wires or exposed cables (Mga live o nakalatand na kable ng kuryente)"
                             ].map((hazard, idx) => {
-                                // Check if any hazard in data.hazards is included in this label (case-insensitive, partial match)
-                                const checked = Array.isArray(data.hazards) && data.hazards.some(h => hazard.toLowerCase().includes(h.toLowerCase()) || h.toLowerCase().includes(hazard.toLowerCase()));
+                                // Check if this hazard is selected (case-insensitive)
+                                const checked = selectedHazards.some((h: string) => h.toLowerCase() === hazard.toLowerCase());
                                 return (
                                     <label key={idx} className="flex items-center gap-3 text-white text-base cursor-pointer select-none" style={{ marginBottom: 4 }}>
                                         <input
                                             type="checkbox"
                                             checked={checked}
-                                            readOnly
+                                            onChange={() => {
+                                                setSelectedHazards(prev => {
+                                                    if (checked) {
+                                                        // Remove
+                                                        return prev.filter(h => h.toLowerCase() !== hazard.toLowerCase());
+                                                    } else {
+                                                        // Add
+                                                        return [...prev, hazard];
+                                                    }
+                                                });
+                                            }}
                                             className="sr-only"
                                         />
                                         <span
@@ -392,19 +439,19 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                     <div style={{ marginTop: 15, marginBottom: 10, background: '#fff', color: '#111', padding: '10px 18px', borderRadius: 6, fontSize: 15, fontWeight: 600 }}>Alternative Focal Person</div>
 
 
-                    {photoUrl ? (
+                    {altPhotoUrl ? (
                         <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center' }}>
                             <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
-                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${photoUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
-                                <img src={photoUrl} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${altPhotoUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                                <img src={altPhotoUrl} alt="Alt Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
                                 <button
                                     aria-label="Delete"
                                     onClick={() => {
-                                        // revoke blob URL if needed, then clear
-                                        if (photoUrl && photoUrl.startsWith('blob:')) {
-                                            try { URL.revokeObjectURL(photoUrl); } catch (e) { }
+                                        if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
+                                            try { URL.revokeObjectURL(altPhotoUrl); } catch (e) { }
                                         }
-                                        setPhotoUrl(null);
+                                        setAltPhotoUrl(null);
+                                        setAltPhotoFile(null);
                                     }}
                                     style={{ position: 'absolute', right: 15, bottom: 15, width: 36, height: 36, borderRadius: 1, background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
                                     <Trash size={15} color="red" strokeWidth={3} />
@@ -431,11 +478,11 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                         if (!f) return;
                         try {
                             const url = URL.createObjectURL(f);
-                            // revoke previous blob url if any
-                            if (photoUrl && photoUrl.startsWith('blob:')) {
-                                try { URL.revokeObjectURL(photoUrl); } catch (e) { }
+                            if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
+                                try { URL.revokeObjectURL(altPhotoUrl); } catch (e) { }
                             }
-                            setPhotoUrl(url);
+                            setAltPhotoUrl(url);
+                            setAltPhotoFile(f);
                         } catch (err) { }
                     }} />
 
@@ -447,17 +494,32 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                 <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 30 }}>Name</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ flex: 1, marginTop: 2 }}>
-                        <Input value={altFocalName} style={{ padding: '22px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setAltFocalName(e.target.value)} className="bg-input/10 text-white" />
+                        <Input
+                            value={altFocalName}
+                            style={{ padding: '22px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }}
+                            onChange={e => setAltFocalName(e.target.value)}
+                            className="bg-input/10 text-white"
+                        />
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
                     <div style={{ flex: 1, marginTop: 2 }}>
                         <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 17 }}>Contact Number</div>
-                        <Input value={altFocalContact} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setAltFocalContact(e.target.value)} className="bg-input/10 text-white" />
+                        <Input
+                            value={altFocalContact}
+                            style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }}
+                            onChange={e => setAltFocalContact(e.target.value)}
+                            className="bg-input/10 text-white"
+                        />
                     </div>
                     <div style={{ flex: 1, marginTop: 2 }}>
                         <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 17 }}>Email</div>
-                        <Input value={altFocalEmail} style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }} onChange={(e: any) => setAltFocalEmail(e.target.value)} className="bg-input/10 text-white" />
+                        <Input
+                            value={altFocalEmail}
+                            style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }}
+                            onChange={e => setAltFocalEmail(e.target.value)}
+                            className="bg-input/10 text-white"
+                        />
                     </div>
                 </div>
 
@@ -511,38 +573,52 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                             <AlertDialogCancel onClick={() => setConfirmSaveOpen(false)} className="px-4 py-2 mt-3 bg-[#1b1b1b] text-white border border-[#3E3E3E] cursor-pointer transition duration-175 hover:bg-[#222222]" style={{ borderRadius: 8, fontSize: 15 }}>
                                 Cancel
                             </AlertDialogCancel>
-                            <AlertDialogAction onClick={() => {
-                                // Save the selected dropdown range (string) if set, else fallback to number
-                                const next = {
-                                    ...data,
-                                    groupName: groupName,
-                                    stats: {
-                                        noOfResidents: residentsRange || noOfResidents,
-                                        noOfHouseholds: householdsRange || noOfHouseholds,
-                                    },
-                                    floodwaterSubsidenceDuration: floodwaterRange || data.floodwaterSubsidenceDuration,
-                                    otherInfo: otherInfo.split('\n').filter(line => line.trim() !== ''),
-                                    address: focalAddress,
-                                    coordinates: focalCoordinates,
-                                    focal: {
-                                        name: focalName,
-                                        contact: focalContact,
-                                        email: focalEmail,
-                                        photo: photoUrl,
-                                    },
-                                    altFocal: {
-                                        name: altFocalName,
-                                        contact: altFocalContact,
-                                        email: altFocalEmail,
-                                        photo: altPhotoUrl,
-                                    },
-                                    updatedAt: new Date().toLocaleString(),
-                                };
-                                try { setData(next); } catch (e) { }
-                                onSave?.(next);
-                                setConfirmSaveOpen(false);
-                                onClose();
-                            }} className="px-4 py-2 mt-3  bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] text-white hover:from-[#2563eb] hover:to-[#60a5fa] cursor-pointer transition duration-175" style={{ borderRadius: 8, fontSize: 15 }}>
+                            <AlertDialogAction
+                                onClick={async () => {
+                                    if (!data?.groupName) return;
+                                    try {
+                                        // Compose payload for backend
+                                        const payload = {
+                                            noOfResidents: residentsRange ? residentsRange : (typeof data?.stats?.noOfResidents === 'string' ? data.stats.noOfResidents : ''),
+                                            noOfHouseholds: householdsRange ? householdsRange : (typeof data?.stats?.noOfHouseholds === 'string' ? data.stats.noOfHouseholds : ''),
+                                            floodSubsideHours: floodwaterRange ? floodwaterRange : (typeof data?.floodwaterSubsidenceDuration === 'string' ? data.floodwaterSubsidenceDuration : ''),
+                                            hazards: selectedHazards,
+                                            altFocal: {
+                                                name: altFocalName,
+                                                contact: altFocalContact,
+                                                email: altFocalEmail,
+                                            },
+                                            otherInformation: otherInfo.split('\n').filter(line => line.trim() !== '').join('\n'),
+                                        };
+                                        await apiFetch(`/neighborhood/${data.groupName}`, {
+                                            method: 'PUT',
+                                            body: JSON.stringify(payload),
+                                            headers: {
+                                                'Authorization': token ? `Bearer ${token}` : '',
+                                            },
+                                        });
+                                        // If alt focal photo was changed, upload it
+                                        if (altPhotoFile) {
+                                            const formData = new FormData();
+                                            formData.append('alternativeFPImage', altPhotoFile);
+                                            await fetch(`${import.meta.env.VITE_API_URL}/neighborhood/${data.groupName}/alt-photo`, {
+                                                method: 'POST',
+                                                credentials: 'include',
+                                                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                                                body: formData,
+                                            });
+                                        }
+                                        if (refetch) await refetch();
+                                        onSave?.(payload);
+                                        setConfirmSaveOpen(false);
+                                        onClose();
+                                    } catch (e) {
+                                        alert('Failed to update community info.');
+                                    }
+                                }}
+                                className="px-4 py-2 mt-3  bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] text-white hover:from-[#2563eb] hover:to-[#60a5fa] cursor-pointer transition duration-175"
+                                style={{ borderRadius: 8, fontSize: 15 }}
+                            >
                                 Continue
                             </AlertDialogAction>
                         </AlertDialogFooter>

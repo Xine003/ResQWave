@@ -127,6 +127,7 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
                             />
                         </div>
 
+
                         {/* Action Buttons */}
                         <div className="flex gap-2 mt-4 pointer-events-auto">
                             <button

@@ -9,7 +9,7 @@ export type Signal = {
         date?: string;
         name?: string;
     };
-    radius: number; // meters
+    radius?: number; // meters, optional for flexibility
 };
 
 export type SignalPopover = {

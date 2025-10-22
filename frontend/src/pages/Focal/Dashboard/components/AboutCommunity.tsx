@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useFocalAuth } from '../../context/focalAuthContext';
 import { Expand, Minus, Plus, ZoomOut } from 'lucide-react';
-import useCommunityData from '../hooks/useCommunityData';
+import { useCommunityDataContext } from '../context/CommunityDataContext';
 
 type AboutModalProps = {
     open: boolean;
@@ -11,6 +12,9 @@ type AboutModalProps = {
 };
 
 export default function AboutModal({ open, onClose, onEdit, center = null }: AboutModalProps) {
+    // Alt focal photo blob URL
+    const [altPhotoUrl, setAltPhotoUrl] = useState<string | null>(null);
+
     const ANIM_MS = 220;
     const [mounted, setMounted] = useState<boolean>(open);
     const [visible, setVisible] = useState<boolean>(open);
@@ -29,16 +33,64 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         }
     }, [open]);
 
+
     // viewer hooks must be declared unconditionally to preserve hook order
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerZoom, setViewerZoom] = useState(1);
     const [viewerRotate, setViewerRotate] = useState(0);
 
-    // Always use the latest community data from the hook (ensures About tab updates live)
-    const { data } = useCommunityData();
+
+    // Always use the latest community data from the context (ensures About tab updates live)
+    const { data, loading, error } = useCommunityDataContext();
+    const { token } = useFocalAuth();
+
+    // Fetch alt focal photo from backend when modal opens (must be after 'data' is declared)
+    useEffect(() => {
+        if (!open || !data?.groupName) {
+            setAltPhotoUrl(null);
+            return;
+        }
+        let revoked = false;
+        const fetchAltFocalPhoto = async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/neighborhood/${data.groupName}/alt-photo`, {
+                    credentials: 'include',
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                if (!res.ok) return setAltPhotoUrl(null);
+                const blob = await res.blob();
+                if (revoked) return;
+                setAltPhotoUrl(URL.createObjectURL(blob));
+            } catch {
+                setAltPhotoUrl(null);
+            }
+        };
+        fetchAltFocalPhoto();
+        return () => {
+            revoked = true;
+            if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
+                try { URL.revokeObjectURL(altPhotoUrl); } catch (e) { }
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, data?.groupName, token]);
 
     if (!mounted) return null;
+    if (loading) {
+        return (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 22, fontWeight: 500 }}>
+                Loading community data...
+            </div>
+        );
+    }
+    if (error || !data) {
+        return (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 22, fontWeight: 500 }}>
+                {error || 'Failed to load community data.'}
+            </div>
+        );
+    }
 
     function openViewer(url: string) {
         setViewerUrl(url);
@@ -153,23 +205,22 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                             <div style={{ color: '#fff', fontSize: 15, fontWeight: 400, letterSpacing: 0.6 }}>No. of Households</div>
                             <div style={{ fontWeight: 200, color: '#fff' }}>{
-                                // Show range string if available, else fallback to number or N/A
-                                data.stats && typeof data.stats.noOfHouseholds === 'string' && data.stats.noOfHouseholds
-                                    ? data.stats.noOfHouseholds
-                                    : (data.stats && data.stats.noOfHouseholds !== undefined ? data.stats.noOfHouseholds : 'N/A')
+                                data.stats && data.stats.noOfHouseholds !== undefined && data.stats.noOfHouseholds !== null
+                                    ? String(data.stats.noOfHouseholds)
+                                    : 'N/A'
                             }</div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                             <div style={{ color: '#fff', fontSize: 15, fontWeight: 400, letterSpacing: 0.6 }}>No. of Residents</div>
                             <div style={{ fontWeight: 200, color: '#fff' }}>{
-                                data.stats && typeof data.stats.noOfResidents === 'string' && data.stats.noOfResidents
-                                    ? data.stats.noOfResidents
-                                    : (data.stats && data.stats.noOfResidents !== undefined ? data.stats.noOfResidents : 'N/A')
+                                data.stats && data.stats.noOfResidents !== undefined && data.stats.noOfResidents !== null
+                                    ? String(data.stats.noOfResidents)
+                                    : 'N/A'
                             }</div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 17px', borderBottom: '1px solid rgba(64,64,64)' }}>
                             <div style={{ color: '#fff', fontSize: 15, fontWeight: 400, letterSpacing: 0.6 }}>Floodwater Subsidence Duration</div>
-                            <div style={{ fontWeight: 200, color: '#fff' }}>~ &nbsp;{data.floodwaterSubsidenceDuration ?? 'N/A'}</div>
+                            ~ &nbsp;{data.floodwaterSubsidenceDuration && data.floodwaterSubsidenceDuration.trim() !== '' ? data.floodwaterSubsidenceDuration : 'N/A'}
                         </div>
                     </div>
 
@@ -177,7 +228,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                     <div style={{ background: '#262626', padding: '22px 22px', borderRadius: 6, color: '#fff', border: '1px solid #404040', fontSize: 14, fontWeight: 400 }}>
                         <div style={{ fontWeight: 400, fontSize: 15, marginBottom: 10 }}>Flood-related hazards</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 3 }}>
-                            {data.hazards.map((hazard, idx) => (
+                            {data.hazards.map((hazard: string, idx: number) => (
                                 <span key={idx} style={{ display: 'flex', alignItems: 'center', fontWeight: 400, fontSize: 15 }}>
                                     <span style={{ display: 'inline-block', width: 4, height: 4, borderRadius: '50%', background: '#fff', marginRight: 10, flexShrink: 0 }} />
                                     {hazard}
@@ -189,7 +240,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                     <div style={{ background: '#262626', padding: '22px 22px', borderRadius: 6, color: '#fff', border: '1px solid #404040', fontSize: 14, fontWeight: 400 }}>
                         <div style={{ fontWeight: 400, fontSize: 15, marginBottom: 10 }}>Other notable information</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 3 }}>
-                            {data.otherInfo.map((info, idx) => (
+                            {data.otherInfo.map((info: string, idx: number) => (
                                 <span key={idx} style={{ display: 'flex', alignItems: 'center', fontWeight: 400, fontSize: 15 }}>
                                     <span style={{ display: 'inline-block', width: 4, height: 4, borderRadius: '50%', background: '#fff', marginRight: 10, flexShrink: 0 }} />
                                     {info}
@@ -254,14 +305,14 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
 
                 {/* altPhoto */}
 
-                {data?.altFocal?.photo ? (
+                {altPhotoUrl ? (
                     <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center', marginTop: 25 }}>
                         <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
-                            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${data.altFocal.photo})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
-                            <img src={data.altFocal.photo || ''} alt="Alt Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${altPhotoUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                            <img src={altPhotoUrl} alt="Alt Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
                             <button
                                 aria-label="Expand"
-                                onClick={() => openViewer(data.altFocal.photo!)}
+                                onClick={() => openViewer(altPhotoUrl)}
                                 style={{
                                     position: 'absolute',
                                     right: 15,

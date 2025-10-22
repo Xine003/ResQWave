@@ -20,15 +20,18 @@ module.exports = new EntitySchema({
             nullable: true
         },
         noOfHouseholds: {
-            type: Number,
+            type: "varchar",
+            length: 32,
             nullable: false
         },
         noOfResidents: {
-            type: Number,
+            type: "varchar",
+            length: 32,
             nullable: false,
         },
         floodSubsideHours: {
-            type: Number,
+            type: "varchar",
+            length: 32,
             nullable: true
         },
         hazards: {
