@@ -12,12 +12,19 @@ const focalRepo = AppDataSource.getRepository("FocalPerson"); // ensure focalLog
 // Registration
 const register = async (req, res) => {
     try {
-        const { name, password } = req.body;
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({ message: "Name, email, and password are required" });
+        }
 
         // check if already exists
-        const existingAdmin = await adminRepo.findOne({ where: { name } });
+        const existingAdmin = await adminRepo.findOne({ where: [
+            { name },
+            { email }
+        ] });
         if (existingAdmin) {
-            return res.status(400).json({ message: "Admin already exist" });
+            return res.status(400).json({ message: "Admin with this name or email already exists" });
         }
 
         // Get the last admin
@@ -40,6 +47,7 @@ const register = async (req, res) => {
         const newAdmin = adminRepo.create({
             id: newID,
             name,
+            email,
             password: hashedPassword,
         });
 
@@ -143,7 +151,7 @@ const adminDispatcherLogin = async (req, res) => {
     if (admin && await bcrypt.compare(password, admin.password || "")) {
       role = "admin";
       user = admin;
-      recipientEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+      recipientEmail = admin.email;
     }
 
     // If not admin, try Dispatcher by email or contactNumber
@@ -237,23 +245,38 @@ const adminDispatcherVerify = async (req, res) => {
     // Cleanup used OTP
     await loginVerificationRepo.delete({ userID: decoded.id, userType: decoded.role, code });
 
-    // Build name for JWT
-    let name = "User";
+    // Get user data for response
+    let userData = null;
     if (decoded.role === "admin") {
       const admin = await adminRepo.findOne({ where: { id: decoded.id } });
-      name = admin?.name || "Admin";
+      userData = {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: "admin"
+      };
     } else {
       const dispatcher = await dispatcherRepo.findOne({ where: { id: decoded.id } });
-      name = dispatcher?.name || "Dispatcher";
+      userData = {
+        id: dispatcher.id,
+        name: dispatcher.name,
+        email: dispatcher.email,
+        phoneNumber: dispatcher.phoneNumber,
+        role: "dispatcher"
+      };
     }
 
     const token = jwt.sign(
-      { id: decoded.id, role: decoded.role, name, sessionID },
+      { id: decoded.id, role: decoded.role, name: userData.name, sessionID },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    return res.json({ message: "Login successful", token });
+    return res.json({ 
+      message: "Login successful", 
+      token,
+      user: userData
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server Error - VERIFY 2FA" });

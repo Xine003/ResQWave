@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { RefreshCcw, Trash, Upload } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
-import type { DispatcherDetails, DispatcherDrawerProps } from "../types"
+import type { DispatcherDetails, DispatcherDrawerProps, DispatcherFormData } from "../types"
 import { CloseCreateDialog } from "./CloseCreateDialog"
 
 interface FormData {
@@ -31,7 +31,8 @@ export function CreateDispatcherSheet({
   onOpenChange, 
   onSave, 
   editData, 
-  isEditing = false 
+  isEditing = false,
+  saving = false
 }: DispatcherDrawerProps) {
   const [formData, setFormData] = useState<FormData>({
     photo: null,
@@ -303,7 +304,16 @@ export function CreateDispatcherSheet({
       photo: photoPreview || (isEditing && editData ? editData.photo : undefined),
     }
 
-    onSave?.(dispatcherData)
+    // Prepare raw form data for API calls
+    const rawFormData: DispatcherFormData = {
+      name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+      email: formData.email.trim(),
+      contactNumber: formData.contactNumber.trim(),
+      password: formData.password.trim() || undefined, // Don't send empty password
+      photo: formData.photo || undefined,
+    }
+
+    onSave?.(dispatcherData, rawFormData)
     setIsDirty(false)
     onOpenChange(false)
   }, [formData, isEditing, editData, onSave, onOpenChange, photoPreview, validateContactNumber, validateEmail, validatePassword, validateConfirmPassword])
@@ -563,14 +573,17 @@ export function CreateDispatcherSheet({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={!isFormValid()}
-                className={`flex-1 text-white rounded-[5px] transition-colors ${
-                  isFormValid() 
+                disabled={!isFormValid() || saving}
+                className={`flex-1 text-white rounded-[5px] transition-colors flex items-center gap-2 ${
+                  isFormValid() && !saving
                     ? "bg-[#4285f4] hover:bg-[#3367d6] cursor-pointer" 
                     : "bg-gray-500 cursor-not-allowed opacity-50"
                 }`}
               >
-                {isEditing ? "Update" : "Save"}
+                {saving && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                )}
+                {saving ? "Saving..." : (isEditing ? "Update" : "Save")}
               </Button>
             </div>
           </div>

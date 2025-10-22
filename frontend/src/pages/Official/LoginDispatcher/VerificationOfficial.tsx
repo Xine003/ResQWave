@@ -1,33 +1,33 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ForgotPasswordVerification } from "./components/forgotPasswordVerification";
 
 export function VerificationOfficial() {
     const navigate = useNavigate();
+    const { verifyLogin } = useAuth();
     const [code, setCode] = useState("");
     const [error, setError] = useState("");
     const [isVerifying, setIsVerifying] = useState(false);
 
-    // Mockup verification code for testing
-    const CORRECT_CODE = "000000";
-
-    function handleVerify(e: React.FormEvent) {
+    async function handleVerify(e: React.FormEvent) {
         e.preventDefault();
         if (code.length < 6) {
             setError("Please enter the complete verification code.");
             return;
         }
+        
         setIsVerifying(true);
-        setTimeout(() => {
-            setIsVerifying(false);
-            if (code === CORRECT_CODE) {
-                // Successful verification - navigate to visualization
+        try {
+            const success = await verifyLogin(code);
+            if (success) {
                 navigate("/visualization");
-            } else {
-                // Invalid verification code
-                setError("Invalid verification code. Please try again.");
             }
-        }, 1200);
+        } catch (error: any) {
+            setError(error.message || "Invalid verification code. Please try again.");
+        } finally {
+            setIsVerifying(false);
+        }
     }
 
     return (
@@ -35,7 +35,7 @@ export function VerificationOfficial() {
             code={code}
             error={error}
             isVerifying={isVerifying}
-            onCodeChange={val => {
+            onCodeChange={(val: string) => {
                 setCode(val);
                 if (error) setError("");
             }}

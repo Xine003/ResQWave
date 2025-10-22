@@ -7,8 +7,8 @@ import { createColumns, type Dispatcher } from "./components/Column"
 import { CreateDispatcherSheet } from "./components/CreateDispatcherSheet"
 import { DataTable } from "./components/DataTable"
 import { DispatcherInfoSheet } from "./components/DispatcherInfoSheet"
-import { predefinedDispatcherDetails, predefinedDispatchers } from "./data/predefinedDispatchers"
-import type { DispatcherDetails } from "./types"
+import { useDispatchers } from "./hooks/useDispatchers"
+import type { DispatcherDetails, DispatcherFormData } from "./types"
 
 // Create archived columns for the archived tab
 const makeArchivedColumns = (
@@ -75,24 +75,50 @@ const makeArchivedColumns = (
   })
 
 export function Dispatchers() {
+  // Use the custom hook for dispatcher data
+  const {
+    activeDispatchers,
+    archivedDispatchers,
+    infoById,
+    loading,
+    error,
+    archiveDispatcherById,
+    createNewDispatcher,
+    deleteDispatcherPermanentlyById,
+    refreshData,
+    fetchDispatcherDetails,
+    setActiveDispatchers,
+    setArchivedDispatchers,
+    setInfoById,
+  } = useDispatchers()
+
+  // Local UI state
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active")
   const [infoOpen, setInfoOpen] = useState(false)
   const [selectedInfoData, setSelectedInfoData] = useState<DispatcherDetails | undefined>(undefined)
-  const [activeDispatchers, setActiveDispatchers] = useState<Dispatcher[]>(predefinedDispatchers)
-  const [archivedDispatchers, setArchivedDispatchers] = useState<Dispatcher[]>([])
-  const [infoById, setInfoById] = useState<Record<string, DispatcherDetails>>(predefinedDispatcherDetails)
   const [searchVisible, setSearchVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingDispatcher, setEditingDispatcher] = useState<Dispatcher | null>(null)
   const [editData, setEditData] = useState<DispatcherDetails | undefined>(undefined)
 
-  const handleMoreInfo = useCallback((dispatcher: Dispatcher) => {
-    const detailed = infoById[dispatcher.id]
-    if (detailed) {
-      setSelectedInfoData(detailed)
-    } else {
-      // Fallback mapping if detailed info is not available
+  const handleMoreInfo = useCallback(async (dispatcher: Dispatcher) => {
+    // Always fetch fresh data from API to get the photo
+    try {
+      const fetchedDetails = await fetchDispatcherDetails(dispatcher.id)
+      if (fetchedDetails) {
+        setSelectedInfoData(fetchedDetails)
+      } else {
+        setSelectedInfoData({
+          id: dispatcher.id,
+          name: dispatcher.name,
+          contactNumber: dispatcher.contactNumber,
+          email: dispatcher.email,
+          createdAt: dispatcher.createdAt,
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching dispatcher details:', error)
       setSelectedInfoData({
         id: dispatcher.id,
         name: dispatcher.name,
@@ -101,26 +127,50 @@ export function Dispatchers() {
         createdAt: dispatcher.createdAt,
       })
     }
+    
     setInfoOpen(true)
-  }, [infoById])
+  }, [fetchDispatcherDetails])
 
-  const handleArchive = useCallback((dispatcher: Dispatcher) => {
-    setActiveDispatchers((prev) => prev.filter((d) => d.id !== dispatcher.id))
-    setArchivedDispatchers((prev) => [dispatcher, ...prev])
-  }, [])
+  const handleArchive = useCallback(async (dispatcher: Dispatcher) => {
+    try {
+      // Call the backend API to archive the dispatcher
+      await archiveDispatcherById(dispatcher.id)
+      
+      // Switch to archive tab to show the archived dispatcher
+      setActiveTab("archived")
+      
+      console.log(`Dispatcher ${dispatcher.name} archived successfully`)
+    } catch (error) {
+      console.error('Failed to archive dispatcher:', error)
+      // Handle error (could show toast notification)
+    }
+  }, [archiveDispatcherById])
 
-  const handleRestore = useCallback((dispatcher: Dispatcher) => {
+  const handleRestore = useCallback(async (dispatcher: Dispatcher) => {
+    // TODO: Implement API call to restore dispatcher (update archived status)
+    // For now, do optimistic update
     setArchivedDispatchers((prev) => prev.filter((d) => d.id !== dispatcher.id))
     setActiveDispatchers((prev) => [dispatcher, ...prev])
-  }, [])
+  }, [setArchivedDispatchers, setActiveDispatchers])
 
-  const handleDeletePermanent = useCallback((dispatcher: Dispatcher) => {
-    setArchivedDispatchers((prev) => prev.filter((d) => d.id !== dispatcher.id))
-    setInfoById((prev) => {
-      const { [dispatcher.id]: _omit, ...rest } = prev
-      return rest
-    })
-  }, [])
+  const handleDeletePermanent = useCallback(async (dispatcher: Dispatcher) => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete dispatcher "${dispatcher.name}"?\n\nThis action cannot be undone.`
+    )
+    
+    if (!confirmed) return
+    
+    try {
+      // Call the backend API to permanently delete the dispatcher
+      await deleteDispatcherPermanentlyById(dispatcher.id)
+      
+      console.log(`Dispatcher ${dispatcher.name} permanently deleted successfully`)
+    } catch (error) {
+      console.error('Failed to permanently delete dispatcher:', error)
+      // Handle error (could show toast notification)
+    }
+  }, [deleteDispatcherPermanentlyById])
 
   const handleEdit = useCallback((dispatcher: Dispatcher) => {
     setEditingDispatcher(dispatcher)
@@ -159,49 +209,100 @@ export function Dispatchers() {
   const tableData = activeTab === "active" ? filteredActiveDispatchers : filteredArchivedDispatchers
   const tableColumns = activeTab === "active" ? activeColumns : archivedColumns
 
-  const handleSaveDispatcher = useCallback((dispatcherData: DispatcherDetails) => {
-    if (editingDispatcher) {
-      // Update existing dispatcher
-      const updatedRow: Dispatcher = {
-        ...editingDispatcher,
-        name: dispatcherData.name,
-        contactNumber: dispatcherData.contactNumber,
-        email: dispatcherData.email,
+  const [saving, setSaving] = useState(false)
+
+  const handleSaveDispatcher = useCallback(async (dispatcherData: DispatcherDetails, formData?: DispatcherFormData) => {
+    setSaving(true)
+    
+    try {
+      if (editingDispatcher) {
+        // TODO: Implement update dispatcher API call
+        // Update existing dispatcher
+        const updatedRow: Dispatcher = {
+          ...editingDispatcher,
+          name: dispatcherData.name,
+          contactNumber: dispatcherData.contactNumber,
+          email: dispatcherData.email,
+        }
+        
+        // Update in the appropriate list (active or archived)
+        setActiveDispatchers((prev) => 
+          prev.map((dispatcher) => dispatcher.id === editingDispatcher.id ? updatedRow : dispatcher)
+        )
+        setArchivedDispatchers((prev) => 
+          prev.map((dispatcher) => dispatcher.id === editingDispatcher.id ? updatedRow : dispatcher)
+        )
+        
+        // Update detailed info including photo
+        setInfoById((prev) => ({ ...prev, [editingDispatcher.id]: dispatcherData }))
+        
+        // Clear edit state
+        setEditingDispatcher(null)
+        setEditData(undefined)
+      } else {
+        // Create new dispatcher using raw form data
+        if (!formData) {
+          throw new Error('Form data is required for creating a new dispatcher')
+        }
+        
+        const result = await createNewDispatcher({
+          name: formData.name,
+          email: formData.email,
+          contactNumber: formData.contactNumber,
+          password: formData.password, // Pass the password if provided
+          photo: formData.photo
+        })
+        
+        // Show success message if temporary password was generated
+        if (result.temporaryPassword) {
+          alert(`Dispatcher created successfully!\nTemporary password: ${result.temporaryPassword}\nPlease save this password and share it with the dispatcher.`)
+        } else {
+          alert('Dispatcher created successfully!')
+        }
       }
-      
-      // Update in the appropriate list (active or archived)
-      setActiveDispatchers((prev) => 
-        prev.map((dispatcher) => dispatcher.id === editingDispatcher.id ? updatedRow : dispatcher)
-      )
-      setArchivedDispatchers((prev) => 
-        prev.map((dispatcher) => dispatcher.id === editingDispatcher.id ? updatedRow : dispatcher)
-      )
-      
-      // Update detailed info including photo
-      setInfoById((prev) => ({ ...prev, [editingDispatcher.id]: dispatcherData }))
-      
-      // Clear edit state
-      setEditingDispatcher(null)
-      setEditData(undefined)
-    } else {
-      // Add new dispatcher
-      const newId = `CG-${Date.now()}`
-      const row: Dispatcher = {
-        id: newId,
-        name: dispatcherData.name,
-        contactNumber: dispatcherData.contactNumber,
-        email: dispatcherData.email,
-        createdAt: new Date().toLocaleDateString(),
-      }
-      setActiveDispatchers((prev) => [row, ...prev])
-      const fullInfo = { ...dispatcherData, id: newId }
-      setInfoById((prev) => ({ ...prev, [newId]: fullInfo }))
+    } catch (err) {
+      console.error('Error saving dispatcher:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save dispatcher'
+      alert(`Error: ${errorMessage}`)
+    } finally {
+      setSaving(false)
     }
-  }, [editingDispatcher])
+  }, [editingDispatcher, createNewDispatcher, setActiveDispatchers, setArchivedDispatchers, setInfoById])
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col h-[calc(100vh-73px)] items-center justify-center">
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          <p className="text-lg">Loading dispatchers...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col h-[calc(100vh-73px)]">
       <div className="w-full max-w-9xl mx-auto flex-1 flex flex-col min-h-0">
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-900/20 border border-red-800 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.99-.833-2.76 0L3.054 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span className="text-red-400">Error: {error}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshData}
+              className="text-red-400 hover:text-red-300 hover:bg-red-900/30"
+            >
+              Retry
+            </Button>
+          </div>
+        )}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
             <h1 className="text-2xl font-semibold text-white">Dispatchers</h1>
@@ -262,6 +363,22 @@ export function Dispatchers() {
               </svg>
             </Button>
             <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-[#a1a1a1] hover:text-white hover:bg-[#262626]"
+              onClick={refreshData}
+              title="Refresh data"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0V9a8.002 8.002 0 0115.356 2M4.582 9H9M15 15v5h.582m0-5.582A8.001 8.001 0 0019.418 15M15 20.582V15a8.002 8.002 0 00-4.418-7.164"
+                />
+              </svg>
+            </Button>
+            <Button 
               onClick={() => {
                 setEditingDispatcher(null)
                 setEditData(undefined)
@@ -297,16 +414,19 @@ export function Dispatchers() {
       <CreateDispatcherSheet
         open={drawerOpen}
         onOpenChange={(open: boolean) => {
-          setDrawerOpen(open)
-          if (!open) {
-            // Clear edit state when closing
-            setEditingDispatcher(null)
-            setEditData(undefined)
+          if (!saving) { // Prevent closing while saving
+            setDrawerOpen(open)
+            if (!open) {
+              // Clear edit state when closing
+              setEditingDispatcher(null)
+              setEditData(undefined)
+            }
           }
         }}
         editData={editData}
         isEditing={!!editingDispatcher}
         onSave={handleSaveDispatcher}
+        saving={saving}
       />
     </div>
   )
