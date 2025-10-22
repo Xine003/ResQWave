@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip-white";
 import { useAuth } from "@/contexts/AuthContext";
-import { ClipboardCheck, Radio, UserCog, Users } from "lucide-react";
+import { ClipboardCheck, Radio, RadioReceiver, UserCog, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SettingsPopover from "./settingsPopover";
 import resqwave_logo from "/Landing/resqwave_logo.png";
@@ -28,6 +28,11 @@ const adminOnlyItems = [
     icon: UserCog,
     label: "Dispatchers",
     path: "/dispatchers",
+  },
+  {
+    icon: RadioReceiver,
+    label: "Terminal",
+    path: "/terminal",
   },
 ];
 
