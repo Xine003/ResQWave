@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+
 import { Eye, ChevronDown, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -41,6 +42,9 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
     const [selectedType, setSelectedType] = useState<string>('All Types');
     const [monthOpen, setMonthOpen] = useState(false);
     const [yearOpen, setYearOpen] = useState(false);
+    // State to control PDF modal
+    const [pdfOpen, setPdfOpen] = useState(false);
+    // Optionally, you could store the PDF path or report id if needed for dynamic PDFs
     const [typeOpen, setTypeOpen] = useState(false);
     const monthRef = useRef<HTMLButtonElement | null>(null);
     const yearRef = useRef<HTMLButtonElement | null>(null);
@@ -181,232 +185,275 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
     };
 
     return (
-        <div style={overlayStyle}>
-            <div style={animatedModalStyle}>
-                <style>{`
+        <>
+            <div style={overlayStyle}>
+                <div style={animatedModalStyle}>
+                    <style>{`
                     .history-modal-list::-webkit-scrollbar{display:none;} 
                     .history-modal-list{ -webkit-overflow-scrolling: touch; }
                     .history-group-body{ -webkit-overflow-scrolling: touch; }
                 `}</style>
-                <button
-                    onClick={onClose}
-                    aria-label="Close"
-                    style={{
-                        position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18,
-                        cursor: 'pointer', transition: 'color 0.18s, transform 0.18s',
-                    }}
-                    onMouseEnter={e => {
-                        e.currentTarget.style.color = '#fff';
-                        e.currentTarget.style.transform = 'scale(1.01)';
-                    }}
-                    onMouseLeave={e => {
-                        e.currentTarget.style.color = '#BABABA';
-                        e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                >
-                    ✕
-                </button>
+                    <button
+                        onClick={onClose}
+                        aria-label="Close"
+                        style={{
+                            position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18,
+                            cursor: 'pointer', transition: 'color 0.18s, transform 0.18s',
+                        }}
+                        onMouseEnter={e => {
+                            e.currentTarget.style.color = '#fff';
+                            e.currentTarget.style.transform = 'scale(1.01)';
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.color = '#BABABA';
+                            e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                    >
+                        ✕
+                    </button>
 
-                {/* Header */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, zIndex: 2 }}>
-                    <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: 0.6 }}>History</h2>
-                    <div style={{ color: '#fff', fontSize: 13, fontWeight: 300 }}>View Documented Emergency Reports for Your Community</div>
-                </div>
-
-                {/* Controls: search + filters */}
-                <div style={{ marginTop: 18, display: 'flex', gap: 12, alignItems: 'center', zIndex: 2 }}>
-                    <div style={{ position: 'relative', flex: 2 }}>
-                        <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#8b8b8b' }} />
-                        <Input
-                            value={query}
-                            onChange={(e) => setQuery((e.target as HTMLInputElement).value)}
-                            placeholder="Search Reports by ID"
-                            className="w-full bg-[#262626] border-[#404040] text-[#BABABA] placeholder:text-[#BABABA] placeholder:font-light pl-10 pr-3 py-5 rounded-md"
-                        />
+                    {/* Header */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, zIndex: 2 }}>
+                        <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: 0.6 }}>History</h2>
+                        <div style={{ color: '#fff', fontSize: 13, fontWeight: 300 }}>View Documented Emergency Reports for Your Community</div>
                     </div>
-                    <DropdownMenu open={monthOpen} onOpenChange={(v) => handleOpenChange(v, monthRef, setMonthOpen)}>
-                        <DropdownMenuTrigger asChild>
-                            <button
-                                ref={monthRef}
-                                className="flex items-center justify-between min-w-[100px] gap-2 px-3 py-[9px] rounded-md bg-[#262626] border border-[#404040] text-[#cfcfcf] hover:bg-[#313131] hover:border-[#6b7280] transition-colors cursor-pointer"
-                                aria-label="Select month"
-                                style={{ outline: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
-                            >
-                                <span style={{ fontSize: 14, fontWeight: 500 }}>{selectedMonth}</span>
-                                <ChevronDown size={16} style={{ color: '#8b8b8b', transform: monthOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 160ms' }} />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent style={{ minWidth: "100px" }} className="z-[99999] bg-[#171717] border border-[#2b2b2b] text-[#cfcfcf]">
-                            {months.map((m) => (
-                                <DropdownMenuItem key={m} onClick={() => { setSelectedMonth(m); setMonthOpen(false); }}>{m}</DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
 
-                    <DropdownMenu open={yearOpen} onOpenChange={(v) => handleOpenChange(v, yearRef, setYearOpen)}>
-                        <DropdownMenuTrigger asChild>
-                            <button
-                                ref={yearRef}
-                                className="flex items-center justify-between min-w-[80px] gap-2 px-3 py-[9px] rounded-md bg-[#262626] border border-[#404040] text-[#cfcfcf] hover:bg-[#313131] hover:border-[#6b7280] transition-colors cursor-pointer"
-                                aria-label="Select year"
-                                style={{ outline: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
-                            >
-                                <span style={{ fontSize: 14, fontWeight: 500 }}>{selectedYear}</span>
-                                <ChevronDown size={16} style={{ color: '#8b8b8b', transform: yearOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 160ms' }} />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent style={{ minWidth: "80px" }} className="z-[99999] bg-[#171717] border border-[#2b2b2b] text-[#cfcfcf]">
-                            {years.map((y) => (
-                                <DropdownMenuItem key={y} onClick={() => { setSelectedYear(y); setYearOpen(false); }}>{y}</DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <DropdownMenu open={typeOpen} onOpenChange={(v) => handleOpenChange(v, typeRef, setTypeOpen)}>
-                        <DropdownMenuTrigger asChild>
-                            <button
-                                ref={typeRef}
-                                className="flex items-center justify-between min-w-[110px] gap-2 px-3 py-[9px] rounded-md bg-[#262626] border border-[#404040] text-[#cfcfcf] hover:bg-[#313131] hover:border-[#6b7280] transition-colors cursor-pointer"
-                                aria-label="Select type"
-                                style={{ outline: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
-                            >
-                                <span style={{ fontSize: 14, fontWeight: 500 }}>{selectedType}</span>
-                                <ChevronDown size={16} style={{ color: '#8b8b8b', transform: typeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 160ms' }} />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent style={{ minWidth: "110px" }} className="z-[99999] bg-[#171717] border border-[#2b2b2b] text-[#cfcfcf]">
-                            {types.map((t) => (
-                                <DropdownMenuItem key={t} onClick={() => { setSelectedType(t); setTypeOpen(false); }}>{t}</DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-
-                {/* Scrollable data list - only this area scrolls */}
-                <div
-                    className="history-modal-list"
-                    style={{
-                        marginTop: 18,
-                        display: 'grid',
-                        gap: 12,
-                        overflowY: 'auto',
-                        // subtract estimated header + controls + padding: adjust if you change paddings
-                        maxHeight: 'calc(85vh - 260px)',
-                        // hide scrollbars where possible (Firefox/IE)
-                        scrollbarWidth: 'none',
-                        msOverflowStyle: 'none',
-                        paddingRight: 6,
-                    }}
-                >
-                    {groupedReports.length === 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 36, gap: 12, color: '#cfcfcf' }}>
-                            <Search size={36} color="#8b8b8b" />
-                            <div style={{ fontWeight: 700, fontSize: 18, marginTop: 6, color: '#fff' }}>No history yet</div>
-                            <div style={{ fontSize: 13, maxWidth: 420, textAlign: 'center', color: '#cfcfcf' }}>There are no documented emergency reports for your community. Try widening the date range or clearing filters.</div>
-                            <button
-                                onClick={() => resetFilters()}
-                                style={{ marginTop: 12, padding: '8px 14px', borderRadius: 6, background: '#262626', color: '#fff', border: '1px solid #404040', cursor: 'pointer' }}
-                            >
-                                Clear filters
-                            </button>
+                    {/* Controls: search + filters */}
+                    <div style={{ marginTop: 18, display: 'flex', gap: 12, alignItems: 'center', zIndex: 2 }}>
+                        <div style={{ position: 'relative', flex: 2 }}>
+                            <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#8b8b8b' }} />
+                            <Input
+                                value={query}
+                                onChange={(e) => setQuery((e.target as HTMLInputElement).value)}
+                                placeholder="Search Reports by ID"
+                                className="w-full bg-[#262626] border-[#404040] text-[#BABABA] placeholder:text-[#BABABA] placeholder:font-light pl-10 pr-3 py-5 rounded-md"
+                            />
                         </div>
-                    ) : groupedReports.map((group) => {
-                        const expanded = !!expandedMap[group.monthLabel];
-                        return (
-                            <div key={group.monthLabel} style={{ display: 'grid', gap: 10 }}>
-                                {/* Month header as full-width white pill */}
+                        <DropdownMenu open={monthOpen} onOpenChange={(v) => handleOpenChange(v, monthRef, setMonthOpen)}>
+                            <DropdownMenuTrigger asChild>
                                 <button
-                                    onClick={() => setExpandedMap(prev => ({ ...prev, [group.monthLabel]: !prev[group.monthLabel] }))}
-                                    aria-expanded={expanded}
-                                    aria-label={expanded ? 'Collapse month' : 'Expand month'}
-                                    style={{
-                                        width: '100%',
-                                        background: '#ffffff',
-                                        color: '#111111',
-                                        padding: '9px 16px',
-                                        borderRadius: 6,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        border: '1px solid rgba(0,0,0,0.08)',
-                                        cursor: 'pointer'
-                                    }}
+                                    ref={monthRef}
+                                    className="flex items-center justify-between min-w-[100px] gap-2 px-3 py-[9px] rounded-md bg-[#262626] border border-[#404040] text-[#cfcfcf] hover:bg-[#313131] hover:border-[#6b7280] transition-colors cursor-pointer"
+                                    aria-label="Select month"
+                                    style={{ outline: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontWeight: 600, fontSize: 15.7 }}>
-                                        <span>{group.monthLabel}</span>
-                                        <span style={{ background: '#111111', color: '#fff', borderRadius: 999, padding: '1px 11px', fontSize: 12 }}>{group.count}</span>
-                                    </div>
-                                    <ChevronDown size={18} style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 160ms', color: '#111' }} />
+                                    <span style={{ fontSize: 14, fontWeight: 500 }}>{selectedMonth}</span>
+                                    <ChevronDown size={16} style={{ color: '#8b8b8b', transform: monthOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 160ms' }} />
                                 </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent style={{ minWidth: "100px" }} className="z-[99999] bg-[#171717] border border-[#2b2b2b] text-[#cfcfcf]">
+                                {months.map((m) => (
+                                    <DropdownMenuItem key={m} onClick={() => { setSelectedMonth(m); setMonthOpen(false); }}>{m}</DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
-                                <div
-                                    className="history-group-body"
-                                    style={{
-                                        marginTop: expanded ? 8 : 0,
-                                        display: 'grid',
-                                        gap: 12,
-                                        overflow: 'hidden',
-                                        maxHeight: expanded ? '2000px' : '0px',
-                                        transition: 'max-height 260ms cubic-bezier(.2,.9,.2,1), opacity 240ms ease, transform 240ms ease, margin-top 240ms ease',
-                                        opacity: expanded ? 1 : 0,
-                                        transform: expanded ? 'translateY(0)' : 'translateY(-6px)'
-                                    }}
+                        <DropdownMenu open={yearOpen} onOpenChange={(v) => handleOpenChange(v, yearRef, setYearOpen)}>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    ref={yearRef}
+                                    className="flex items-center justify-between min-w-[80px] gap-2 px-3 py-[9px] rounded-md bg-[#262626] border border-[#404040] text-[#cfcfcf] hover:bg-[#313131] hover:border-[#6b7280] transition-colors cursor-pointer"
+                                    aria-label="Select year"
+                                    style={{ outline: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
                                 >
-                                    {group.items.map((r) => (
-                                        <div
-                                            key={r.id}
-                                            style={{
-                                                background: '#262626', color: '#fff', padding: '14px 16px', borderRadius: 6, display: 'flex', justifyContent: 'space-between',
-                                                alignItems: 'center', border: '1px solid #404040', transition: 'background 0.18s, border-color 0.18s',
-                                            }}
-                                            onMouseEnter={e => {
-                                                e.currentTarget.style.background = '#313131';
-                                                e.currentTarget.style.borderColor = '#6b7280'; // lighter gray
-                                            }}
-                                            onMouseLeave={e => {
-                                                e.currentTarget.style.background = '#262626';
-                                                e.currentTarget.style.borderColor = '#404040';
-                                            }}
-                                        >
-                                            <div>
-                                                <div style={{ fontWeight: 400, letterSpacing: 0.2 }}>{r.id}</div>
-                                                <div style={{ fontSize: 13, color: '#cfcfcf', marginTop: 6 }}>Accomplished on {r.date}</div>
-                                            </div>
+                                    <span style={{ fontSize: 14, fontWeight: 500 }}>{selectedYear}</span>
+                                    <ChevronDown size={16} style={{ color: '#8b8b8b', transform: yearOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 160ms' }} />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent style={{ minWidth: "80px" }} className="z-[99999] bg-[#171717] border border-[#2b2b2b] text-[#cfcfcf]">
+                                {years.map((y) => (
+                                    <DropdownMenuItem key={y} onClick={() => { setSelectedYear(y); setYearOpen(false); }}>{y}</DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
-                                            <button
-                                                style={{
-                                                    background: "rgba(59,130,246,0.10)", border: "none", width: 47, height: 47, borderRadius: 6, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                                                    cursor: "pointer", boxShadow: "inset 0 0 0 1px rgba(103,161,255,0.06)", transition: "all 0.2s ease-in-out", // smooth effect
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = "rgba(59,130,246,0.18)" // lighter
-                                                    e.currentTarget.style.boxShadow =
-                                                        "inset 0 0 0 1px rgba(59,130,246,0.3)" // stronger border
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = "rgba(59,130,246,0.10)" // reset
-                                                    e.currentTarget.style.boxShadow =
-                                                        "inset 0 0 0 1px rgba(103,161,255,0.06)" // reset
-                                                }}
-                                                aria-label="View report"
-                                            >
-                                                <Eye
-                                                    size={21}
-                                                    color="#3B82F6"
-                                                    style={{
-                                                        transition: "transform 0.2s ease-in-out, color 0.2s ease-in-out",
-                                                    }}
-                                                    className="hover:scale-110"
-                                                />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
+                        <DropdownMenu open={typeOpen} onOpenChange={(v) => handleOpenChange(v, typeRef, setTypeOpen)}>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    ref={typeRef}
+                                    className="flex items-center justify-between min-w-[110px] gap-2 px-3 py-[9px] rounded-md bg-[#262626] border border-[#404040] text-[#cfcfcf] hover:bg-[#313131] hover:border-[#6b7280] transition-colors cursor-pointer"
+                                    aria-label="Select type"
+                                    style={{ outline: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
+                                >
+                                    <span style={{ fontSize: 14, fontWeight: 500 }}>{selectedType}</span>
+                                    <ChevronDown size={16} style={{ color: '#8b8b8b', transform: typeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 160ms' }} />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent style={{ minWidth: "110px" }} className="z-[99999] bg-[#171717] border border-[#2b2b2b] text-[#cfcfcf]">
+                                {types.map((t) => (
+                                    <DropdownMenuItem key={t} onClick={() => { setSelectedType(t); setTypeOpen(false); }}>{t}</DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
+                    {/* Scrollable data list - only this area scrolls */}
+                    <div
+                        className="history-modal-list"
+                        style={{
+                            marginTop: 18,
+                            display: 'grid',
+                            gap: 12,
+                            overflowY: 'auto',
+                            // subtract estimated header + controls + padding: adjust if you change paddings
+                            maxHeight: 'calc(85vh - 260px)',
+                            // hide scrollbars where possible (Firefox/IE)
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                            paddingRight: 6,
+                        }}
+                    >
+                        {groupedReports.length === 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 36, gap: 12, color: '#cfcfcf' }}>
+                                <Search size={36} color="#8b8b8b" />
+                                <div style={{ fontWeight: 700, fontSize: 18, marginTop: 6, color: '#fff' }}>No history yet</div>
+                                <div style={{ fontSize: 13, maxWidth: 420, textAlign: 'center', color: '#cfcfcf' }}>There are no documented emergency reports for your community. Try widening the date range or clearing filters.</div>
+                                <button
+                                    onClick={() => resetFilters()}
+                                    style={{ marginTop: 12, padding: '8px 14px', borderRadius: 6, background: '#262626', color: '#fff', border: '1px solid #404040', cursor: 'pointer' }}
+                                >
+                                    Clear filters
+                                </button>
                             </div>
-                        );
-                    })}
+                        ) : groupedReports.map((group) => {
+                            const expanded = !!expandedMap[group.monthLabel];
+                            return (
+                                <div key={group.monthLabel} style={{ display: 'grid', gap: 10 }}>
+                                    {/* Month header as full-width white pill */}
+                                    <button
+                                        onClick={() => setExpandedMap(prev => ({ ...prev, [group.monthLabel]: !prev[group.monthLabel] }))}
+                                        aria-expanded={expanded}
+                                        aria-label={expanded ? 'Collapse month' : 'Expand month'}
+                                        style={{
+                                            width: '100%',
+                                            background: '#ffffff',
+                                            color: '#111111',
+                                            padding: '9px 16px',
+                                            borderRadius: 6,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            border: '1px solid rgba(0,0,0,0.08)',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontWeight: 600, fontSize: 15.7 }}>
+                                            <span>{group.monthLabel}</span>
+                                            <span style={{ background: '#111111', color: '#fff', borderRadius: 999, padding: '1px 11px', fontSize: 12 }}>{group.count}</span>
+                                        </div>
+                                        <ChevronDown size={18} style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 160ms', color: '#111' }} />
+                                    </button>
+
+                                    <div
+                                        className="history-group-body"
+                                        style={{
+                                            marginTop: expanded ? 8 : 0,
+                                            display: 'grid',
+                                            gap: 12,
+                                            overflow: 'hidden',
+                                            maxHeight: expanded ? '2000px' : '0px',
+                                            transition: 'max-height 260ms cubic-bezier(.2,.9,.2,1), opacity 240ms ease, transform 240ms ease, margin-top 240ms ease',
+                                            opacity: expanded ? 1 : 0,
+                                            transform: expanded ? 'translateY(0)' : 'translateY(-6px)'
+                                        }}
+                                    >
+                                        {group.items.map((r) => (
+                                            <div
+                                                key={r.id}
+                                                style={{
+                                                    background: '#262626', color: '#fff', padding: '14px 16px', borderRadius: 6, display: 'flex', justifyContent: 'space-between',
+                                                    alignItems: 'center', border: '1px solid #404040', transition: 'background 0.18s, border-color 0.18s',
+                                                }}
+                                                onMouseEnter={e => {
+                                                    e.currentTarget.style.background = '#313131';
+                                                    e.currentTarget.style.borderColor = '#6b7280'; // lighter gray
+                                                }}
+                                                onMouseLeave={e => {
+                                                    e.currentTarget.style.background = '#262626';
+                                                    e.currentTarget.style.borderColor = '#404040';
+                                                }}
+                                            >
+                                                <div>
+                                                    <div style={{ fontWeight: 400, letterSpacing: 0.2 }}>{r.id}</div>
+                                                    <div style={{ fontSize: 13, color: '#cfcfcf', marginTop: 6 }}>Accomplished on {r.date}</div>
+                                                </div>
+
+                                                <button
+                                                    style={{
+                                                        background: "rgba(59,130,246,0.10)", border: "none", width: 47, height: 47, borderRadius: 6, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                                        cursor: "pointer", boxShadow: "inset 0 0 0 1px rgba(103,161,255,0.06)", transition: "all 0.2s ease-in-out", // smooth effect
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = "rgba(59,130,246,0.18)" // lighter
+                                                        e.currentTarget.style.boxShadow =
+                                                            "inset 0 0 0 1px rgba(59,130,246,0.3)" // stronger border
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = "rgba(59,130,246,0.10)" // reset
+                                                        e.currentTarget.style.boxShadow =
+                                                            "inset 0 0 0 1px rgba(103,161,255,0.06)" // reset
+                                                    }}
+                                                    aria-label="View report"
+                                                    onClick={() => setPdfOpen(true)}
+                                                >
+                                                    <Eye
+                                                        size={21}
+                                                        color="#3B82F6"
+                                                        style={{
+                                                            transition: "transform 0.2s ease-in-out, color 0.2s ease-in-out",
+                                                        }}
+                                                        className="hover:scale-110"
+                                                    />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
-        </div>
+            {/* PDF Modal */}
+            {pdfOpen && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.85)',
+                    zIndex: 999999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                    <div style={{
+                        background: '#171717',
+                        borderRadius: 10,
+                        boxShadow: '0 12px 48px rgba(0,0,0,0.35)',
+                        padding: 0,
+                        width: 'min(1200px, 99vw)',
+                        height: 'min(96vh, 900px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative',
+                    }}>
+                        <button
+                            onClick={() => setPdfOpen(false)}
+                            aria-label="Close PDF"
+                            style={{
+                                position: 'absolute', right: 22, top: 16, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 28,
+                                cursor: 'pointer', zIndex: 2, fontWeight: 700,
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#fff'; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = '#BABABA'; }}
+                        >✕</button>
+                        <iframe
+                            src="/sample_document_report.pdf"
+                            style={{ width: '100%', height: '100%', border: 'none', borderRadius: 10 }}
+                            title="Document Report PDF"
+                        />
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
