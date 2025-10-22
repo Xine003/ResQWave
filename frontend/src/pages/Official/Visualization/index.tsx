@@ -8,7 +8,7 @@ import LiveReportSidebar from './components/LiveReportSidebar';
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
-import type { Signal, VisualizationSignals } from './types/signals';
+import type { VisualizationSignals } from './types/signals';
 import { cinematicMapEntrance, flyToSignal } from './utils/flyingEffects';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
 
@@ -33,10 +33,133 @@ export function Visualization() {
     const { otherSignals, ownCommunitySignal: OwnCommunitySignal, popover, setPopover, infoBubble, setInfoBubble, infoBubbleVisible, setInfoBubbleVisible, getDistressCoord } = signals as unknown as VisualizationSignals;
     const distressCoord: [number, number] = getDistressCoord();
 
+    // State for clicked pin animation
+    const [clickedPinCoord, setClickedPinCoord] = useState<[number, number] | null>(null);
+    const [clickedPinColor, setClickedPinColor] = useState<string>('#22c55e');
+
     // keep a ref to the latest popover so map event handlers inside the load callback
     // (which are attached once) can see the current value and update its screen coords
     const popoverRef = useRef<typeof popover>(popover);
     useEffect(() => { popoverRef.current = popover; }, [popover]);
+
+    // Helper functions for beating animation
+    const addBeatingAnimation = (map: mapboxgl.Map, coord: [number, number], color: string) => {
+        // Remove existing animation layers
+        removeBeatingAnimation(map);
+
+        // Add source for the beating animation
+        map.addSource('beating-animation', {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                    type: 'Point',
+                    coordinates: coord
+                }
+            }
+        });
+
+        // Add outer pulsing circle layer - positioned below signal pins
+        map.addLayer({
+            id: 'beating-circle-outer',
+            type: 'circle',
+            source: 'beating-animation',
+            paint: {
+                'circle-radius': 20,
+                'circle-color': color,
+                'circle-opacity': 0.3
+            }
+        }, 'signal-pins'); // Insert before signal-pins layer so it appears behind
+
+        // Add inner pulsing circle layer - positioned below signal pins
+        map.addLayer({
+            id: 'beating-circle-inner',
+            type: 'circle',
+            source: 'beating-animation',
+            paint: {
+                'circle-radius': 12,
+                'circle-color': color,
+                'circle-opacity': 0.5
+            }
+        }, 'signal-pins'); // Insert before signal-pins layer so it appears behind
+
+        // Animate the circles with a beating effect
+        const startTime = Date.now();
+        
+        const animateBeating = () => {
+            if (!map.getSource('beating-animation')) return; // Stop if source was removed
+            
+            const elapsed = Date.now() - startTime;
+            const phase = (elapsed % 1200) / 1200; // 1.2 second cycle
+            
+            // Create pulsing effect with sine wave (0 to 1)
+            const pulse = (Math.sin(phase * Math.PI * 2) + 1) / 2;
+            
+            // Calculate dynamic sizes and opacities
+            const outerRadius = 15 + pulse * 10; // Pulse between 15-25
+            const innerRadius = 8 + pulse * 6;   // Pulse between 8-14
+            const outerOpacity = 0.1 + pulse * 0.3; // Pulse between 0.1-0.4
+            const innerOpacity = 0.3 + pulse * 0.4; // Pulse between 0.3-0.7
+
+            // Update outer circle
+            if (map.getLayer('beating-circle-outer')) {
+                map.setPaintProperty('beating-circle-outer', 'circle-radius', [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    8, outerRadius * 0.5,
+                    12, outerRadius,
+                    16, outerRadius * 1.5,
+                    20, outerRadius * 2
+                ]);
+                map.setPaintProperty('beating-circle-outer', 'circle-opacity', outerOpacity);
+            }
+
+            // Update inner circle
+            if (map.getLayer('beating-circle-inner')) {
+                map.setPaintProperty('beating-circle-inner', 'circle-radius', [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    8, innerRadius * 0.5,
+                    12, innerRadius,
+                    16, innerRadius * 1.5,
+                    20, innerRadius * 2
+                ]);
+                map.setPaintProperty('beating-circle-inner', 'circle-opacity', innerOpacity);
+            }
+
+            requestAnimationFrame(animateBeating);
+        };
+        
+        animateBeating();
+    };
+
+    const removeBeatingAnimation = (map: mapboxgl.Map) => {
+        try {
+            if (map.getLayer('beating-circle-outer')) map.removeLayer('beating-circle-outer');
+            if (map.getLayer('beating-circle-inner')) map.removeLayer('beating-circle-inner');
+            if (map.getSource('beating-animation')) map.removeSource('beating-animation');
+        } catch (e) {
+            // ignore errors
+        }
+    };
+
+    const getSignalColor = (alertType: string | undefined, status: string | undefined) => {
+        if (status === 'offline') return '#6b7280'; // Gray for offline
+        
+        switch (alertType) {
+            case 'CRITICAL':
+                return '#ef4444'; // Red
+            case 'USER-INITIATED':
+                return '#eab308'; // Yellow
+            case 'ONLINE':
+                return '#22c55e'; // Green
+            default:
+                return '#22c55e'; // Default green
+        }
+    };
 
     // Handle map resize when sidebar opens/closes
     useEffect(() => {
@@ -49,86 +172,7 @@ export function Visualization() {
         }
     }, [isLiveReportOpen]);
 
-    // Helper function to display signal boundary
-    const displaySignalBoundary = (signal: Signal) => {
-        const map = mapRef.current;
-        if (!map || !signal.boundary) return;
 
-        // Remove previous boundary layer/source
-        try {
-            if (map.getLayer('signal-boundary')) map.removeLayer('signal-boundary');
-            if (map.getLayer('signal-boundary-line')) map.removeLayer('signal-boundary-line');
-            if (map.getSource('signal-boundary')) map.removeSource('signal-boundary');
-        } catch (e) { /* ignore */ }
-
-        // Determine color by alert type
-        let fillColor = '#22c55e'; // Default green
-        let lineColor = '#22c55e'; // Default green
-        let opacity = 0.15;
-        const alertType = signal.properties.alertType;
-        
-        switch (alertType) {
-            case 'CRITICAL':
-                fillColor = '#ef4444'; // Red
-                lineColor = '#ef4444';
-                opacity = 0.2; // Slightly more opacity for critical
-                break;
-            case 'USER-INITIATED':
-                fillColor = '#eab308'; // Yellow
-                lineColor = '#eab308';
-                opacity = 0.15;
-                break;
-            case 'ONLINE':
-                fillColor = '#22c55e'; // Green
-                lineColor = '#22c55e';
-                opacity = 0.15;
-                break;
-            case 'OFFLINE':
-                fillColor = '#6b7280'; // Gray
-                lineColor = '#6b7280';
-                opacity = 0.1;
-                break;
-            default:
-                fillColor = '#6b7280'; // Default gray
-                lineColor = '#6b7280';
-                opacity = 0.1;
-                break;
-        }
-
-        // Add boundary source and layers
-        map.addSource('signal-boundary', {
-            type: 'geojson',
-            data: {
-                type: 'Feature',
-                properties: {},
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [signal.boundary]
-                }
-            }
-        });
-
-        map.addLayer({
-            id: 'signal-boundary',
-            type: 'fill',
-            source: 'signal-boundary',
-            paint: {
-                'fill-color': fillColor,
-                'fill-opacity': opacity
-            }
-        });
-
-        map.addLayer({
-            id: 'signal-boundary-line',
-            type: 'line',
-            source: 'signal-boundary',
-            paint: {
-                'line-color': lineColor,
-                'line-width': 3,
-                'line-dasharray': [2, 4]
-            }
-        });
-    };
 
     // Clean up: close sidebar when component unmounts
     useEffect(() => {
@@ -182,90 +226,18 @@ export function Visualization() {
                     map.on('click', layerId, (e: any) => {
                         const f = e.features?.[0];
                         const coord = (f?.geometry?.coordinates as [number, number]) || [e.lngLat.lng, e.lngLat.lat];
-                        let boundary = null;
-                        // Find boundary for clicked signal using deviceId
                         const deviceId = f?.properties?.deviceId;
-                        if (deviceId) {
-                            if (deviceId === OwnCommunitySignal.properties.deviceId) {
-                                boundary = OwnCommunitySignal.boundary;
-                            } else {
-                                const found = otherSignals.find(s => s.properties.deviceId === deviceId);
-                                if (found) boundary = found.boundary;
-                            }
-                        }
-
-                        // Remove previous boundary layer/source
-                        if (map.getLayer('signal-boundary')) map.removeLayer('signal-boundary');
-                        if (map.getLayer('signal-boundary-line')) map.removeLayer('signal-boundary-line');
-                        if (map.getSource('signal-boundary')) map.removeSource('signal-boundary');
-
-                        if (boundary) {
-                            // Determine color by alert type
-                            let fillColor = '#22c55e'; // Default green
-                            let lineColor = '#22c55e'; // Default green
-                            let opacity = 0.15;
-                            let alertType = f?.properties?.alertType;
-                            
-                            switch (alertType) {
-                                case 'CRITICAL':
-                                    fillColor = '#ef4444'; // Red
-                                    lineColor = '#ef4444';
-                                    opacity = 0.2; // Slightly more opacity for critical
-                                    break;
-                                case 'USER-INITIATED':
-                                    fillColor = '#eab308'; // Yellow
-                                    lineColor = '#eab308';
-                                    opacity = 0.15;
-                                    break;
-                                case 'ONLINE':
-                                    fillColor = '#22c55e'; // Green
-                                    lineColor = '#22c55e';
-                                    opacity = 0.15;
-                                    break;
-                                case 'OFFLINE':
-                                    fillColor = '#6b7280'; // Gray
-                                    lineColor = '#6b7280';
-                                    opacity = 0.1;
-                                    break;
-                                default:
-                                    fillColor = '#6b7280'; // Default gray
-                                    lineColor = '#6b7280';
-                                    opacity = 0.1;
-                                    break;
-                            }
-                            map.addSource('signal-boundary', {
-                                type: 'geojson',
-                                data: {
-                                    type: 'Feature',
-                                    properties: {},
-                                    geometry: {
-                                        type: 'Polygon',
-                                        coordinates: [boundary]
-                                    }
-                                }
-                            });
-                            map.addLayer({
-                                id: 'signal-boundary',
-                                type: 'fill',
-                                source: 'signal-boundary',
-                                paint: {
-                                    'fill-color': fillColor,
-                                    'fill-opacity': opacity
-                                }
-                            });
-                            map.addLayer({
-                                id: 'signal-boundary-line',
-                                type: 'line',
-                                source: 'signal-boundary',
-                                paint: {
-                                    'line-color': lineColor,
-                                    'line-width': 3,
-                                    'line-dasharray': [2, 4]
-                                }
-                            });
-                        }
 
                         try {
+                            // Get signal color for animation
+                            const props = f?.properties || {};
+                            const signalColor = getSignalColor(props.alertType, props.status);
+                            
+                            // Add beating animation at clicked pin location
+                            addBeatingAnimation(map, coord, signalColor);
+                            setClickedPinCoord(coord);
+                            setClickedPinColor(signalColor);
+
                             // Center the map on the clicked signal's coordinates using utility
                             flyToSignal(map, coord);
                             // Show popover immediately at current projected position
@@ -273,7 +245,6 @@ export function Visualization() {
                             const rect = mapContainer.current?.getBoundingClientRect();
                             const absX = (rect?.left ?? 0) + pt.x;
                             const absY = (rect?.top ?? 0) + pt.y;
-                            const props = f?.properties || {};
                             
                             // Find the community details for this signal
                             let communityDetails = undefined;
@@ -335,9 +306,15 @@ export function Visualization() {
             map.on('click', (e) => {
                 // Check if the click was on a signal layer
                 const features = map.queryRenderedFeatures(e.point, { layers: signalLayers });
-                if (features.length === 0 && sidebarOpenRef.current) {
-                    // Only close if clicking on empty map area and sidebar is open
-                    setIsLiveReportOpen(false);
+                if (features.length === 0) {
+                    // Remove beating animation when clicking on empty map area
+                    removeBeatingAnimation(map);
+                    setClickedPinCoord(null);
+                    
+                    if (sidebarOpenRef.current) {
+                        // Only close if clicking on empty map area and sidebar is open
+                        setIsLiveReportOpen(false);
+                    }
                 }
             });
 
@@ -366,6 +343,8 @@ export function Visualization() {
         });
 
         return () => {
+            // Clean up beating animation
+            removeBeatingAnimation(map);
             mapRef.current = null;
             map.remove();
         };
@@ -398,16 +377,6 @@ export function Visualization() {
                 infoBubble={infoBubble}
                 infoBubbleVisible={infoBubbleVisible}
                 onOpenCommunityInfo={handleOpenCommunityInfo}
-                onClose={() => {
-                    // remove any temporary signal boundary overlay when popover closes
-                    const map = mapRef.current;
-                    if (!map) return;
-                    try {
-                        if (map.getLayer('signal-boundary')) map.removeLayer('signal-boundary');
-                        if (map.getLayer('signal-boundary-line')) map.removeLayer('signal-boundary-line');
-                        if (map.getSource('signal-boundary')) map.removeSource('signal-boundary');
-                    } catch (e) { /* ignore */ }
-                }}
             />
 
             <MapControls 
@@ -430,8 +399,13 @@ export function Visualization() {
                     
                     const coord = signal.coordinates;
                     
-                    // Display the signal boundary
-                    displaySignalBoundary(signal);
+                    // Get signal color for animation
+                    const signalColor = getSignalColor(signal.properties.alertType, signal.properties.status);
+                    
+                    // Add beating animation at signal location
+                    addBeatingAnimation(map, coord, signalColor);
+                    setClickedPinCoord(coord);
+                    setClickedPinColor(signalColor);
                     
                     // Fly to the signal location
                     flyToSignal(map, coord);

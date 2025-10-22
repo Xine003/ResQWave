@@ -9,8 +9,7 @@ import { CloseCreateDialog } from "./CloseCreateDialog"
 
 interface FormData {
   photo: File | null
-  firstName: string
-  lastName: string
+  fullName: string
   contactNumber: string
   email: string
   password: string
@@ -18,8 +17,7 @@ interface FormData {
 }
 
 interface FormErrors {
-  firstName?: string
-  lastName?: string
+  fullName?: string
   contactNumber?: string
   email?: string
   password?: string
@@ -35,8 +33,7 @@ export function CreateDispatcherSheet({
 }: DispatcherDrawerProps) {
   const [formData, setFormData] = useState<FormData>({
     photo: null,
-    firstName: "",
-    lastName: "",
+    fullName: "",
     contactNumber: "",
     email: "",
     password: "",
@@ -91,28 +88,22 @@ export function CreateDispatcherSheet({
 
   // Check if form is valid
   const isFormValid = (): boolean => {
-    const hasFirstName = formData.firstName.trim().length > 0
-    const hasLastName = formData.lastName.trim().length > 0
+    const hasFullName = formData.fullName.trim().length > 0
     const hasValidContact = !validateContactNumber(formData.contactNumber)
     const hasValidEmail = !validateEmail(formData.email)
     const hasValidPassword = isEditing || !validatePassword(formData.password)
     const hasValidConfirmPassword = isEditing || !validateConfirmPassword(formData.confirmPassword, formData.password)
     
-    return hasFirstName && hasLastName && hasValidContact && hasValidEmail && hasValidPassword && hasValidConfirmPassword
+    return hasFullName && hasValidContact && hasValidEmail && hasValidPassword && hasValidConfirmPassword
   }
 
   // Reset form when opening/closing or when edit data changes
   useEffect(() => {
     if (open && isEditing && editData) {
-      // Split the full name for editing
-      const nameParts = editData.name.split(" ")
-      const firstName = nameParts[0] || ""
-      const lastName = nameParts.slice(1).join(" ") || ""
-      
+      // Use the full name directly for editing
       setFormData({
         photo: null,
-        firstName,
-        lastName,
+        fullName: editData.name,
         contactNumber: editData.contactNumber,
         email: editData.email,
         password: "",
@@ -126,8 +117,7 @@ export function CreateDispatcherSheet({
       // Reset for new dispatcher
       setFormData({
         photo: null,
-        firstName: "",
-        lastName: "",
+        fullName: "",
         contactNumber: "",
         email: "",
         password: "",
@@ -257,12 +247,8 @@ export function CreateDispatcherSheet({
     // Validate all fields
     const newErrors: FormErrors = {}
     
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required"
-    }
-    
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required"
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = "Full name is required"
     }
     
     const contactError = validateContactNumber(formData.contactNumber)
@@ -295,7 +281,7 @@ export function CreateDispatcherSheet({
 
     const dispatcherData: DispatcherDetails = {
       id: isEditing && editData ? editData.id : `CG-${Date.now()}`,
-      name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+      name: formData.fullName.trim(),
       contactNumber: formData.contactNumber.trim(),
       email: formData.email.trim(),
       createdAt: isEditing && editData ? editData.createdAt : new Date().toLocaleDateString(),
@@ -422,44 +408,24 @@ export function CreateDispatcherSheet({
               )}
             </div>
 
-            {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName" className="text-white text-xs">
-                  First Name
-                </Label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => handleInputChange("firstName", e.target.value)}
-                  className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
-                    errors.firstName 
-                      ? "border-red-500 focus:border-red-500" 
-                      : "border-[#2a2a2a] focus:border-gray-600"
-                  }`}
-                />
-                {errors.firstName && (
-                  <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName" className="text-white text-xs">
-                  Last Name
-                </Label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => handleInputChange("lastName", e.target.value)}
-                  className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
-                    errors.lastName 
-                      ? "border-red-500 focus:border-red-500" 
-                      : "border-[#2a2a2a] focus:border-gray-600"
-                  }`}
-                />
-                {errors.lastName && (
-                  <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
-                )}
-              </div>
+            {/* Full Name Field */}
+            <div className="space-y-2">
+              <Label htmlFor="fullName" className="text-white text-xs">
+                Full Name
+              </Label>
+              <Input
+                id="fullName"
+                value={formData.fullName}
+                onChange={(e) => handleInputChange("fullName", e.target.value)}
+                className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
+                  errors.fullName 
+                    ? "border-red-500 focus:border-red-500" 
+                    : "border-[#2a2a2a] focus:border-gray-600"
+                }`}
+              />
+              {errors.fullName && (
+                <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>
+              )}
             </div>
 
             {/* Contact Number */}
