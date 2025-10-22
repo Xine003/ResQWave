@@ -51,6 +51,9 @@ const createFocalPerson = async (req, res) => {
         if (String(terminal.availability || "").toLowerCase() === "occupied") {
             return res.status(400).json({ message: "Terminal already occupied" });
         }
+        if (terminal.archived) {
+            return res.status(400).json({message: "Terminal is Archived and cannot be used"});
+        }
 
         // Uniqueness checks (email/contact must not exist anywhere in focal persons)
         // 1) Primary email
