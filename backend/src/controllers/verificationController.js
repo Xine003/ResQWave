@@ -3,7 +3,8 @@ const { AppDataSource } = require("../config/dataSource");
 const crypto = require("crypto");
 
 const verificationRepo = AppDataSource.getRepository("LoginVerification");
-const dispatcherRepo = AppDataSource.getRepository("Dispatcher")
+const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
+const focalRepo = AppDataSource.getRepository("FocalPerson");
 
 // Send OTP (contact = email or phone)
 const sendRegistrationCode = async (req, res) => {

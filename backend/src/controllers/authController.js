@@ -101,12 +101,18 @@ const adminLogin = async (req, res) => {
 // Dispatcher Login
 const dispatcherLogin = async (req, res) => {
     try {
-        const { id, password } = req.body;
-        if (!id || !password) {
+        const { emailOrNumber, password } = req.body;
+        if (!emailOrNumber || !password) {
             return res.status(400).json({message: "Username and password are required"});
         } 
 
-        const dispatcher = await dispatcherRepo.findOne({ where: {id} });
+        const dispatcher = await dispatcherRepo.findOne({ 
+            where: [
+                { email: emailOrNumber },
+                { contactNumber: emailOrNumber}
+            ] 
+        });
+
         if (!dispatcher) {
             return res.status(400).json({message: "Invalid Credential"});
         }
@@ -147,6 +153,7 @@ const dispatcherLogin = async (req, res) => {
 
         // For dev only, log code
         console.log(`🔑 2FA code for ${dispatcher.id}: ${code}`);
+
         const tempToken = jwt.sign(
             { id: dispatcher.id, role: "dispatcher", step: "2fa" },
             process.env.JWT_SECRET,
@@ -163,12 +170,15 @@ const dispatcherLogin = async (req, res) => {
 // Focal Person Login
 const focalLogin = async (req, res) => {
     try {
-        const { id, password } = req.body;
-        if (!id || !password) {
+        const { emailOrNumber, password } = req.body;
+        if (!emailOrNumber || !password) {
             return res.status(400).json({ message: "Username and password are required" });
         }
 
-        const focal = await focalRepo.findOne({ where: { id } });
+        const focal = await focalRepo.findOne({ where: [
+            { email: emailOrNumber},
+            { contactNumber: emailOrNumber}
+        ] });
         if (!focal) {
             return res.status(400).json({ message: "Invalid Credentials" });
         }

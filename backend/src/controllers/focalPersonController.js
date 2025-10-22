@@ -21,69 +21,190 @@ function sanitizeFP(fp) {
 // CREATE FocalPerson 
 const createFocalPerson = async (req, res) => {
     try {
-        const { communityGroupID, name, email, contactNumber, address, alternativeFP, alternativeFPEmail , alternativeFPContactNumber, password } = req.body;
-
-        if (!communityGroupID) {
-            return res.status(400).json({ message: "communityGroupID is required" });
-        }
-
-        // Generate Specific UID
-        const lastFocalPerson = await focalPersonRepo
-            .createQueryBuilder("focalPerson")
-            .orderBy("focalPerson.id", "DESC")
-            .getOne();
-
-        let newNumber = 1;
-        if (lastFocalPerson) {
-            const lastNumber = parseInt(lastFocalPerson.id.replace("FOCALP", ""), 10);
-            newNumber = lastNumber + 1; 
-        }
-
-        const newID = "FOCALP" + String(newNumber).padStart(3, "0");
-
-        // Default password is Focal Person ID when not provided
-        const plainPassword = password || newID;
-        // Hashed Password
-        const hashedPassword = await bcrypt.hash(plainPassword, 10);
-
-        // Optional files (present only if request is multipart/form-data)
-        const files = req.files || {};
-        const main = files.photo?.[0];
-        const alt = files.alternativeFPImage?.[0];
-
-        const focalPerson = focalPersonRepo.create({
-            id: newID,
-            communityGroupID,
-            name,
+        const {
+            terminalID,
+            firstName,
+            lastName,
             email,
             contactNumber,
+            password,
             address,
-            alternativeFP,
-            alternativeFPEmail,
-            alternativeFPContactNumber,
-            createdBy: req.user && req.user.id ? req.user.id : null,
+            altFirstName,
+            altLastName,
+            altEmail,
+            altContactNumber,
+            noOfHouseholds,
+            noOfResidents,
+            floodSubsideHours,
+            hazards,
+            otherInformation
+        } = req.body;
+
+        // Basic validation
+        if (!terminalID || !firstName || !lastName || !email || !contactNumber || !address) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        // Validate terminal and availability
+        const terminal = await terminalRepo.findOne({ where: { id: terminalID } });
+        if (!terminal) return res.status(404).json({ message: "Terminal Not Found" });
+        if (String(terminal.availability || "").toLowerCase() === "occupied") {
+            return res.status(400).json({ message: "Terminal already occupied" });
+        }
+
+        // Uniqueness checks (email/contact must not exist anywhere in focal persons)
+        // 1) Primary email
+        if (email) {
+            const emailInUse = await focalPersonRepo.findOne({
+                where: [{ email }, { altEmail: email }],
+            });
+            if (emailInUse) return res.status(409).json({ message: "Email already in use" });
+        }
+        // 2) Primary contact
+        if (contactNumber) {
+            const contactInUse = await focalPersonRepo.findOne({
+                where: [{ contactNumber }, { altContactNumber: contactNumber }],
+            });
+            if (contactInUse) return res.status(409).json({ message: "Contact number already in use" });
+        }
+        // 3) Alt email
+        if (altEmail) {
+            if (email && altEmail === email) {
+                return res.status(400).json({ message: "Alt email must be different from email" });
+            }
+            const altEmailInUse = await focalPersonRepo.findOne({
+                where: [{ email: altEmail }, { altEmail }],
+            });
+            if (altEmailInUse) return res.status(409).json({ message: "Alt email already in use" });
+        }
+        // 4) Alt contact
+        if (altContactNumber) {
+            if (contactNumber && altContactNumber === contactNumber) {
+                return res.status(400).json({ message: "Alt contact must be different from contact number" });
+            }
+            const altContactInUse = await focalPersonRepo.findOne({
+                where: [{ contactNumber: altContactNumber }, { altContactNumber }],
+            });
+            if (altContactInUse) return res.status(409).json({ message: "Alt contact number already in use" });
+        }
+
+        // Generate FOCALP ID (robust numeric ordering on the suffix)
+        const PREFIX = "FOCALP";
+        const startIndex = PREFIX.length + 1; // SUBSTRING() is 1-based
+        const lastFocalPerson = await focalPersonRepo
+            .createQueryBuilder("fp")
+            .orderBy(`CAST(SUBSTRING(fp.id, ${startIndex}) AS UNSIGNED)`, "DESC")
+            .getOne();
+
+        let newFocalNum = 1;
+        if (lastFocalPerson?.id) {
+            const lastNum = parseInt(String(lastFocalPerson.id).replace(PREFIX, ""), 10);
+            if (!Number.isNaN(lastNum)) newFocalNum = lastNum + 1;
+        }
+        const newFocalID = PREFIX + String(newFocalNum).padStart(3, "0");
+
+        // Default password if not provided
+        const plainPassword = password || newFocalID;
+        const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+        // Handle file uploads
+        const files = req.files || {};
+        const mainPhoto = files.photo?.[0];
+        const altPhotoFile = files.altPhoto?.[0]; // incoming field name "altPhoto"
+
+        // Always store address as JSON string (prevents [object Object])
+        let addressString;
+        if (typeof address === "object" && address !== null) {
+            addressString = JSON.stringify(address);
+        } else if (typeof address === "string") {
+            addressString = address;
+        } else {
+            addressString = "";
+        }
+
+        // Normalize hazards to JSON string
+        let hazardsString = null;
+        if (Array.isArray(hazards)) {
+            hazardsString = JSON.stringify(hazards);
+        } else if (typeof hazards === "string" && hazards.length) {
+            try { hazardsString = JSON.stringify(JSON.parse(hazards)); }
+            catch { hazardsString = JSON.stringify(hazards.split(",").map(s => s.trim()).filter(Boolean)); }
+        } else {
+            hazardsString = JSON.stringify([]); // default
+        }
+
+        // Create focal person
+        const focalPerson = focalPersonRepo.create({
+            id: newFocalID,
+            terminalID,
+            firstName,
+            lastName,
+            email,
+            contactNumber,
             password: hashedPassword,
-            // Optional Blobs
-            ...(main?.buffer ? {photo: main.buffer} : {}),
-            ...(alt?.buffer ? {alternativeFPImage: alt.buffer}: {})
+            address: addressString || null,
+            altFirstName: altFirstName || null,
+            altLastName: altLastName || null,
+            altEmail: altEmail || null,
+            altContactNumber: altContactNumber || null,
+            createdBy: req.user?.id || null,
+            ...(mainPhoto?.buffer ? { photo: mainPhoto.buffer } : {}),
+            // IMPORTANT: save alt photo in the column "alternativeFPImage" to match your model
+            ...(altPhotoFile?.buffer ? { alternativeFPImage: altPhotoFile.buffer } : {}),
         });
 
         await focalPersonRepo.save(focalPerson);
 
-        // Invalidate 
-        await deleteCache("focalPersons:all");
+        // Generate Neighborhood ID (N001, N002, ...) by numeric suffix
+        const lastNeighborhood = await neighborhoodRepo
+            .createQueryBuilder("neighborhood")
+            .orderBy("CAST(SUBSTRING(neighborhood.id, 2) AS UNSIGNED)", "DESC")
+            .getOne();
 
-        const responseBody = { message: "Focal Person Created", focalPerson };
-        if (!password) {
-            responseBody.temporaryPassword = plainPassword;
+        let newNeighborhoodNum = 1;
+        if (lastNeighborhood?.id) {
+            const lastNum = parseInt(String(lastNeighborhood.id).replace("N", ""), 10);
+            if (!Number.isNaN(lastNum)) newNeighborhoodNum = lastNum + 1;
         }
+        const newNeighborhoodID = "N" + String(newNeighborhoodNum).padStart(3, "0");
 
-        res.status(201).json(responseBody);
+        // Create Neighborhood record (hazards stored as JSON string)
+        const neighborhood = neighborhoodRepo.create({
+            id: newNeighborhoodID,
+            focalPersonID: newFocalID,
+            terminalID,
+            noOfHouseholds: Number(noOfHouseholds) || 0,
+            noOfResidents: Number(noOfResidents) || 0,
+            floodSubsideHours: Number(floodSubsideHours) || 0,
+            hazards: hazardsString,
+            otherInformation: otherInformation || "",
+            archived: false,
+        });
+
+        await neighborhoodRepo.save(neighborhood);
+
+        // Mark terminal occupied
+        await terminalRepo.update({ id: terminalID }, { availability: "occupied" });
+
+        // Invalidate caches
+        await deleteCache("focalPersons:all");
+        await deleteCache("neighborhoods:all");
+
+        const response = {
+            message: "Focal Person and Neighborhood Created",
+            newFocalID,
+            newNeighborhoodID,
+        };
+
+        if (!password) response.temporaryPassword = plainPassword;
+
+        return res.status(201).json(response);
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - CREATE FP"});
+        return res.status(500).json({ message: "Server Error - CREATE Focal Person" });
     }
 };
+
 
 const approveFocalRegistration = async (req, res) => {
     try {

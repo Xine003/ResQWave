@@ -15,5 +15,6 @@ module.exports.uploadFocalPhotos = multer({
   limits: { fileSize: 2 * 1024 * 1024 },
 }).fields([
   { name: "photo", maxCount: 1 },
+  { name: "altPhoto", maxCount: 1 },
   { name: "alternativeFPImage", maxCount: 1 },
 ]);

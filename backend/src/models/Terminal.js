@@ -8,6 +8,11 @@ module.exports = new EntitySchema ({
             type: "varchar",
             primary: true,
         },
+        name: {
+            type: "varchar",
+            length: 255,
+            nullable: false
+        },
         dateCreated: {
             type: "timestamp",
             createDate: true,

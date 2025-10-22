@@ -10,6 +10,12 @@ const {
 // CREATE Terminal
 const createTerminal = async (req, res) => {
     try {
+        const { name } = req.body;
+
+        // Validate Terminal Name
+        if (!name) {
+            return res.status(400).json({message: "Terminal name is required"});
+        }
 
         // Generate Specific UID
         const lastTerminal = await terminalRepo
@@ -27,6 +33,7 @@ const createTerminal = async (req, res) => {
 
         const terminal = terminalRepo.create ({
             id: newID,
+            name,
             status: "Offline",
         });
 
@@ -121,7 +128,7 @@ const getTerminal = async (req, res) => {
 const updateTerminal = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, name } = req.body;
 
         const terminal = await terminalRepo.findOne({ where: {id} });
         if (!terminal) {
@@ -129,6 +136,7 @@ const updateTerminal = async (req, res) => {
         }
 
         if (status) terminal.status = status;
+        if (name) terminal.name = name;
 
         await terminalRepo.save(terminal);
 

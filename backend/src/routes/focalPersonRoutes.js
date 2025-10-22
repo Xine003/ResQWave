@@ -1,4 +1,5 @@
 const express = require("express");
+const multer = require("multer");
 const router = express.Router();
 
 const {
@@ -15,8 +16,9 @@ const {
 
 const { uploadFocalPhotos } = require("../middleware/uploadFocalPhotos");
 
+
 // CRUD
-router.post("/", createFocalPerson);
+router.post("/", uploadFocalPhotos, createFocalPerson);
 router.post("/:id/approve", approveFocalRegistration);
 router.get("/", getFocalPersons);
 router.get("/:id", getFocalPerson);
