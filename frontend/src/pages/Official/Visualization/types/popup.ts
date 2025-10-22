@@ -8,6 +8,8 @@ export type SignalPopupProps = {
     onClose?: () => void;
     // Handler for opening community info sheet
     onOpenCommunityInfo?: () => void;
+    // Handler for dispatch rescue action
+    onDispatchRescue?: () => void;
     // Info bubble props moved here so the popup component can also render the
     // small 'YOUR COMMUNITY' bubble when no popover is visible.
     infoBubble: InfoBubble | null;
