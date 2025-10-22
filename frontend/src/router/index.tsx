@@ -1,7 +1,7 @@
 import { OfficialLayout } from '@/components/Official/officialLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import React from 'react';
-import { createBrowserRouter, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Outlet, Navigate } from 'react-router-dom';
 import { Landing, LoginFocal, RegisterAccount } from '../pages/Focal';
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/SignAccount/ForgotPassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
@@ -24,21 +24,17 @@ declare global {
 }
 
 import FocalDashboard from '../pages/Focal/Dashboard';
+import { FocalAuthProvider } from '../pages/Focal/context/focalAuthContext';
 import SettingLocationPage from "../pages/Official/CommunityGroups/components/SettingLocationPage";
 import { Dispatchers } from '../pages/Official/DispatcherCRUD';
 
 // Protective route for focal pages
 const FocalProtectedRoute: React.FC = () => {
-  const currentPath = window.location.pathname;
-  const isFocalAuthenticated = window.isFocalAuthenticated;
-  // --- PROTECTIVE ROUTE LOGIC ---
-  // Uncomment the following block for production to protect focal routes:
-  /*
-  if (!isFocalAuthenticated && currentPath === "/focal-dashboard") {
+  // Check for focalToken in localStorage (or useFocalAuth if context is available)
+  const hasToken = Boolean(localStorage.getItem('focalToken'));
+  if (!hasToken) {
     return <Navigate to="/login-focal" replace />;
   }
-  */
-  // --- END PROTECTIVE ROUTE LOGIC ---
   return <Outlet />;
 };
 
@@ -57,6 +53,11 @@ export const router = createBrowserRouter([
     path: '/register-focal',
     element: <RegisterAccount />,
   },
+  // Focal verification page (public, uses tempToken)
+  {
+    path: '/verification-signin-focal',
+    element: <VerificationSignin />,
+  },
   // Focal Routes (protected)
   {
     element: <FocalProtectedRoute />,
@@ -66,64 +67,64 @@ export const router = createBrowserRouter([
         element: <ForgotPasswordVerification />,
       },
       {
-        path: '/verification-signin-focal',
-        element: <VerificationSignin />,
-      },
-      {
         path: '/verify-account-focal',
         element: <VerifyAccount />,
       },
-      {
-        path: '/register/personal-info',
-        element: <InfoDetailsRegister step={1} />,
-      },
-      {
-        path: '/register/profile-picture',
-        element: <InfoDetailsRegister step={2} />,
-      },
-      {
-        path: '/register/create-password',
-        element: <InfoDetailsRegister step={3} />,
-      },
-      {
-        path: '/register/location-details',
-        element: <InfoDetailsRegister step={4} />,
-      },
-      {
-        path: '/register/alternative-focal-person',
-        element: <InfoDetailsRegister step={5} />,
-      },
-      {
-        path: '/register/alternative-profile-picture',
-        element: <InfoDetailsRegister step={6} />,
-      },
-      {
-        path: '/register/about-neighborhood',
-        element: <InfoDetailsRegister step={7} />,
-      },
-      {
-        path: '/register/about-residents',
-        element: <InfoDetailsRegister step={8} />,
-      },
-      {
-        path: '/register/floodwater-duration',
-        element: <InfoDetailsRegister step={9} />,
-      },
-      {
-        path: '/register/flood-hazards',
-        element: <InfoDetailsRegister step={10} />,
-      },
-      {
-        path: '/register/other-info',
-        element: <InfoDetailsRegister step={11} />,
-      },
-      {
-        path: '/register/account-review',
-        element: <AccountReview />,
-      },
+      // {
+      //   path: '/register/personal-info',
+      //   element: <InfoDetailsRegister step={1} />,
+      // },
+      // {
+      //   path: '/register/profile-picture',
+      //   element: <InfoDetailsRegister step={2} />,
+      // },
+      // {
+      //   path: '/register/create-password',
+      //   element: <InfoDetailsRegister step={3} />,
+      // },
+      // {
+      //   path: '/register/location-details',
+      //   element: <InfoDetailsRegister step={4} />,
+      // },
+      // {
+      //   path: '/register/alternative-focal-person',
+      //   element: <InfoDetailsRegister step={5} />,
+      // },
+      // {
+      //   path: '/register/alternative-profile-picture',
+      //   element: <InfoDetailsRegister step={6} />,
+      // },
+      // {
+      //   path: '/register/about-neighborhood',
+      //   element: <InfoDetailsRegister step={7} />,
+      // },
+      // {
+      //   path: '/register/about-residents',
+      //   element: <InfoDetailsRegister step={8} />,
+      // },
+      // {
+      //   path: '/register/floodwater-duration',
+      //   element: <InfoDetailsRegister step={9} />,
+      // },
+      // {
+      //   path: '/register/flood-hazards',
+      //   element: <InfoDetailsRegister step={10} />,
+      // },
+      // {
+      //   path: '/register/other-info',
+      //   element: <InfoDetailsRegister step={11} />,
+      // },
+      // {
+      //   path: '/register/account-review',
+      //   element: <AccountReview />,
+      // },
       {
         path: '/focal-dashboard',
-        element: <FocalDashboard />,
+        element: (
+          <FocalAuthProvider>
+            <FocalDashboard />
+          </FocalAuthProvider>
+        ),
       }
     ],
   },

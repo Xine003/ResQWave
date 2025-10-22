@@ -1,5 +1,4 @@
 import React from 'react';
-// React import not required directly here
 import { useState } from 'react';
 import resqwave_logo from '/Landing/resqwave_logo.png';
 import { useNavigate } from 'react-router-dom';
@@ -7,10 +6,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { Popover, PopoverTrigger, PopoverContent, PopoverItem, PopoverSeparator } from "@/components/ui/popover-focal";
 import { LogOut, User, BookOpen } from "lucide-react";
 import type { HeaderProps } from '../types/header';
+import { useFocalAuth } from '../../context/focalAuthContext';
 
 export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community', onAccountSettingsClick, accountSettingsOpen = false, onRequestCloseAccountSettings }: HeaderProps) {
     const navigate = useNavigate();
     const [popoverOpen, setPopoverOpen] = React.useState(false);
+    const { logout } = useFocalAuth();
     // When editing is active, render the editing header UI (previously inline in index.tsx)
     if (editBoundaryOpen) {
         return (
@@ -195,7 +196,15 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                             Logs
                         </PopoverItem>
                         <PopoverSeparator />
-                        <PopoverItem destructive icon={<LogOut size={16} />}>
+                        <PopoverItem
+                            destructive
+                            icon={<LogOut size={16} />}
+                            onClick={() => {
+                                setPopoverOpen(false);
+                                logout();
+                                navigate('/login-focal');
+                            }}
+                        >
                             Logout
                         </PopoverItem>
                     </PopoverContent>

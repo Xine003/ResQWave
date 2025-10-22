@@ -1,6 +1,8 @@
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ForgotPasswordVerification } from "@/pages/Focal/LoginFocal/components/VerifyandForgot";
+import { apiFetch } from '@/lib/api';
 
 export default function VerificationSignin() {
     const [code, setCode] = useState("");
@@ -8,19 +10,48 @@ export default function VerificationSignin() {
     const [isVerifying, setIsVerifying] = useState(false);
     const navigate = useNavigate();
 
-    function handleVerify(e: React.FormEvent) {
+    // Retrieve tempToken from navigation state (preferred), fallback to sessionStorage
+    const location = useLocation();
+    const tempToken = (location.state && location.state.tempToken) || sessionStorage.getItem('focalTempToken') || '';
+
+    async function handleVerify(e: React.FormEvent) {
         e.preventDefault();
         if (code.length < 6) {
             setError("Please enter the complete verification code.");
             return;
         }
         setIsVerifying(true);
-        setTimeout(() => {
+        setError("");
+        try {
+            const res = await apiFetch<{ message: string; token?: string }>(
+                '/verifyFocalLogin',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({ tempToken, code }),
+                }
+            );
             setIsVerifying(false);
-            // Dummy: always succeed for demo
+            // On success, store token if needed and navigate
+            if (res.token) {
+                localStorage.setItem('focalToken', res.token);
+                // Decode JWT to get id (payload is base64 in the middle part)
+                try {
+                    const payload = JSON.parse(atob(res.token.split('.')[1]));
+                    if (payload.id) {
+                        localStorage.setItem('focalId', payload.id);
+                    }
+                } catch {}
+            }
             navigate('/focal-dashboard');
-            setError("");
-        }, 1200);
+        } catch (err: any) {
+            setIsVerifying(false);
+            let msg = err?.message || 'Verification failed';
+            try {
+                const parsed = JSON.parse(msg);
+                msg = parsed.message || msg;
+            } catch {}
+            setError(msg);
+        }
     }
 
     return (

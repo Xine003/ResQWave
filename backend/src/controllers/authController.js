@@ -30,7 +30,7 @@ const register = async (req, res) => {
             const lastNumber = parseInt(lastAdmin.id.replace("ADM", ""), 10);
             newNumber = lastNumber + 1;
         }
-        
+
         const newID = "ADM" + String(newNumber).padStart(3, "0");
 
         // Hash Password
@@ -55,9 +55,9 @@ const register = async (req, res) => {
 // Admin Login
 const adminLogin = async (req, res) => {
     try {
-        const {name, password} = req.body;
+        const { name, password } = req.body;
         if (!name || !password) {
-            return res.json(400).json({message: "Name and Password are Required."});
+            return res.json(400).json({ message: "Name and Password are Required." });
         }
 
         // Find Admin
@@ -94,7 +94,7 @@ const adminLogin = async (req, res) => {
         res.json({ message: "Admin Login Successful", token });
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error"});
+        res.status(500).json({ message: "Server Error" });
     }
 };
 
@@ -103,23 +103,23 @@ const dispatcherLogin = async (req, res) => {
     try {
         const { emailOrNumber, password } = req.body;
         if (!emailOrNumber || !password) {
-            return res.status(400).json({message: "Username and password are required"});
-        } 
+            return res.status(400).json({ message: "Username and password are required" });
+        }
 
-        const dispatcher = await dispatcherRepo.findOne({ 
+        const dispatcher = await dispatcherRepo.findOne({
             where: [
                 { email: emailOrNumber },
-                { contactNumber: emailOrNumber}
-            ] 
+                { contactNumber: emailOrNumber }
+            ]
         });
 
         if (!dispatcher) {
-            return res.status(400).json({message: "Invalid Credential"});
+            return res.status(400).json({ message: "Invalid Credential" });
         }
 
         const isMatch = await bcrypt.compare(password, dispatcher.password);
         if (!isMatch) {
-            return res.status(400).json({message: "Invalid Credential"});
+            return res.status(400).json({ message: "Invalid Credential" });
         }
 
         // Generate Code
@@ -142,13 +142,16 @@ const dispatcherLogin = async (req, res) => {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             },
+            tls: {
+                rejectUnauthorized: false
+            }
         });
 
         await transporter.sendMail({
             from: `"ResQWave" <${process.env.EMAIL_USER}>`,
             to: dispatcher.email,
             subject: "ResQWave 2FA Verification",
-            text: `Your login verification is ${code}. It  will expire in 5 Minutes` 
+            text: `Your login verification is ${code}. It  will expire in 5 Minutes`
         });
 
         // For dev only, log code
@@ -160,7 +163,7 @@ const dispatcherLogin = async (req, res) => {
             { expiresIn: "5m" } // only valid for a short time
         );
 
-        res.json({ message: "Verification Send to Email", tempToken});
+        res.json({ message: "Verification Send to Email", tempToken });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
@@ -175,10 +178,12 @@ const focalLogin = async (req, res) => {
             return res.status(400).json({ message: "Username and password are required" });
         }
 
-        const focal = await focalRepo.findOne({ where: [
-            { email: emailOrNumber},
-            { contactNumber: emailOrNumber}
-        ] });
+        const focal = await focalRepo.findOne({
+            where: [
+                { email: emailOrNumber },
+                { contactNumber: emailOrNumber }
+            ]
+        });
         if (!focal) {
             return res.status(400).json({ message: "Invalid Credentials" });
         }
@@ -212,13 +217,16 @@ const focalLogin = async (req, res) => {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             },
+            tls: {
+                rejectUnauthorized: false
+            }
         });
 
         await transporter.sendMail({
             from: `"ResQWave" <${process.env.EMAIL_USER}>`,
             to: focal.email,
             subject: "ResQWave 2FA Verification",
-            text: `Your login verification is ${code}. It  will expire in 5 Minutes` 
+            text: `Your login verification is ${code}. It  will expire in 5 Minutes`
         });
 
         // For dev only, log code
@@ -229,7 +237,7 @@ const focalLogin = async (req, res) => {
             { expiresIn: "5m" } // only valid for a short time
         );
 
-        res.json({ message: "Verification Send to Email", tempToken});
+        res.json({ message: "Verification Send to Email", tempToken });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
@@ -240,25 +248,25 @@ const focalLogin = async (req, res) => {
 const logout = async (req, res) => {
     try {
         const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({message: "No Token"});
+        if (!authHeader) return res.status(401).json({ message: "No Token" });
 
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         // Delete the Session
-        if(decoded.sessionID) {
-            await loginVerificationRepo.delete({sessionID: decoded.sessionID});
+        if (decoded.sessionID) {
+            await loginVerificationRepo.delete({ sessionID: decoded.sessionID });
         }
 
-        res.json({message: "Logged Out Succesfully"});
+        res.json({ message: "Logged Out Succesfully" });
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error"});
+        res.status(500).json({ message: "Server Error" });
     }
 };
 
-module.exports = { 
-    register, 
+module.exports = {
+    register,
     adminLogin,
     dispatcherLogin,
     focalLogin,
