@@ -44,7 +44,7 @@ export function FocalAuthProvider({ children }: { children: ReactNode }) {
         if (payload.id) {
           setFocalIdState(payload.id);
         }
-      } catch {}
+      } catch { }
     } else {
       setFocalIdState(null);
     }

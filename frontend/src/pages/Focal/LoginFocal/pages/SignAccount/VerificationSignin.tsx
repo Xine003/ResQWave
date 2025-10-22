@@ -40,7 +40,7 @@ export default function VerificationSignin() {
                     if (payload.id) {
                         localStorage.setItem('focalId', payload.id);
                     }
-                } catch {}
+                } catch { }
             }
             navigate('/focal-dashboard');
         } catch (err: any) {
@@ -49,7 +49,7 @@ export default function VerificationSignin() {
             try {
                 const parsed = JSON.parse(msg);
                 msg = parsed.message || msg;
-            } catch {}
+            } catch { }
             setError(msg);
         }
     }
