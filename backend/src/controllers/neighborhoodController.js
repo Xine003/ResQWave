@@ -122,20 +122,36 @@ const viewOtherNeighborhoods = async (req, res) => {
       ownNeighborhoodId = nb?.id || null;
     }
 
-    const qb = neighborhoodRepo
+    // Get all neighborhoods except own, with focal person info
+    const neighborhoods = await neighborhoodRepo
       .createQueryBuilder("n")
-      .select(["n.id", "n.hazards", "n.createdAt"])
-      .where("n.archived = :arch", { arch: false });
+      .select(["n.id", "n.hazards", "n.createdAt", "n.focalPersonID"])
+      .where("n.archived = :arch", { arch: false })
+      .andWhere(ownNeighborhoodId ? "n.id <> :own" : "1=1", { own: ownNeighborhoodId })
+      .getRawMany();
 
-    if (ownNeighborhoodId) qb.andWhere("n.id <> :own", { own: ownNeighborhoodId });
-
-    const rows = await qb.getRawMany();
+    // Fetch all focal persons for these neighborhoods
+    const focalPersonIds = neighborhoods.map(n => n.n_focalPersonID).filter(Boolean);
+    let focalPersons = [];
+    if (focalPersonIds.length) {
+      focalPersons = await focalPersonRepo
+        .createQueryBuilder("f")
+        .select(["f.id", "f.address", "f.firstName", "f.lastName"])
+        .where("f.id IN (:...ids)", { ids: focalPersonIds })
+        .getRawMany();
+    }
+    const byFocalId = {};
+    focalPersons.forEach(fp => { byFocalId[fp.f_id] = fp; });
 
     return res.json(
-      rows.map((r) => ({
-        neighborhoodID: r.n_id,
-        hazards: parseHazards(r.n_hazards),
-        createdDate: r.n_createdAt ?? null,
+      neighborhoods.map((n) => ({
+        neighborhoodID: n.n_id,
+        hazards: parseHazards(n.n_hazards),
+        createdDate: n.n_createdAt ?? null,
+        address: byFocalId[n.n_focalPersonID]?.f_address || null,
+        focalPerson: byFocalId[n.n_focalPersonID]
+          ? `${byFocalId[n.n_focalPersonID].f_firstName || ''} ${byFocalId[n.n_focalPersonID].f_lastName || ''}`.trim()
+          : null,
       }))
     );
   } catch (err) {
@@ -170,10 +186,10 @@ const getNeighborhoods = async (req, res) => {
 
     const terminals = terminalIds.length
       ? await terminalRepo
-          .createQueryBuilder("t")
-          .select(["t.id", "t.availability"])
-          .where("t.id IN (:...ids)", { ids: terminalIds })
-          .getRawMany()
+        .createQueryBuilder("t")
+        .select(["t.id", "t.availability"])
+        .where("t.id IN (:...ids)", { ids: terminalIds })
+        .getRawMany()
       : [];
     const byTerminal = {};
     terminals.forEach(t => (byTerminal[t.t_id] = t.t_availability));
@@ -244,10 +260,12 @@ const updateNeighborhood = async (req, res) => {
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
 
-    return res.json({ message: "Neighborhood Updated", neighborhood: {
-      ...neighborhood,
-      hazards: parseHazards(neighborhood.hazards),
-    }});
+    return res.json({
+      message: "Neighborhood Updated", neighborhood: {
+        ...neighborhood,
+        hazards: parseHazards(neighborhood.hazards),
+      }
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server Error - UPDATE Neighborhood" });
@@ -312,10 +330,10 @@ const getArchivedNeighborhoods = async (req, res) => {
 
     const terminals = terminalIds.length
       ? await terminalRepo
-          .createQueryBuilder("t")
-          .select(["t.id", "t.availability"])
-          .where("t.id IN (:...ids)", { ids: terminalIds })
-          .getRawMany()
+        .createQueryBuilder("t")
+        .select(["t.id", "t.availability"])
+        .where("t.id IN (:...ids)", { ids: terminalIds })
+        .getRawMany()
       : [];
     const byTerminal = {};
     terminals.forEach(t => (byTerminal[t.t_id] = t.t_availability));

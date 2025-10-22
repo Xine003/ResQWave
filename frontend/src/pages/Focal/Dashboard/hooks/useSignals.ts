@@ -1,63 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { apiFetch } from '../../../../lib/api';
+import { useFocalAuth } from '../../context/focalAuthContext';
+// Fallback initial values (empty)
+const initialOtherSignals: Signal[] = [];
+const initialOwnCommunitySignal: Signal = {
+    coordinates: [0, 0],
+    properties: {
+        status: '',
+        deviceId: '',
+        focalPerson: '',
+        altFocalPerson: '',
+        address: '',
+        date: '',
+        name: ''
+    },
+};
 import type { Signal, SignalPopover, InfoBubble } from '../types/signals';
 
-const initialOtherSignals: Signal[] = [
-    {
-        coordinates: [121.03197820799186, 14.772888009898285],
-        properties: {
-            status: 'offline',
-            deviceId: 'RSQW-101',
-            focalPerson: 'Marites Dela Cruz',
-            altFocalPerson: 'Rodel Sustiguer',
-            address: 'Block 2, Lot 5, Rizal St.',
-            date: 'September 3, 2025',
-            name: 'PAMAKAI'
-        },
-        radius: 200 // meters
-    },
-    {
-        coordinates: [121.04440528679821, 14.776897515717772],
-        properties: {
-            status: 'offline',
-            deviceId: 'RSQW-102',
-            focalPerson: 'Gwen Uy',
-            altFocalPerson: 'Jose Ramos',
-            address: 'Lot 11, Paraiso Rd.',
-            date: 'September 7, 2025',
-            name: 'PENTUNAI HOA'
-        },
-        radius: 200
-    },
-    {
-        coordinates: [121.039008311252, 14.768014818600191],
-        properties: {
-            status: 'offline',
-            deviceId: 'RSQW-103',
-            focalPerson: 'Ana Santos',
-            altFocalPerson: 'Lito Perez',
-            address: 'Corner Gen. Luna & Mabini',
-            date: 'August 28, 2025',
-            name: 'ANCOP VILLAGE'
-        },
-        radius: 200
-    }
-];
 
+// Fallback initial values (empty)
+export function useSignals() {
 const initialOwnCommunitySignal: Signal = {
-    coordinates: [121.04040046802031, 14.7721611560019],
+    coordinates: [0, 0],
     properties: {
-        status: 'online',
-        deviceId: 'RSQW-001',
-        focalPerson: 'Gwyneth Uy',
-        altFocalPerson: 'Rodel Sustiguer',
-        address: 'Block 1, Lot 17, Paraiso Rd, 1400',
-        date: 'September 9, 2025',
-        name: 'Lerandia Subdivision'
+        status: '',
+        deviceId: '',
+        focalPerson: '',
+        altFocalPerson: '',
+        address: '',
+        date: '',
+        name: ''
     },
-    radius: 200
 };
 
-export default function useSignals() {
+
+    const { token } = useFocalAuth();
     const [otherSignals, setOtherSignals] = useState<Signal[]>(initialOtherSignals);
     const [ownCommunitySignal, setOwnCommunitySignal] = useState<Signal>(initialOwnCommunitySignal);
 
@@ -67,6 +44,85 @@ export default function useSignals() {
     const [infoBubble, setInfoBubble] = useState<InfoBubble | null>(null);
     const [infoBubbleVisible, setInfoBubbleVisible] = useState(true);
     const [canSave, setCanSave] = useState(false);
+
+
+    // Fetch signals from backend on mount
+    useEffect(() => {
+        async function fetchSignals() {
+            try {
+                const headers: Record<string, string> = {};
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                // Fetch own neighborhood (with focal, terminal info)
+                const own = await apiFetch<any>(`/neighborhood/map/own`, { headers });
+                // Fetch other neighborhoods (limited info)
+                const others = await apiFetch<any[]>(`/neighborhood/map/others`, { headers });
+
+
+                // Parse coordinates from address JSON string
+                let ownCoords: [number, number] = [0, 0];
+                let ownAddress = '';
+                if (own.address) {
+                    try {
+                        const addrObj = typeof own.address === 'string' ? JSON.parse(own.address) : own.address;
+                        if (addrObj && typeof addrObj.lat === 'number' && typeof addrObj.lng === 'number') {
+                            ownCoords = [addrObj.lng, addrObj.lat];
+                            ownAddress = addrObj.address || '';
+                        }
+                    } catch (e) {
+                        ownAddress = own.address;
+                    }
+                }
+                setOwnCommunitySignal({
+                    coordinates: ownCoords,
+                    properties: {
+                        status: 'online',
+                        deviceId: own.terminalID || '',
+                        focalPerson: own.focalPerson?.name || '',
+                        altFocalPerson: '',
+                        address: ownAddress,
+                        date: own.createdDate ? new Date(own.createdDate).toLocaleDateString() : '',
+                        name: '',
+                    }
+                });
+
+                setOtherSignals(
+                    (others || []).map((nb: any) => {
+                        // Parse coordinates from address JSON string
+                        let coords: [number, number] = [0, 0];
+                        let address = '';
+                        if (nb.address) {
+                            try {
+                                const addrObj = typeof nb.address === 'string' ? JSON.parse(nb.address) : nb.address;
+                                if (addrObj && typeof addrObj.lat === 'number' && typeof addrObj.lng === 'number') {
+                                    coords = [addrObj.lng, addrObj.lat];
+                                    address = addrObj.address || '';
+                                }
+                            } catch (e) {
+                                address = nb.address;
+                            }
+                        }
+                        return {
+                            coordinates: coords,
+                            properties: {
+                                status: 'offline',
+                                deviceId: nb.terminalID || '',
+                                focalPerson: '',
+                                altFocalPerson: '',
+                                address,
+                                date: nb.createdDate ? new Date(nb.createdDate).toLocaleDateString() : '',
+                                name: '',
+                            }
+                        };
+                    })
+                );
+            } catch (e) {
+                setOtherSignals(initialOtherSignals);
+                setOwnCommunitySignal(initialOwnCommunitySignal);
+            }
+        }
+        fetchSignals();
+    }, [token]);
 
     const updateBoundary = (deviceId: string | undefined, newBoundary: [number, number][] | null) => {
         if (!deviceId || !newBoundary) return;
@@ -98,3 +154,5 @@ export default function useSignals() {
         getDistressCoord
     } as const;
 }
+
+export default useSignals;
