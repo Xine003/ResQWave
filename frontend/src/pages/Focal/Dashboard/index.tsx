@@ -14,6 +14,8 @@ import type { DashboardSignals } from './types/signals';
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { createDraw, ensureSquareGreenImage, changeToDrawPolygon, makeUpdateCanSave } from './utils/drawMapBoundary';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
+import { apiFetch } from '../../../lib/api';
+
 import DashboardAlerts from './components/DashboardAlerts';
 import {
     AlertDialog,
@@ -40,6 +42,106 @@ export default function Dashboard() {
     const signals = useSignals();
     const { otherSignals, ownCommunitySignal: OwnCommunitySignal, editBoundaryOpen, setEditBoundaryOpen, popover, setPopover, infoBubble, setInfoBubble, infoBubbleVisible, setInfoBubbleVisible, setSavedGeoJson, canSave, setCanSave, getDistressCoord } = signals as unknown as DashboardSignals;
     const distressCoord: [number, number] = getDistressCoord();
+
+
+    // Poll sensor-data endpoint every 3 seconds and update signal color
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        let lastStatus: boolean | null = null;
+        let pulseTimeout: number | null = null;
+        interval = setInterval(async () => {
+            try {
+                const res = await apiFetch<{ status: boolean }>("/sensor-data/latest");
+                if (typeof res.status === "boolean" && OwnCommunitySignal) {
+                    // Only update if changed
+                    if (lastStatus !== res.status) {
+                        // Animate pulse on color change
+                        if (mapRef.current && mapLoaded) {
+                            // Remove previous pulse if any
+                            if (mapRef.current.getLayer('signal-pulse')) mapRef.current.removeLayer('signal-pulse');
+                            if (mapRef.current.getSource('signal-pulse')) mapRef.current.removeSource('signal-pulse');
+                            // Add a pulsing circle overlay
+                            const color = res.status ? '#ef4444' : '#22c55e';
+                            mapRef.current.addSource('signal-pulse', {
+                                type: 'geojson',
+                                data: {
+                                    type: 'FeatureCollection',
+                                    features: [
+                                        {
+                                            type: 'Feature',
+                                            geometry: { type: 'Point', coordinates: OwnCommunitySignal.coordinates },
+                                            properties: {}
+                                        }
+                                    ]
+                                }
+                            });
+                            mapRef.current.addLayer({
+                                id: 'signal-pulse',
+                                type: 'circle',
+                                source: 'signal-pulse',
+                                paint: {
+                                    'circle-color': color,
+                                    'circle-radius': [
+                                        'interpolate',
+                                        ['linear'],
+                                        ['get', 'pulse'],
+                                        0, 12,
+                                        1, 28
+                                    ],
+                                    'circle-opacity': [
+                                        'interpolate',
+                                        ['linear'],
+                                        ['get', 'pulse'],
+                                        0, 0.5,
+                                        1, 0
+                                    ]
+                                },
+                                filter: ['==', '$type', 'Point']
+                            });
+                            // Animate the pulse
+                            let start: number | null = null;
+                            function animatePulse(ts: number) {
+                                if (!start) start = ts;
+                                const elapsed = (ts - start) % 1000;
+                                const t = elapsed / 1000;
+                                const source = mapRef.current?.getSource('signal-pulse') as any;
+                                if (source) {
+                                    source.setData({
+                                        type: 'FeatureCollection',
+                                        features: [
+                                            {
+                                                type: 'Feature',
+                                                geometry: { type: 'Point', coordinates: OwnCommunitySignal.coordinates },
+                                                properties: { pulse: t }
+                                            }
+                                        ]
+                                    });
+                                }
+                                pulseTimeout = window.requestAnimationFrame(animatePulse);
+                            }
+                            pulseTimeout = window.requestAnimationFrame(animatePulse);
+                            // Remove pulse after 1.2s
+                            setTimeout(() => {
+                                if (mapRef.current?.getLayer('signal-pulse')) mapRef.current.removeLayer('signal-pulse');
+                                if (mapRef.current?.getSource('signal-pulse')) mapRef.current.removeSource('signal-pulse');
+                            }, 1200);
+                        }
+                        lastStatus = res.status;
+                        // Mutate the status property to trigger color change
+                        OwnCommunitySignal.properties.status = res.status ? 'CRITICAL' : 'ONLINE';
+                        // Force re-render of map layers
+                        if (mapRef.current && mapLoaded) {
+                            addCustomLayers(mapRef.current, otherSignals, { ...OwnCommunitySignal });
+                        }
+                    }
+                }
+            } catch (e) { /* ignore */ }
+        }, 3000);
+        return () => {
+            clearInterval(interval);
+            if (pulseTimeout) window.cancelAnimationFrame(pulseTimeout);
+        };
+    }, [OwnCommunitySignal, mapLoaded, otherSignals]);
 
     // Dashboard alerts are now handled by DashboardAlerts component
     const alertsRef = useRef<any>(null);

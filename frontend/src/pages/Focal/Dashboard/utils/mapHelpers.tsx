@@ -82,7 +82,13 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
             type: "circle",
             source: "distress-signal",
             paint: {
-                "circle-color": "#22c55e",
+                // Use red if status is CRITICAL, else green
+                "circle-color": [
+                    "case",
+                    ["==", ["get", "status"], "CRITICAL"], "#ef4444",
+                    ["==", ["get", "status"], "ONLINE"], "#22c55e",
+                    "#22c55e"
+                ],
                 "circle-radius": 12,
                 "circle-opacity": 1,
                 "circle-stroke-color": "#fff",

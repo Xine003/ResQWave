@@ -18,7 +18,9 @@ const postRescueRoutes = require("./routes/postRescueRoutes");
 const graphRoutes = require("./routes/graphRoutes");
 const documentRoutes = require("./routes/documentRoutes");
 const focalRegistrationRoutes = require("./routes/focalRegistrationRoutes");
-const {authMiddleware, requireRole} = require("./middleware/authMiddleware");
+
+const sensorDataRoutes = require("./routes/sensorDataRoutes");
+const { authMiddleware, requireRole } = require("./middleware/authMiddleware");
 
 // Test For Realtime
 // Remove the comment to test again
@@ -41,13 +43,14 @@ AppDataSource.initialize()
         // Serve static files (for test page)
         // Add comment to test the realtime page again
         app.use(express.static(path.join(__dirname, "public")));
-        
+
         // Public Routes
-        app.use ("/", authRoutes);
-        app.use ("/", resetPasswordRoutes);
-        app.use ("/", verificationRoutes);
-        app.use ("/", focalRegistrationRoutes);
-        
+        app.use("/", authRoutes);
+        app.use("/", resetPasswordRoutes);
+        app.use("/", verificationRoutes);
+        app.use("/", focalRegistrationRoutes);
+        app.use("/", sensorDataRoutes); // public route for sensor data
+
         // Protect Everything After This
         app.use(authMiddleware);
 
@@ -68,4 +71,4 @@ AppDataSource.initialize()
         setupSocket(server, { origin: "http://localhost:5173" });
         server.listen(5000, () => console.log("Server + SocketIO at http://localhost:5000"));
     })
-.catch((err) => console.error("DB Error", err));
+    .catch((err) => console.error("DB Error", err));
