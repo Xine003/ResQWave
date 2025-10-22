@@ -79,7 +79,11 @@ const initialOwnCommunitySignal: Signal = {
                         status: 'online',
                         deviceId: own.terminalID || '',
                         focalPerson: own.focalPerson?.name || '',
-                        altFocalPerson: '',
+                        altFocalPerson: (
+                            own.focalPerson?.alternativeFPFirstName || own.focalPerson?.alternativeFPLastName
+                        )
+                            ? [own.focalPerson?.alternativeFPFirstName, own.focalPerson?.alternativeFPLastName].filter(Boolean).join(' ')
+                            : '',
                         address: ownAddress,
                         date: own.createdDate ? new Date(own.createdDate).toLocaleDateString() : '',
                         name: '',

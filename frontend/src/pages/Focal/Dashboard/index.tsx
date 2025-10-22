@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import AccountSettingsModal from "./components/AccountSettingsModal";
 import AboutCommunity from "./components/AboutCommunity";
 import EditAboutCommunity from "./components/EditAboutCommunity";
+import { CommunityDataProvider } from "./context/CommunityDataContext";
 import HistoryCommunity from "./components/HistoryCommunity";
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
@@ -734,12 +735,14 @@ export default function Dashboard() {
 
             <MapControls mapRef={mapRef} mapLoaded={mapLoaded} makeTooltip={makeTooltip} addCustomLayers={(m) => addCustomLayers(m, otherSignals, OwnCommunitySignal)} editBoundaryOpen={editBoundaryOpen} handleDeleteBoundary={handleDeleteBoundary} />
 
-            <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
 
-            <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(_data: any) => {
-                // show the centered success alert with a custom message
-                try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch (e) { }
-            }} center={aboutCenter} />
+            <CommunityDataProvider>
+                <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
+                <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(_data: any) => {
+                    // show the centered success alert with a custom message
+                    try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch (e) { }
+                }} center={aboutCenter} />
+            </CommunityDataProvider>
 
             <HistoryCommunity open={historyOpen} onClose={() => { setHistoryOpen(false); setActiveTab('community'); }} center={historyCenter} />
 
