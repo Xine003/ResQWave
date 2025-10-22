@@ -1,27 +1,27 @@
 export type CommunityData = {
     groupName: string;
     terminalId: string;
-    communityId: string;
     registeredAt: string;
     updatedAt: string;
     stats: {
-        individuals: number;
-        families: number;
-        kids: number;
-        seniors: number;
-        pwds: number;
-        pregnant: number;
+        noOfResidents: number | string;
+        noOfHouseholds: number | string;
     };
-    note: string;
+    hazards: string[];
+    otherInfo: string[];
+    floodwaterSubsidenceDuration?: string;
+    address: string;
+    coordinates: string;
     focal: {
         name: string;
         contact: string;
         email?: string;
-        address: string;
-        coordinates: string;
-        altFocal?: string;
-        altContact?: string;
         photo?: string | null;
-        altPhoto?: string | null;
+    };
+    altFocal: {
+        name: string;
+        contact: string;
+        email?: string;
+        photo?: string | null;
     };
 };

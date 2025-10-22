@@ -33,7 +33,7 @@ export function LoginFocal() {
       }
       setError("");
       setIsLoading(false);
-      navigate('verification-signin-focal');
+      navigate('/verification-signin-focal');
     }, 1200);
   }
 
@@ -41,13 +41,10 @@ export function LoginFocal() {
     <div className="min-h-screen flex flex-col primary-background" style={{ position: 'relative', overflow: 'hidden' }}>
       <div className="loginfocal-radial-gradient" />
       <FocalHeader />
-      <main className="flex flex-1 flex-col items-center justify-center w-full" style={{ marginTop: '0px', zIndex: 20, position: 'relative' }}>
+      <main className="flex flex-1 flex-col items-center w-full" style={{ marginTop: '120px', zIndex: 20, position: 'relative' }}>
         <div className="flex flex-col items-center gap-4 mb-8">
-          <span className="mb-2">
-            <img src={resqwave_logo} alt="ResQWave Logo" className="h-12 w-12" />
-          </span>
-          <h1 className="text-4xl font-semibold text-white mb-1">Sign in</h1>
-          <p className="text-gray-300 text-center mb-2">
+          <h1 className="text-[43px] font-semibold text-white mb-1">Sign in</h1>
+          <p className="text-[#BABABA] text-center text-base mb-2 leading-relaxed">
             Log in using your account credentials.<br />
             <span className="font-semibold mt-1 block">For focal person's use only.</span>
           </p>
@@ -63,6 +60,9 @@ export function LoginFocal() {
           </div>
         )}
         <form className="flex flex-col gap-4 w-full max-w-[490px]" onSubmit={handleSubmit}>
+          <label className="block text-white text-[15px] font-light">
+            Email or Phone Number
+          </label>
           <Input
             type="text"
             placeholder="ID"
@@ -72,39 +72,45 @@ export function LoginFocal() {
               if (error) setError("");
             }}
             aria-invalid={!!error && (!id || error.includes("Wrong credentials"))}
-            className={`bg-[#232323] rounded-md px-5 py-5 text-white text-3xl placeholder:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 ${!!error && (!id || error.includes("Wrong credentials")) ? "border border-red-500" : "border border-[#333]"}`}
-            style={{ fontSize: "16px", height: "56px" }}
+            className="bg-[#171717] border border-[#404040] mb-1 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            style={{ fontSize: "16px", height: "55px" }}
           />
-          <div className="relative">
-            <Input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={e => {
-                setPassword(e.target.value);
-                if (error) setError("");
-              }}
-              aria-invalid={!!error && (!password || error.includes("Wrong credentials"))}
-              className={`bg-[#232323] rounded-md px-5 py-5 text-white text-4xl w-full placeholder:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 ${!!error && (!password || error.includes("Wrong credentials")) ? "border border-red-500" : "border border-[#333]"}`}
-              style={{ fontSize: "16px", height: "56px" }}
-            />
-            <span
-              className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
-              onClick={() => setShowPassword((prev) => !prev)}
-              tabIndex={0}
-              role="button"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
-            </span>
+          <div className="mb-3">
+            <label className="block text-white text-[15px] font-light mb-3">
+              Password
+            </label>
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={e => {
+                  setPassword(e.target.value);
+                  if (error) setError("");
+                }}
+                aria-invalid={!!error && (!password || error.includes("Wrong credentials"))}
+                className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12"
+                style={{ fontSize: "16px", height: "55px" }}
+              />
+              <span
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
+                onClick={() => setShowPassword((prev) => !prev)}
+                tabIndex={0}
+                role="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                style={{ zIndex: 2 }}
+              >
+                {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+              </span>
+            </div>
           </div>
           <Button
             type="submit"
             disabled={isLoading}
-            className="text-white py-6 rounded-md font-medium text-base mt-2 flex items-center justify-center gap-2
+            className="text-white py-6 rounded-md font-medium text-base flex items-center justify-center gap-2
              bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
              hover:from-[#2C64C5] hover:to-[#2C64C5]
-             transition duration-300 cursor-pointer"
+             transition duration-300 cursor-pointer mt-1"
             style={{ opacity: isLoading ? 0.7 : 1 }}
           >
             {isLoading && (

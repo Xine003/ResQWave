@@ -3,47 +3,38 @@ import { formStore } from '../store/formStore'
 
 export function useLocationPickerResults() {
   useEffect(() => {
+    console.log("🔄 useLocationPickerResults hook mounted/re-run")
+    
     const consumePickResult = () => {
       try {
+        console.log("🔍 Checking for pick result in sessionStorage...")
         const raw = sessionStorage.getItem("cg_pick_result")
-        if (!raw) return
+        if (!raw) {
+          console.log("❌ No pick result found")
+          return
+        }
 
+        console.log("📦 Raw pick result:", raw)
         sessionStorage.removeItem("cg_pick_result")
         const parsed = JSON.parse(raw)
         
         console.log("🗺️ Consuming pick result:", parsed)
         
-        if (parsed?.type === "both") {
-          const point = parsed?.data?.point
-          const line = parsed?.data?.line
-          
-          const updates: any = {}
-          
-          if (point?.lng != null && point?.lat != null && point?.address) {
-            updates.focalPersonAddress = point.address
-            updates.focalPersonCoordinates = `${point.lng},${point.lat}`
-          }
-          
-          if (line?.geojson) {
-            updates.boundaryGeoJSON = line.geojson
-          }
-          
-          if (Object.keys(updates).length > 0) {
-            formStore.updateFormData(updates)
-          }
-        } else if (parsed?.type === "point") {
+        if (parsed?.type === "point") {
           const { lng, lat, address } = parsed.data || {}
+          console.log("📍 Location data:", { lng, lat, address })
           if (lng != null && lat != null && address) {
+            const formattedCoords = `${lng.toFixed(6)}, ${lat.toFixed(6)}`
+            console.log("✅ Updating form with address:", address, "coords:", formattedCoords)
             formStore.updateFormData({
               focalPersonAddress: address,
-              focalPersonCoordinates: `${lng},${lat}`,
+              focalPersonCoordinates: formattedCoords,
             })
+          } else {
+            console.warn("⚠️ Missing required location data:", { lng, lat, address })
           }
-        } else if (parsed?.type === "line") {
-          const { geojson } = parsed.data || {}
-          if (geojson) {
-            formStore.updateFormData({ boundaryGeoJSON: geojson })
-          }
+        } else {
+          console.warn("⚠️ Unexpected data type:", parsed?.type)
         }
         
         console.log("✅ Pick result consumed successfully")

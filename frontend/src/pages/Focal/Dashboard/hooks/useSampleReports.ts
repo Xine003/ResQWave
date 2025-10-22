@@ -7,25 +7,25 @@ const SAMPLE_REPORTS: ReportGroup[] = [
         monthLabel: 'September 2025',
         count: 3,
         items: [
-            { id: 'DOC_EMG_009', date: 'September 17, 2025', type: 'Critical' },
-            { id: 'DOC_EMG_008', date: 'September 10, 2025', type: 'User Initiated' },
-            { id: 'DOC_EMG_007', date: 'September 1, 2025', type: 'Critical' },
+            { id: 'EmergencyReport_091725', date: 'September 17, 2025', type: 'Critical' },
+            { id: 'EmergencyReport_09625', date: 'September 10, 2025', type: 'User Initiated' },
+            { id: 'EmergencyReport_09125', date: 'September 1, 2025', type: 'Critical' },
         ],
     },
     {
         monthLabel: 'October 2025',
         count: 2,
         items: [
-            { id: 'DOC_EMG_002', date: 'October 2, 2025', type: 'User Initiated' },
-            { id: 'DOC_EMG_001', date: 'October 5, 2025', type: 'Critical' },
+            { id: 'EmergencyReport_091745', date: 'October 2, 2025', type: 'User Initiated' },
+            { id: 'EmergencyReport_091225', date: 'October 5, 2025', type: 'Critical' },
         ],
     },
     {
         monthLabel: 'November 2025',
         count: 2,
         items: [
-            { id: 'DOC_EMG_002', date: 'October 2, 2025', type: 'User Initiated' },
-            { id: 'DOC_EMG_001', date: 'October 5, 2025', type: 'Critical' },
+            { id: 'EmergencyReport_095425', date: 'October 2, 2025', type: 'User Initiated' },
+            { id: 'EmergencyReport_091245', date: 'October 5, 2025', type: 'Critical' },
         ],
     },
 ];

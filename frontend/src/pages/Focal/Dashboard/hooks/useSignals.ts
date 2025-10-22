@@ -13,13 +13,7 @@ const initialOtherSignals: Signal[] = [
             date: 'September 3, 2025',
             name: 'PAMAKAI'
         },
-        boundary: [
-            [121.0315, 14.7732],
-            [121.0325, 14.7732],
-            [121.0325, 14.7725],
-            [121.0315, 14.7725],
-            [121.0315, 14.7732]
-        ]
+        radius: 200 // meters
     },
     {
         coordinates: [121.04440528679821, 14.776897515717772],
@@ -32,13 +26,7 @@ const initialOtherSignals: Signal[] = [
             date: 'September 7, 2025',
             name: 'PENTUNAI HOA'
         },
-        boundary: [
-            [121.0440, 14.7772],
-            [121.0450, 14.7772],
-            [121.0450, 14.7765],
-            [121.0440, 14.7765],
-            [121.0440, 14.7772]
-        ]
+        radius: 200
     },
     {
         coordinates: [121.039008311252, 14.768014818600191],
@@ -51,13 +39,7 @@ const initialOtherSignals: Signal[] = [
             date: 'August 28, 2025',
             name: 'ANCOP VILLAGE'
         },
-        boundary: [
-            [121.0385, 14.7684],
-            [121.0395, 14.7684],
-            [121.0395, 14.7677],
-            [121.0385, 14.7677],
-            [121.0385, 14.7684]
-        ]
+        radius: 200
     }
 ];
 
@@ -72,13 +54,7 @@ const initialOwnCommunitySignal: Signal = {
         date: 'September 9, 2025',
         name: 'Lerandia Subdivision'
     },
-    boundary: [
-        [121.0400, 14.7725],
-        [121.0410, 14.7725],
-        [121.0410, 14.7718],
-        [121.0400, 14.7718],
-        [121.0400, 14.7725]
-    ]
+    radius: 200
 };
 
 export default function useSignals() {
