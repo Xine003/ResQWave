@@ -9,6 +9,7 @@ const resetPasswordRoutes = require("./routes/resetPasswordRoutes");
 const dispatcherRoutes = require("./routes/dispatcherRoutes");
 const terminalRoutes = require("./routes/terminalRoutes");
 const focalPersonRoutes = require("./routes/focalPersonRoutes");
+const neighborhoodRoutes = require("./routes/neighborhoodRoutes");
 const communityGroupRoutes = require("./routes/communityGroupRoutes");
 const alertRoutes = require("./routes/alertRoutes");
 const verificationRoutes = require("./routes/verificationRoutes");
@@ -55,6 +56,7 @@ AppDataSource.initialize()
         app.use("/dispatcher", requireRole("admin"), dispatcherRoutes);
         app.use("/terminal", terminalRoutes);
         app.use("/focalperson", focalPersonRoutes);
+        app.use("/neighborhood", neighborhoodRoutes);
         app.use("/communitygroup", communityGroupRoutes);
         app.use("/alerts", alertRoutes);
         app.use("/forms", rescueFormRoutes);
