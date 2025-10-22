@@ -1,12 +1,11 @@
 const express = require("express");
-const { register, adminLogin, dispatcherLogin, focalLogin, logout } = require("../controllers/authController");
+const { register,  adminDispatcherLogin, focalLogin, logout } = require("../controllers/authController");
 
 
 const router = express.Router();
 
 router.post("/register", register);
-router.post("/admin/login", adminLogin);
-router.post("/dispatcher/login", dispatcherLogin);
+router.post("/login", adminDispatcherLogin);
 router.post("/focal/login", focalLogin);
 router.post("/logout", logout);
 
