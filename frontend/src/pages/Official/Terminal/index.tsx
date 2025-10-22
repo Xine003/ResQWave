@@ -3,18 +3,18 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from "@/components/ui/input"
 import { ArchiveRestore, Info, Trash2 } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
-import { createColumns, type Dispatcher } from "./components/Column"
-import { CreateDispatcherSheet } from "./components/CreateDispatcherSheet"
+import { createColumns, type Terminal } from "./components/Column"
+import { CreateTerminalSheet } from "./components/CreateTerminalModal"
 import { DataTable } from "./components/DataTable"
-import { DispatcherInfoSheet } from "./components/DispatcherInfoSheet"
-import { useDispatchers } from "./hooks/useDispatchers"
-import type { DispatcherDetails, DispatcherFormData } from "./types"
+import { TerminalInfoSheet } from "./components/TerminalInfoSheet"
+import { useTerminals } from "./hooks/useTerminals"
+import type { TerminalDetails, TerminalFormData } from "./types"
 
 // Create archived columns for the archived tab
 const makeArchivedColumns = (
-  onMoreInfo: (d: Dispatcher) => void,
-  onRestore?: (d: Dispatcher) => void,
-  onDeletePermanent?: (d: Dispatcher) => void
+  onMoreInfo: (t: Terminal) => void,
+  onRestore?: (t: Terminal) => void,
+  onDeletePermanent?: (t: Terminal) => void
 ) => 
   createColumns({ 
     onMoreInfo, 
@@ -74,114 +74,122 @@ const makeArchivedColumns = (
     return column
   })
 
-export function Dispatchers() {
-  // Use the custom hook for dispatcher data
+export function Terminals() {
+  // Use the custom hook for terminal data
   const {
-    activeDispatchers,
-    archivedDispatchers,
+    activeTerminals,
+    archivedTerminals,
     infoById,
     loading,
     error,
-    archiveDispatcherById,
-    createNewDispatcher,
-    deleteDispatcherPermanentlyById,
+    archiveTerminalById,
+    createNewTerminal,
     refreshData,
-    fetchDispatcherDetails,
-    setActiveDispatchers,
-    setArchivedDispatchers,
-    setInfoById,
-  } = useDispatchers()
+    fetchTerminalDetails,
+    unarchiveTerminalById,
+    updateTerminalById,
+  } = useTerminals()
 
   // Local UI state
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active")
   const [infoOpen, setInfoOpen] = useState(false)
-  const [selectedInfoData, setSelectedInfoData] = useState<DispatcherDetails | undefined>(undefined)
+  const [selectedInfoData, setSelectedInfoData] = useState<TerminalDetails | undefined>(undefined)
   const [searchVisible, setSearchVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [editingDispatcher, setEditingDispatcher] = useState<Dispatcher | null>(null)
-  const [editData, setEditData] = useState<DispatcherDetails | undefined>(undefined)
+  const [editingTerminal, setEditingTerminal] = useState<Terminal | null>(null)
+  const [editData, setEditData] = useState<TerminalDetails | undefined>(undefined)
 
-  const handleMoreInfo = useCallback(async (dispatcher: Dispatcher) => {
-    // Always fetch fresh data from API to get the photo
+  const handleMoreInfo = useCallback(async (terminal: Terminal) => {
+    // Always fetch fresh data from API to get the most current info
     try {
-      const fetchedDetails = await fetchDispatcherDetails(dispatcher.id)
+      const fetchedDetails = await fetchTerminalDetails(terminal.id)
       if (fetchedDetails) {
         setSelectedInfoData(fetchedDetails)
       } else {
         setSelectedInfoData({
-          id: dispatcher.id,
-          name: dispatcher.name,
-          contactNumber: dispatcher.contactNumber,
-          email: dispatcher.email,
-          createdAt: dispatcher.createdAt,
+          id: terminal.id,
+          name: terminal.name,
+          status: terminal.status,
+          availability: terminal.availability,
+          dateCreated: terminal.dateCreated,
+          dateUpdated: terminal.dateUpdated,
         })
       }
     } catch (error) {
-      console.error('Error fetching dispatcher details:', error)
+      console.error('Error fetching terminal details:', error)
       setSelectedInfoData({
-        id: dispatcher.id,
-        name: dispatcher.name,
-        contactNumber: dispatcher.contactNumber,
-        email: dispatcher.email,
-        createdAt: dispatcher.createdAt,
+        id: terminal.id,
+        name: terminal.name,
+        status: terminal.status,
+        availability: terminal.availability,
+        dateCreated: terminal.dateCreated,
+        dateUpdated: terminal.dateUpdated,
       })
     }
     
     setInfoOpen(true)
-  }, [fetchDispatcherDetails])
+  }, [fetchTerminalDetails])
 
-  const handleArchive = useCallback(async (dispatcher: Dispatcher) => {
+  const handleArchive = useCallback(async (terminal: Terminal) => {
     try {
-      // Call the backend API to archive the dispatcher
-      await archiveDispatcherById(dispatcher.id)
+      // Call the backend API to archive the terminal
+      await archiveTerminalById(terminal.id)
       
-      // Switch to archive tab to show the archived dispatcher
+      // Switch to archive tab to show the archived terminal
       setActiveTab("archived")
       
-      console.log(`Dispatcher ${dispatcher.name} archived successfully`)
+      console.log(`Terminal ${terminal.name} archived successfully`)
     } catch (error) {
-      console.error('Failed to archive dispatcher:', error)
+      console.error('Failed to archive terminal:', error)
       // Handle error (could show toast notification)
     }
-  }, [archiveDispatcherById])
+  }, [archiveTerminalById])
 
-  const handleRestore = useCallback(async (dispatcher: Dispatcher) => {
-    // TODO: Implement API call to restore dispatcher (update archived status)
-    // For now, do optimistic update
-    setArchivedDispatchers((prev) => prev.filter((d) => d.id !== dispatcher.id))
-    setActiveDispatchers((prev) => [dispatcher, ...prev])
-  }, [setArchivedDispatchers, setActiveDispatchers])
+  const handleRestore = useCallback(async (terminal: Terminal) => {
+    try {
+      await unarchiveTerminalById(terminal.id)
+      console.log(`Terminal ${terminal.name} restored successfully`)
+      alert('Terminal restored successfully!')
+    } catch (error) {
+      console.error('Failed to restore terminal:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to restore terminal'
+      alert(`Error: ${errorMessage}`)
+    }
+  }, [unarchiveTerminalById])
 
-  const handleDeletePermanent = useCallback(async (dispatcher: Dispatcher) => {
-    // Show confirmation dialog
+  const handleDeletePermanent = useCallback(async (terminal: Terminal) => {
     const confirmed = window.confirm(
-      `Are you sure you want to permanently delete dispatcher "${dispatcher.name}"?\n\nThis action cannot be undone.`
+      `Are you sure you want to permanently delete terminal "${terminal.name}"?\n\nThis action cannot be undone.`
     )
     
     if (!confirmed) return
     
     try {
-      // Call the backend API to permanently delete the dispatcher
-      await deleteDispatcherPermanentlyById(dispatcher.id)
+      // Note: Backend only supports archive, not permanent delete
+      // For now, we'll just archive the terminal
+      await archiveTerminalById(terminal.id)
       
-      console.log(`Dispatcher ${dispatcher.name} permanently deleted successfully`)
+      console.log(`Terminal ${terminal.name} archived successfully`)
+      alert('Terminal archived successfully!')
     } catch (error) {
-      console.error('Failed to permanently delete dispatcher:', error)
-      // Handle error (could show toast notification)
+      console.error('Failed to archive terminal:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to archive terminal'
+      alert(`Error: ${errorMessage}`)
     }
-  }, [deleteDispatcherPermanentlyById])
+  }, [archiveTerminalById])
 
-  const handleEdit = useCallback((dispatcher: Dispatcher) => {
-    setEditingDispatcher(dispatcher)
+  const handleEdit = useCallback((terminal: Terminal) => {
+    setEditingTerminal(terminal)
     
-    // Get the detailed info for this dispatcher, or create default data
-    const detailed = infoById[dispatcher.id] || {
-      id: dispatcher.id,
-      name: dispatcher.name,
-      contactNumber: dispatcher.contactNumber,
-      email: dispatcher.email,
-      createdAt: dispatcher.createdAt,
+    // Get the detailed info for this terminal, or create default data
+    const detailed = infoById[terminal.id] || {
+      id: terminal.id,
+      name: terminal.name,
+      status: terminal.status,
+      availability: terminal.availability,
+      dateCreated: terminal.dateCreated,
+      dateUpdated: terminal.dateUpdated,
     }
     
     setEditData(detailed)
@@ -192,82 +200,56 @@ export function Dispatchers() {
   const archivedColumns = useMemo(() => makeArchivedColumns(handleMoreInfo, handleRestore, handleDeletePermanent), [handleMoreInfo, handleRestore, handleDeletePermanent])
 
   // Filter function for search
-  const filterDispatchers = (dispatchers: Dispatcher[]) => {
-    if (!searchQuery.trim()) return dispatchers
+  const filterTerminals = (terminals: Terminal[]) => {
+    if (!searchQuery.trim()) return terminals
     
-    return dispatchers.filter((dispatcher) =>
-      dispatcher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      dispatcher.contactNumber.includes(searchQuery) ||
-      dispatcher.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      dispatcher.id.toLowerCase().includes(searchQuery.toLowerCase())
+    return terminals.filter((terminal) =>
+      terminal.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      terminal.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      terminal.availability.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      terminal.id.toLowerCase().includes(searchQuery.toLowerCase())
     )
   }
 
-  const filteredActiveDispatchers = filterDispatchers(activeDispatchers)
-  const filteredArchivedDispatchers = filterDispatchers(archivedDispatchers)
+  const filteredActiveTerminals = filterTerminals(activeTerminals)
+  const filteredArchivedTerminals = filterTerminals(archivedTerminals)
 
-  const tableData = activeTab === "active" ? filteredActiveDispatchers : filteredArchivedDispatchers
+  const tableData = activeTab === "active" ? filteredActiveTerminals : filteredArchivedTerminals
   const tableColumns = activeTab === "active" ? activeColumns : archivedColumns
 
   const [saving, setSaving] = useState(false)
 
-  const handleSaveDispatcher = useCallback(async (dispatcherData: DispatcherDetails, formData?: DispatcherFormData) => {
+  const handleSaveTerminal = useCallback(async (formData: TerminalFormData) => {
     setSaving(true)
     
     try {
-      if (editingDispatcher) {
-        // TODO: Implement update dispatcher API call
-        // Update existing dispatcher
-        const updatedRow: Dispatcher = {
-          ...editingDispatcher,
-          name: dispatcherData.name,
-          contactNumber: dispatcherData.contactNumber,
-          email: dispatcherData.email,
-        }
-        
-        // Update in the appropriate list (active or archived)
-        setActiveDispatchers((prev) => 
-          prev.map((dispatcher) => dispatcher.id === editingDispatcher.id ? updatedRow : dispatcher)
-        )
-        setArchivedDispatchers((prev) => 
-          prev.map((dispatcher) => dispatcher.id === editingDispatcher.id ? updatedRow : dispatcher)
-        )
-        
-        // Update detailed info including photo
-        setInfoById((prev) => ({ ...prev, [editingDispatcher.id]: dispatcherData }))
-        
-        // Clear edit state
-        setEditingDispatcher(null)
-        setEditData(undefined)
-      } else {
-        // Create new dispatcher using raw form data
-        if (!formData) {
-          throw new Error('Form data is required for creating a new dispatcher')
-        }
-        
-        const result = await createNewDispatcher({
+      if (editingTerminal) {
+        // Update existing terminal
+        await updateTerminalById(editingTerminal.id, {
           name: formData.name,
-          email: formData.email,
-          contactNumber: formData.contactNumber,
-          password: formData.password, // Pass the password if provided
-          photo: formData.photo
         })
         
-        // Show success message if temporary password was generated
-        if (result.temporaryPassword) {
-          alert(`Dispatcher created successfully!\nTemporary password: ${result.temporaryPassword}\nPlease save this password and share it with the dispatcher.`)
-        } else {
-          alert('Dispatcher created successfully!')
-        }
+        // Clear edit state
+        setEditingTerminal(null)
+        setEditData(undefined)
+        setDrawerOpen(false)
+        
+        alert('Terminal updated successfully!')
+      } else {
+        // Create new terminal
+        await createNewTerminal(formData)
+        
+        setDrawerOpen(false)
+        alert('Terminal created successfully!')
       }
     } catch (err) {
-      console.error('Error saving dispatcher:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save dispatcher'
+      console.error('Error saving terminal:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save terminal'
       alert(`Error: ${errorMessage}`)
     } finally {
       setSaving(false)
     }
-  }, [editingDispatcher, createNewDispatcher, setActiveDispatchers, setArchivedDispatchers, setInfoById])
+  }, [editingTerminal, createNewTerminal, updateTerminalById])
 
   // Show loading state
   if (loading) {
@@ -275,7 +257,7 @@ export function Dispatchers() {
       <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col h-[calc(100vh-73px)] items-center justify-center">
         <div className="flex items-center gap-3">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-          <p className="text-lg">Loading dispatchers...</p>
+          <p className="text-lg">Loading terminals...</p>
         </div>
       </div>
     )
@@ -305,7 +287,7 @@ export function Dispatchers() {
         )}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-            <h1 className="text-2xl font-semibold text-white">Dispatchers</h1>
+            <h1 className="text-2xl font-semibold text-white">Terminal Management</h1>
             <div className="flex items-center gap-1 bg-[#262626] rounded-[5px] p-1">
               <button
                 onClick={() => setActiveTab("active")}
@@ -314,7 +296,7 @@ export function Dispatchers() {
                 }`}
               >
                 Active
-                <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{activeDispatchers.length}</span>
+                <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{activeTerminals.length}</span>
               </button>
               <button
                 onClick={() => setActiveTab("archived")}
@@ -325,7 +307,7 @@ export function Dispatchers() {
                 }`}
               >
                 Archived
-                <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{archivedDispatchers.length}</span>
+                <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{archivedTerminals.length}</span>
               </button>
             </div>
           </div>
@@ -335,7 +317,7 @@ export function Dispatchers() {
             }`}>
               <Input
                 type="text"
-                placeholder="Search dispatchers..."
+                placeholder="Search terminals..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-64 bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4] transition-all duration-300"
@@ -380,7 +362,7 @@ export function Dispatchers() {
             </Button>
             <Button 
               onClick={() => {
-                setEditingDispatcher(null)
+                setEditingTerminal(null)
                 setEditData(undefined)
                 setDrawerOpen(true)
               }} 
@@ -389,7 +371,7 @@ export function Dispatchers() {
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Create Dispatcher
+              Create New Terminal
             </Button>
           </div>
         </div>
@@ -398,35 +380,33 @@ export function Dispatchers() {
           <DataTable
             columns={tableColumns}
             data={tableData}
-            onRowClick={(row) => handleMoreInfo(row as Dispatcher)}
+            onRowClick={(row) => handleMoreInfo(row as Terminal)}
           />
         </div>
       </div>
 
       {/* Info Sheet */}
-      <DispatcherInfoSheet
+      <TerminalInfoSheet
         open={infoOpen}
         onOpenChange={setInfoOpen}
-        dispatcherData={selectedInfoData}
+        terminalData={selectedInfoData}
       />
 
-      {/* Create Dispatcher Sheet */}
-      <CreateDispatcherSheet
+      {/* Create Terminal Sheet */}
+      <CreateTerminalSheet
         open={drawerOpen}
         onOpenChange={(open: boolean) => {
           if (!saving) { // Prevent closing while saving
             setDrawerOpen(open)
             if (!open) {
               // Clear edit state when closing
-              setEditingDispatcher(null)
+              setEditingTerminal(null)
               setEditData(undefined)
             }
           }
         }}
         editData={editData}
-        isEditing={!!editingDispatcher}
-        onSave={handleSaveDispatcher}
-        saving={saving}
+        onSave={handleSaveTerminal}
       />
     </div>
   )

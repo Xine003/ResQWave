@@ -25,13 +25,14 @@ export function LoginOfficial() {
       
       if (success) {
         setIsLoading(false)
+        // Both admin and dispatcher need 2FA - go to verification
         navigate("/verification-official")
       } else {
         setError("Invalid credentials. Please check your ID and password.")
         setIsLoading(false)
       }
-    } catch (error) {
-      setError("An error occurred during login. Please try again.")
+    } catch (error: any) {
+      setError(error?.message || "An error occurred during login. Please try again.")
       setIsLoading(false)
     }
   }

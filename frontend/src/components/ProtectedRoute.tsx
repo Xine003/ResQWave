@@ -11,7 +11,7 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
 
   // If not logged in, redirect to login
   if (!user) {
-    return <Navigate to="/login-dispatcher" replace />
+    return <Navigate to="/login-official" replace />
   }
 
   // If admin required but user is not admin, show access denied

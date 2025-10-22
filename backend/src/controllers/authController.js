@@ -12,12 +12,19 @@ const focalRepo = AppDataSource.getRepository("FocalPerson"); // ensure focalLog
 // Registration
 const register = async (req, res) => {
     try {
-        const { name, password } = req.body;
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({ message: "Name, email, and password are required" });
+        }
 
         // check if already exists
-        const existingAdmin = await adminRepo.findOne({ where: { name } });
+        const existingAdmin = await adminRepo.findOne({ where: [
+            { name },
+            { email }
+        ] });
         if (existingAdmin) {
-            return res.status(400).json({ message: "Admin already exist" });
+            return res.status(400).json({ message: "Admin with this name or email already exists" });
         }
 
         // Get the last admin
@@ -40,6 +47,7 @@ const register = async (req, res) => {
         const newAdmin = adminRepo.create({
             id: newID,
             name,
+            email,
             password: hashedPassword,
         });
 
@@ -141,13 +149,13 @@ const adminDispatcherLogin = async (req, res) => {
         let user = null;
         let recipientEmail = null;
 
-        // Try Admin by name (admin enters their name into emailOrNumber)
-        const admin = await adminRepo.findOne({ where: { name: identifier } });
-        if (admin && await bcrypt.compare(password, admin.password || "")) {
-            role = "admin";
-            user = admin;
-            recipientEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
-        }
+    // Try Admin by name (admin enters their name into emailOrNumber)
+    const admin = await adminRepo.findOne({ where: { name: identifier } });
+    if (admin && await bcrypt.compare(password, admin.password || "")) {
+      role = "admin";
+      user = admin;
+      recipientEmail = admin.email;
+    }
 
         // If not admin, try Dispatcher by email or contactNumber
         if (!user) {
@@ -218,50 +226,57 @@ const adminDispatcherVerify = async (req, res) => {
             return res.status(400).json({ message: "Invalid token context" });
         }
 
-        const record = await loginVerificationRepo.findOne({
-            where: { userID: decoded.id, userType: decoded.role, code },
-        });
-        if (!record) return res.status(400).json({ message: "Invalid code" });
-        if (new Date(record.expiry).getTime() < Date.now()) {
-            await loginVerificationRepo.delete({ userID: decoded.id, userType: decoded.role, code });
-            return res.status(400).json({ message: "Code expired" });
-        }
 
-        // Create session (so logout can invalidate)
-        const sessionID = crypto.randomUUID();
-        const sessionExpiry = new Date(Date.now() + 60 * 60 * 1000);
-        await loginVerificationRepo.save({
-            userID: decoded.id,
-            userType: decoded.role,
-            code: "OK",
-            sessionID,
-            expiry: sessionExpiry,
-        });
+    // Create session (so logout can invalidate)
+    const sessionID = crypto.randomUUID();
+    const sessionExpiry = new Date(Date.now() + 60 * 60 * 1000);
+    await loginVerificationRepo.save({
+      userID: decoded.id,
+      userType: decoded.role,
+      code: "OK",
+      sessionID,
+      expiry: sessionExpiry,
+    });
 
-        // Cleanup used OTP
-        await loginVerificationRepo.delete({ userID: decoded.id, userType: decoded.role, code });
+    // Cleanup used OTP
+    await loginVerificationRepo.delete({ userID: decoded.id, userType: decoded.role, code });
 
-        // Build name for JWT
-        let name = "User";
-        if (decoded.role === "admin") {
-            const admin = await adminRepo.findOne({ where: { id: decoded.id } });
-            name = admin?.name || "Admin";
-        } else {
-            const dispatcher = await dispatcherRepo.findOne({ where: { id: decoded.id } });
-            name = dispatcher?.name || "Dispatcher";
-        }
-
-        const token = jwt.sign(
-            { id: decoded.id, role: decoded.role, name, sessionID },
-            process.env.JWT_SECRET,
-            { expiresIn: "1h" }
-        );
-
-        return res.json({ message: "Login successful", token });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: "Server Error - VERIFY 2FA" });
+    // Get user data for response
+    let userData = null;
+    if (decoded.role === "admin") {
+      const admin = await adminRepo.findOne({ where: { id: decoded.id } });
+      userData = {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: "admin"
+      };
+    } else {
+      const dispatcher = await dispatcherRepo.findOne({ where: { id: decoded.id } });
+      userData = {
+        id: dispatcher.id,
+        name: dispatcher.name,
+        email: dispatcher.email,
+        phoneNumber: dispatcher.phoneNumber,
+        role: "dispatcher"
+      };
     }
+
+    const token = jwt.sign(
+      { id: decoded.id, role: decoded.role, name: userData.name, sessionID },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return res.json({ 
+      message: "Login successful", 
+      token,
+      user: userData
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error - VERIFY 2FA" });
+  }
 };
 
 // Logout

@@ -219,6 +219,37 @@ const archiveDispatchers = async (req, res) => {
     }
 };
 
+// PERMANENT DELETE Dispatcher
+const deleteDispatcherPermanently = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Check if dispatcher exists
+        const dispatcher = await dispatcherRepo.findOne({ where: { id } });
+        if (!dispatcher) {
+            return res.status(404).json({ message: "Dispatcher Not Found" });
+        }
+
+        // Only allow permanent deletion of archived dispatchers for safety
+        if (!dispatcher.archived) {
+            return res.status(400).json({ message: "Only archived dispatchers can be permanently deleted" });
+        }
+
+        // Permanently delete from database
+        await dispatcherRepo.remove(dispatcher);
+
+        // Invalidate caches
+        await deleteCache("dispatchers:active");
+        await deleteCache("dispatchers:archived");
+        await deleteCache(`dispatcher:${id}`);
+
+        res.json({ message: "Dispatcher Permanently Deleted" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error - PERMANENT DELETE Dispatcher" });
+    }
+};
+
 
 module.exports = {
     createDispatcher,
@@ -226,5 +257,6 @@ module.exports = {
     getDispatcher,
     updateDispatcher,
     archiveDispatcher,
-    archiveDispatchers
+    archiveDispatchers,
+    deleteDispatcherPermanently
 };

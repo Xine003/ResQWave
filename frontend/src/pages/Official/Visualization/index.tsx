@@ -1,12 +1,16 @@
 import { useLiveReport } from '@/components/Official/LiveReportContext';
+import { Button } from "@/components/ui/button";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CommunityGroupInfoSheet } from '../CommunityGroups/components/CommunityGroupInfoSheet';
 import type { CommunityGroupDetails } from '../CommunityGroups/types';
 import LiveReportSidebar from './components/LiveReportSidebar';
 import MapControls from './components/MapControls';
+import RescueFormPreview from './components/RescueFormPreview';
 import SignalPopover from './components/SignalPopover';
+import { RescueWaitlistProvider, useRescueWaitlist, type WaitlistedRescueForm } from './contexts/RescueWaitlistContext';
 import useSignals from './hooks/useSignals';
 import type { Signal, VisualizationSignals } from './types/signals';
 import { cinematicMapEntrance, flyToSignal } from './utils/flyingEffects';
@@ -14,11 +18,29 @@ import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
 
 mapboxgl.accessToken = "pk.eyJ1Ijoicm9kZWxsbCIsImEiOiJjbWU0OXNvb2gwYnM0MnpvbXNueXo2dzhxIn0.Ep43_IxVhaPhEqWBaAuuyA";
 
-export function Visualization() {
+function VisualizationContent() {
     const mapContainer = useRef<HTMLDivElement | null>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const [mapLoaded, setMapLoaded] = useState(false);
     const { isLiveReportOpen, setIsLiveReportOpen } = useLiveReport();
+    const { selectedWaitlistForm, setSelectedWaitlistForm } = useRescueWaitlist();
+    const [showWaitlistPreview, setShowWaitlistPreview] = useState(false);
+    const [showDispatchDialog, setShowDispatchDialog] = useState(false);
+    const navigate = useNavigate();
+
+    const handleDispatchRescue = () => {
+        setShowDispatchDialog(true);
+        
+        // Auto-fade after 3 seconds
+        setTimeout(() => {
+            setShowDispatchDialog(false);
+        }, 2000);
+    };
+
+    const handleOpenReportForm = () => {
+        navigate('/reports');
+        setShowDispatchDialog(false);
+    };
     
     // Keep a ref to the latest sidebar state so map event handlers can see the current value
     const sidebarOpenRef = useRef<boolean>(isLiveReportOpen);
@@ -398,6 +420,7 @@ export function Visualization() {
                 infoBubble={infoBubble}
                 infoBubbleVisible={infoBubbleVisible}
                 onOpenCommunityInfo={handleOpenCommunityInfo}
+                onDispatchRescue={handleDispatchRescue}
                 onClose={() => {
                     // remove any temporary signal boundary overlay when popover closes
                     const map = mapRef.current;
@@ -461,6 +484,10 @@ export function Visualization() {
                         });
                     }, 500); // Small delay to let the map finish flying
                 }}
+                onWaitlistCardClick={(form: WaitlistedRescueForm) => {
+                    setSelectedWaitlistForm(form);
+                    setShowWaitlistPreview(true);
+                }}
             />
 
             {/* Community Group Info Sheet */}
@@ -469,6 +496,62 @@ export function Visualization() {
                 onOpenChange={setInfoSheetOpen}
                 communityData={selectedCommunityData}
             />
+
+            {/* Waitlisted Rescue Form Preview */}
+            {selectedWaitlistForm && (
+                <RescueFormPreview 
+                    isOpen={showWaitlistPreview}
+                    onClose={() => {
+                        setShowWaitlistPreview(false);
+                        setSelectedWaitlistForm(null);
+                    }}
+                    onBack={() => {
+                        setShowWaitlistPreview(false);
+                    }}
+                    formData={selectedWaitlistForm}
+                    onDispatch={handleDispatchRescue}
+                />
+            )}
+
+            {/* Dispatch Success Toast - positioned in bottom left */}
+            {showDispatchDialog && (
+                <div className="fixed bottom-6 left-21 z-50 animate-in slide-in-from-left-5 duration-300">
+                    <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-lg p-4 max-w-sm">
+                        <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-white text-sm font-medium">
+                                    PAMAKAI rescue team has been dispatched!
+                                </h3>
+                                <Button
+                                    onClick={handleOpenReportForm}
+                                    className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-8"
+                                >
+                                    Open report page
+                                </Button>
+                            </div>
+                            <button
+                                onClick={() => setShowDispatchDialog(false)}
+                                className="text-gray-400 hover:text-white text-lg leading-none"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
+    );
+}
+
+export function Visualization() {
+    return (
+        <RescueWaitlistProvider>
+            <VisualizationContent />
+        </RescueWaitlistProvider>
     );
 }

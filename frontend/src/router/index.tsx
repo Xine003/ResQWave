@@ -3,18 +3,18 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import React from 'react';
 import { createBrowserRouter, Outlet, Navigate } from 'react-router-dom';
 import { Landing, LoginFocal, RegisterAccount } from '../pages/Focal';
+import AccountReview from '../pages/Focal/LoginFocal/pages/RegisterAccount/AccountReview';
+import InfoDetailsRegister from '../pages/Focal/LoginFocal/pages/RegisterAccount/InfoDetailsRegister';
+import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount';
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/SignAccount/ForgotPassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
-import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount';
-import InfoDetailsRegister from '../pages/Focal/LoginFocal/pages/RegisterAccount/InfoDetailsRegister';
-import AccountReview from '../pages/Focal/LoginFocal/pages/RegisterAccount/AccountReview';
 import {
-  CommunityGroups,
-  LoginOfficial,
-  Reports,
-  Tabular,
-  VerificationOfficial,
-  Visualization
+    CommunityGroups,
+    LoginOfficial,
+    Reports,
+    Tabular,
+    VerificationOfficial,
+    Visualization
 } from '../pages/Official';
 // TypeScript declaration for window property
 declare global {
@@ -27,6 +27,7 @@ import FocalDashboard from '../pages/Focal/Dashboard';
 import { FocalAuthProvider } from '../pages/Focal/context/focalAuthContext';
 import SettingLocationPage from "../pages/Official/CommunityGroups/components/SettingLocationPage";
 import { Dispatchers } from '../pages/Official/DispatcherCRUD';
+import { Terminals } from '../pages/Official/Terminal';
 
 // Protective route for focal pages
 const FocalProtectedRoute: React.FC = () => {
@@ -158,6 +159,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute adminOnly={true}>
             <Dispatchers />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: 'terminal',
+        element: (
+          <ProtectedRoute adminOnly={true}>
+            <Terminals />
           </ProtectedRoute>
         )
       },

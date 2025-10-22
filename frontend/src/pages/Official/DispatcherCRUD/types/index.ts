@@ -35,12 +35,22 @@ export interface DispatcherDetails {
   photo?: string
 }
 
+// Raw form data for API calls
+export interface DispatcherFormData {
+  name: string
+  email: string
+  contactNumber: string
+  password?: string
+  photo?: File
+}
+
 export interface DispatcherDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave?: (dispatcherData: DispatcherDetails) => void
+  onSave?: (dispatcherData: DispatcherDetails, formData?: DispatcherFormData) => void
   editData?: DispatcherDetails // Data to pre-fill when editing
   isEditing?: boolean // Flag to indicate edit mode
+  saving?: boolean // Flag to indicate if save operation is in progress
 }
 
 export interface DispatcherInfoSheetProps {

@@ -8,6 +8,10 @@ export function DispatcherInfoSheet({
   onOpenChange, 
   dispatcherData 
 }: DispatcherInfoSheetProps) {
+  // Safety check - don't render if no data
+  if (!dispatcherData) {
+    return null
+  }
   // Image viewer state
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewerUrl, setViewerUrl] = useState<string | null>(null)
@@ -86,7 +90,7 @@ export function DispatcherInfoSheet({
             {/* Image card with blurred background and expand button */}
             <div className="bg-[#0b0b0b] rounded-[6px] flex justify-center mt-1">
               <div className="relative w-full max-w-full h-60 rounded-[8px] overflow-hidden bg-[#111]">
-                {dispatcherData.photo ? (
+                {dispatcherData.photo && dispatcherData.photo.trim() !== '' ? (
                   <>
                     {/* Blurred backdrop as image */}
                     <img
@@ -94,12 +98,34 @@ export function DispatcherInfoSheet({
                       alt=""
                       aria-hidden
                       className="absolute inset-0 w-full h-full object-cover filter blur-[18px] brightness-50 scale-[1.2]"
+                      onError={(e) => {
+                        console.error('Error loading photo backdrop:', e)
+                        // Hide the image on error
+                        e.currentTarget.style.display = 'none'
+                      }}
                     />
                     {/* Foreground image */}
                     <img
                       src={dispatcherData.photo}
                       alt="Dispatcher"
                       className="relative w-auto h-full max-w-[60%] m-auto block object-contain"
+                      onError={(e) => {
+                        console.error('Error loading photo:', e)
+                        // Replace with fallback on error
+                        e.currentTarget.style.display = 'none'
+                        const parent = e.currentTarget.parentElement
+                        if (parent) {
+                          parent.innerHTML = `
+                            <div class="relative w-full h-full flex items-center justify-center">
+                              <div class="w-24 h-24 bg-[#3a3a3a] rounded-full flex items-center justify-center">
+                                <span class="text-[#a1a1a1] text-2xl font-semibold">
+                                  ${dispatcherData.name.charAt(0)}
+                                </span>
+                              </div>
+                            </div>
+                          `
+                        }
+                      }}
                     />
                     {/* Expand button */}
                     <button
@@ -115,8 +141,11 @@ export function DispatcherInfoSheet({
                   <div className="relative w-full h-full flex items-center justify-center">
                     <div className="w-24 h-24 bg-[#3a3a3a] rounded-full flex items-center justify-center">
                       <span className="text-[#a1a1a1] text-2xl font-semibold">
-                        {dispatcherData.name.charAt(0)}
+                        {dispatcherData?.name?.charAt(0) || '?'}
                       </span>
+                    </div>
+                    <div className="absolute bottom-3 right-3 text-[#666] text-sm">
+                      No photo
                     </div>
                   </div>
                 )}

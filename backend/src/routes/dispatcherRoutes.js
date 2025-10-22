@@ -7,6 +7,7 @@ const {
     updateDispatcher, 
     archiveDispatcher ,
     archiveDispatchers,
+    deleteDispatcherPermanently
 } = require("../controllers/dispatcherController");
 
 const { uploadSinglePhoto } = require("../middleware/uploadFocalPhotos");
@@ -19,6 +20,7 @@ router.get ("/archived", archiveDispatchers);
 router.get ("/:id", getDispatcher);
 router.put ("/:id", uploadSinglePhoto, updateDispatcher);
 router.delete ("/:id", archiveDispatcher);
+router.delete ("/:id/permanent", deleteDispatcherPermanently);
 
 
 module.exports = router;
