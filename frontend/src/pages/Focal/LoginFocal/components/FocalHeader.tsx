@@ -47,7 +47,7 @@ export function FocalHeader() {
                 <img src={resqwave_logo} alt="ResQWave Logo" className="h-auto w-8" />
                 <span className="font-medium text-lg ml-4 text-white" style={{ fontSize: '1.125rem' }}>ResQWave</span>
             </div>
-            <div className="flex flex-1 items-center justify-end gap-11">
+            {/* <div className="flex flex-1 items-center justify-end gap-11">
                 {showButton && (
                     <button
                         className="text-gray-300 hover:text-white text-[16px] flex items-center gap-2 bg-transparent border-none cursor-pointer"
@@ -56,7 +56,7 @@ export function FocalHeader() {
                         <span className="underline text-[#BABABA] hover:text-gray-300 text-[15px] flex items-center gap-2 bg-transparent border-none cursor-pointer">{buttonText}</span>
                     </button>
                 )}
-            </div>
+            </div> */}
         </header>
     );
 }

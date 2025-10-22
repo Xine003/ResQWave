@@ -58,7 +58,7 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
                     {/* Information rows */}
                     <div className={styles.popoverContainer}>
                         <PopoverRow 
-                            label="Device ID" 
+                            label="Terminal ID" 
                             value={popover.deviceId || 'RSQW-001'} 
                         />
                         <PopoverRow 

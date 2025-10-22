@@ -63,7 +63,7 @@ export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, 
                     {popover?.status === 'online' ? (
                         <div className={styles.popoverContainer}>
                             <PopoverRow 
-                                label="Device ID" 
+                                label="Terminal ID" 
                                 value={popover.deviceId || 'RSQW-001'} 
                             />
                             <PopoverRow 

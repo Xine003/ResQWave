@@ -31,7 +31,7 @@ const register = async (req, res) => {
             const lastNumber = parseInt(lastAdmin.id.replace("ADM", ""), 10);
             newNumber = lastNumber + 1;
         }
-        
+
         const newID = "ADM" + String(newNumber).padStart(3, "0");
 
         // Hash Password
@@ -62,10 +62,12 @@ const focalLogin = async (req, res) => {
             return res.status(400).json({ message: "Username and password are required" });
         }
 
-        const focal = await focalRepo.findOne({ where: [
-            { email: emailOrNumber},
-            { contactNumber: emailOrNumber}
-        ] });
+        const focal = await focalRepo.findOne({
+            where: [
+                { email: emailOrNumber },
+                { contactNumber: emailOrNumber }
+            ]
+        });
         if (!focal) {
             return res.status(400).json({ message: "Invalid Credentials" });
         }
@@ -99,13 +101,14 @@ const focalLogin = async (req, res) => {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             },
+            tls: { rejectUnauthorized: false }
         });
 
         await transporter.sendMail({
             from: `"ResQWave" <${process.env.EMAIL_USER}>`,
             to: focal.email,
             subject: "ResQWave 2FA Verification",
-            text: `Your login verification is ${code}. It  will expire in 5 Minutes` 
+            text: `Your login verification is ${code}. It  will expire in 5 Minutes`
         });
 
         // For dev only, log code
@@ -116,7 +119,7 @@ const focalLogin = async (req, res) => {
             { expiresIn: "5m" } // only valid for a short time
         );
 
-        res.json({ message: "Verification Send to Email", tempToken});
+        res.json({ message: "Verification Send to Email", tempToken });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error" });
@@ -126,164 +129,165 @@ const focalLogin = async (req, res) => {
 
 // COMBINED 2FA LOGIN (Auto-detect Admin | Dispatcher)
 const adminDispatcherLogin = async (req, res) => {
-  try {
-    const { emailOrNumber, password } = (req.body || {});
-    const identifier = String(emailOrNumber || "").trim();
+    try {
+        const { emailOrNumber, password } = (req.body || {});
+        const identifier = String(emailOrNumber || "").trim();
 
-    if (!identifier || !password) {
-      return res.status(400).json({ message: "emailOrNumber and password are required" });
+        if (!identifier || !password) {
+            return res.status(400).json({ message: "emailOrNumber and password are required" });
+        }
+
+        let role = null;
+        let user = null;
+        let recipientEmail = null;
+
+        // Try Admin by name (admin enters their name into emailOrNumber)
+        const admin = await adminRepo.findOne({ where: { name: identifier } });
+        if (admin && await bcrypt.compare(password, admin.password || "")) {
+            role = "admin";
+            user = admin;
+            recipientEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+        }
+
+        // If not admin, try Dispatcher by email or contactNumber
+        if (!user) {
+            const dispatcher = await dispatcherRepo.findOne({
+                where: [{ email: identifier }, { contactNumber: identifier }],
+            });
+            if (dispatcher && await bcrypt.compare(password, dispatcher.password || "")) {
+                role = "dispatcher";
+                user = dispatcher;
+                recipientEmail = dispatcher.email;
+            }
+        }
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid Credentials" });
+        }
+
+        // Clean previous OTPs for this user
+        await loginVerificationRepo.delete({ userID: user.id, userType: role });
+
+        // Generate and save OTP
+        const code = crypto.randomInt(100000, 999999).toString();
+        const expiry = new Date(Date.now() + 5 * 60 * 1000);
+        await loginVerificationRepo.save({ userID: user.id, userType: role, code, expiry });
+
+        // Send email
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+            tls: { rejectUnauthorized: false }
+        });
+        await transporter.sendMail({
+            from: `"ResQWave" <${process.env.EMAIL_USER}>`,
+            to: recipientEmail,
+            subject: "ResQWave Login Verification Code",
+            text: `Your verification code is ${code}. It expires in 5 minutes.`,
+        });
+
+        console.log(` 2FA code: ${code}`);
+        const tempToken = jwt.sign(
+            { id: user.id, role, step: "2fa" },
+            process.env.JWT_SECRET,
+            { expiresIn: "5m" }
+        );
+
+        return res.json({ message: "Verification code sent", tempToken });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server Error - LOGIN 2FA" });
     }
-
-    let role = null;
-    let user = null;
-    let recipientEmail = null;
-
-    // Try Admin by name (admin enters their name into emailOrNumber)
-    const admin = await adminRepo.findOne({ where: { name: identifier } });
-    if (admin && await bcrypt.compare(password, admin.password || "")) {
-      role = "admin";
-      user = admin;
-      recipientEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
-    }
-
-    // If not admin, try Dispatcher by email or contactNumber
-    if (!user) {
-      const dispatcher = await dispatcherRepo.findOne({
-        where: [{ email: identifier }, { contactNumber: identifier }],
-      });
-      if (dispatcher && await bcrypt.compare(password, dispatcher.password || "")) {
-        role = "dispatcher";
-        user = dispatcher;
-        recipientEmail = dispatcher.email;
-      }
-    }
-
-    if (!user) {
-      return res.status(400).json({ message: "Invalid Credentials" });
-    }
-
-    // Clean previous OTPs for this user
-    await loginVerificationRepo.delete({ userID: user.id, userType: role });
-
-    // Generate and save OTP
-    const code = crypto.randomInt(100000, 999999).toString();
-    const expiry = new Date(Date.now() + 5 * 60 * 1000);
-    await loginVerificationRepo.save({ userID: user.id, userType: role, code, expiry });
-
-    // Send email
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
-    await transporter.sendMail({
-      from: `"ResQWave" <${process.env.EMAIL_USER}>`,
-      to: recipientEmail,
-      subject: "ResQWave Login Verification Code",
-      text: `Your verification code is ${code}. It expires in 5 minutes.`,
-    });
-
-    console.log(` 2FA code: ${code}`);
-    const tempToken = jwt.sign(
-      { id: user.id, role, step: "2fa" },
-      process.env.JWT_SECRET,
-      { expiresIn: "5m" }
-    );
-
-    return res.json({ message: "Verification code sent", tempToken });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server Error - LOGIN 2FA" });
-  }
 };
 
 // COMBINED 2FA VERIFY (Admin | Dispatcher)
 const adminDispatcherVerify = async (req, res) => {
-  try {
-    const { tempToken, code } = (req.body || {});
-    if (!tempToken || !code) {
-      return res.status(400).json({ message: "tempToken and code are required" });
-    }
-
-    let decoded;
     try {
-      decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
-    } catch {
-      return res.status(401).json({ message: "Invalid or expired temp token" });
+        const { tempToken, code } = (req.body || {});
+        if (!tempToken || !code) {
+            return res.status(400).json({ message: "tempToken and code are required" });
+        }
+
+        let decoded;
+        try {
+            decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+        } catch {
+            return res.status(401).json({ message: "Invalid or expired temp token" });
+        }
+        if (decoded.step !== "2fa" || !["admin", "dispatcher"].includes(decoded.role)) {
+            return res.status(400).json({ message: "Invalid token context" });
+        }
+
+        const record = await loginVerificationRepo.findOne({
+            where: { userID: decoded.id, userType: decoded.role, code },
+        });
+        if (!record) return res.status(400).json({ message: "Invalid code" });
+        if (new Date(record.expiry).getTime() < Date.now()) {
+            await loginVerificationRepo.delete({ userID: decoded.id, userType: decoded.role, code });
+            return res.status(400).json({ message: "Code expired" });
+        }
+
+        // Create session (so logout can invalidate)
+        const sessionID = crypto.randomUUID();
+        const sessionExpiry = new Date(Date.now() + 60 * 60 * 1000);
+        await loginVerificationRepo.save({
+            userID: decoded.id,
+            userType: decoded.role,
+            code: "OK",
+            sessionID,
+            expiry: sessionExpiry,
+        });
+
+        // Cleanup used OTP
+        await loginVerificationRepo.delete({ userID: decoded.id, userType: decoded.role, code });
+
+        // Build name for JWT
+        let name = "User";
+        if (decoded.role === "admin") {
+            const admin = await adminRepo.findOne({ where: { id: decoded.id } });
+            name = admin?.name || "Admin";
+        } else {
+            const dispatcher = await dispatcherRepo.findOne({ where: { id: decoded.id } });
+            name = dispatcher?.name || "Dispatcher";
+        }
+
+        const token = jwt.sign(
+            { id: decoded.id, role: decoded.role, name, sessionID },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+        );
+
+        return res.json({ message: "Login successful", token });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server Error - VERIFY 2FA" });
     }
-    if (decoded.step !== "2fa" || !["admin", "dispatcher"].includes(decoded.role)) {
-      return res.status(400).json({ message: "Invalid token context" });
-    }
-
-    const record = await loginVerificationRepo.findOne({
-      where: { userID: decoded.id, userType: decoded.role, code },
-    });
-    if (!record) return res.status(400).json({ message: "Invalid code" });
-    if (new Date(record.expiry).getTime() < Date.now()) {
-      await loginVerificationRepo.delete({ userID: decoded.id, userType: decoded.role, code });
-      return res.status(400).json({ message: "Code expired" });
-    }
-
-    // Create session (so logout can invalidate)
-    const sessionID = crypto.randomUUID();
-    const sessionExpiry = new Date(Date.now() + 60 * 60 * 1000);
-    await loginVerificationRepo.save({
-      userID: decoded.id,
-      userType: decoded.role,
-      code: "OK",
-      sessionID,
-      expiry: sessionExpiry,
-    });
-
-    // Cleanup used OTP
-    await loginVerificationRepo.delete({ userID: decoded.id, userType: decoded.role, code });
-
-    // Build name for JWT
-    let name = "User";
-    if (decoded.role === "admin") {
-      const admin = await adminRepo.findOne({ where: { id: decoded.id } });
-      name = admin?.name || "Admin";
-    } else {
-      const dispatcher = await dispatcherRepo.findOne({ where: { id: decoded.id } });
-      name = dispatcher?.name || "Dispatcher";
-    }
-
-    const token = jwt.sign(
-      { id: decoded.id, role: decoded.role, name, sessionID },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    return res.json({ message: "Login successful", token });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server Error - VERIFY 2FA" });
-  }
 };
 
 // Logout
 const logout = async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ message: "No Token" });
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ message: "No Token" });
 
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (decoded.sessionID) {
-      await loginVerificationRepo.delete({ sessionID: decoded.sessionID });
+        if (decoded.sessionID) {
+            await loginVerificationRepo.delete({ sessionID: decoded.sessionID });
+        }
+
+        res.json({ message: "Logged Out Succesfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
     }
-
-    res.json({ message: "Logged Out Succesfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server Error" });
-  }
 };
 
-module.exports = { 
-  register,
-  focalLogin,
-  logout,
-  adminDispatcherLogin,
-  adminDispatcherVerify,
+module.exports = {
+    register,
+    focalLogin,
+    logout,
+    adminDispatcherLogin,
+    adminDispatcherVerify,
 };

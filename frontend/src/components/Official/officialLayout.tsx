@@ -2,7 +2,7 @@ import { LiveReportProvider, useLiveReport } from "@/components/Official/LiveRep
 import type React from "react"
 import { useLocation } from "react-router-dom"
 import { Header } from "./header"
-import { Sidebar } from "./sidebar"
+import Sidebar from "./sidebar"
 
 interface officialLayoutProps {
   children: React.ReactNode

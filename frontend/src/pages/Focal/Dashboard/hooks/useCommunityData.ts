@@ -1,61 +1,80 @@
 import { useEffect, useState } from 'react';
 import type { CommunityData } from '../types/community';
-
-// module-level mock store so multiple components using the hook share the same data
-let store: CommunityData = {
-    groupName: 'Sicat Residence',
-    terminalId: 'RSQW-001',
-    registeredAt: 'September 10, 2025',
-    updatedAt: 'September 11, 2025',
-    stats: {
-        noOfResidents: 50,
-        noOfHouseholds: 10,
-    },
-    hazards: [
-        'Strong water current',
-        'Risk of landslide or erosion',
-        'Roads become impassable',
-    ],
-    otherInfo: [
-        '3 roads (St. Jhude, St. Perez, St. Lilia) are blocked',
-    ],
-    floodwaterSubsidenceDuration: '2 hours',
-    address: 'Block 1, Lot 17, Paraiso Rd, 1400',
-    coordinates: '14.774083, 121.042443',
-    focal: {
-        name: 'Gwyneth Uy',
-        contact: '0905 385 4293',
-        email: 'uy.gwynethfabul@gmail.com',
-        photo: 'https://avatars.githubusercontent.com/u/1?v=4',
-    },
-    altFocal: {
-        name: 'Rodel Sustiguer',
-        contact: '0905 563 2034',
-        email: 'sustiguer.rodelf@gmail.com',
-        photo: null,
-    },
-};
-
-const listeners = new Set<() => void>();
-
-export function getCommunityData() {
-    return store;
-}
-
-export function setCommunityData(next: CommunityData) {
-    store = next;
-    listeners.forEach((l) => l());
-}
-
-export function subscribe(fn: () => void) {
-    listeners.add(fn);
-    return () => { listeners.delete(fn); };
-}
+import { apiFetch } from '../../../../lib/api';
+import { useFocalAuth } from '../../context/focalAuthContext';
 
 export default function useCommunityData() {
-    const [data, setData] = useState<CommunityData>(getCommunityData());
+    const { token } = useFocalAuth();
+    const [data, setData] = useState<CommunityData | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchCommunity = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const res = await apiFetch<any>('/neighborhood/own', { headers });
+            // Map backend response to CommunityData shape
+            let addressString = '';
+            let coordsString = '';
+            if (typeof res.address === 'string') {
+                try {
+                    const addrObj = JSON.parse(res.address);
+                    if (addrObj) {
+                        if (typeof addrObj.address === 'string') addressString = addrObj.address;
+                        if (typeof addrObj.lat === 'number' && typeof addrObj.lng === 'number') coordsString = `${addrObj.lat}, ${addrObj.lng}`;
+                    }
+                } catch {
+                    addressString = res.address;
+                }
+            } else if (res.address && typeof res.address === 'object') {
+                if (typeof res.address.address === 'string') addressString = res.address.address;
+                if (typeof res.address.lat === 'number' && typeof res.address.lng === 'number') coordsString = `${res.address.lat}, ${res.address.lng}`;
+            } else {
+                addressString = res.address || '';
+            }
+
+            const mapped: CommunityData = {
+                groupName: res.neighborhoodID || '',
+                terminalId: res.terminalID || '',
+                registeredAt: res.createdDate ? new Date(res.createdDate).toLocaleDateString() : '',
+                updatedAt: res.updatedDate ? new Date(res.updatedDate).toLocaleDateString() : '',
+                stats: {
+                    noOfResidents: res.noOfResidents ?? '',
+                    noOfHouseholds: res.noOfHouseholds ?? '',
+                },
+                hazards: Array.isArray(res.hazards) ? res.hazards : [],
+                otherInfo: res.otherInformation ? [res.otherInformation] : [],
+                floodwaterSubsidenceDuration: res.floodwaterSubsidenceDuration ? String(res.floodwaterSubsidenceDuration) : '', address: addressString,
+                coordinates: coordsString,
+                focal: {
+                    name: res.focalPerson?.name || '',
+                    contact: res.focalPerson?.number || '',
+                    email: res.focalPerson?.email || '',
+                    photo: res.focalPerson?.photo || null,
+                },
+                altFocal: {
+                    name: [res.focalPerson?.alternativeFPFirstName, res.focalPerson?.alternativeFPLastName].filter(Boolean).join(' '),
+                    contact: res.focalPerson?.alternativeFPNumber || '',
+                    email: res.focalPerson?.alternativeFPEmail || '',
+                    photo: res.focalPerson?.alternativeFPImage || null,
+                },
+            };
+            setData(mapped);
+        } catch (e: any) {
+            setError('Failed to load community data');
+            setData(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        return subscribe(() => setData(getCommunityData()));
-    }, []);
-    return { data, setData: setCommunityData } as const;
+        fetchCommunity();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token]);
+
+    return { data, loading, error, refetch: fetchCommunity } as const;
 }

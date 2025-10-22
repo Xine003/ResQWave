@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { apiFetch } from '@/lib/api';
 import { FocalHeader } from '@/pages/Focal/LoginFocal/components/FocalHeader';
 import { Eye, EyeOff, CircleAlert } from 'lucide-react';
 import resqwave_logo from '/Landing/resqwave_logo.png';
@@ -14,27 +15,37 @@ export function LoginFocal() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Dummy correct credentials
-  const CORRECT_ID = "COMGROUP-01";
-  const CORRECT_PASSWORD = "password123";
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!id || !password) {
       setError("Please enter both ID and Password.");
       return;
     }
     setIsLoading(true);
-    setTimeout(() => {
-      if (id !== CORRECT_ID || password !== CORRECT_PASSWORD) {
-        setError("Wrong credentials. Invalid username or password.");
-        setIsLoading(false);
-        return;
-      }
-      setError("");
+    setError("");
+    try {
+      const res = await apiFetch<{ message: string; tempToken?: string }>(
+        '/focal/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({ emailOrNumber: id, password }),
+        }
+      );
+      // Success: store tempToken for verification step
+      let tempToken = res.tempToken || '';
       setIsLoading(false);
-      navigate('/verification-signin-focal');
-    }, 1200);
+      navigate('/verification-signin-focal', { state: { tempToken } });
+    } catch (err: any) {
+      setIsLoading(false);
+      // Try to parse error message from backend
+      let msg = err?.message || 'Login failed';
+      try {
+        const parsed = JSON.parse(msg);
+        msg = parsed.message || msg;
+      } catch { }
+      setError(msg);
+    }
   }
 
   return (
