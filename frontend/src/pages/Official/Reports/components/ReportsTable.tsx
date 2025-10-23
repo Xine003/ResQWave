@@ -18,6 +18,7 @@ import {
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 import "./ReportsTable.css";
+import { RescueCompletionForm } from "./RescueCompletionForm";
 
 interface CompletedReport {
   emergencyId: string;
@@ -48,6 +49,13 @@ type ReportData = CompletedReport | PendingReport;
 export function ReportsTable({ type, data }: ReportsTableProps) {
   const isCompleted = type === "completed";
   const [rowSelection, setRowSelection] = useState({});
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedReportData, setSelectedReportData] = useState<ReportData | null>(null);
+
+  const handleCreateReport = (reportData: ReportData) => {
+    setSelectedReportData(reportData);
+    setIsFormOpen(true);
+  };
 
   // Define columns based on table type
   const columns: ColumnDef<ReportData>[] = [
@@ -115,7 +123,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
     {
       id: "actions",
       header: "",
-      cell: () => (
+      cell: ({ row }) => (
         isCompleted ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -134,6 +142,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
           <Button 
             size="sm" 
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+            onClick={() => handleCreateReport(row.original)}
           >
             Create Report
           </Button>
@@ -313,6 +322,20 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
           </div>
         </div>
       </div>
+      
+      {/* Rescue Completion Form */}
+      <RescueCompletionForm
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        emergencyData={selectedReportData ? {
+          emergencyId: selectedReportData.emergencyId,
+          communityName: selectedReportData.communityName,
+          alertType: selectedReportData.alertType,
+          dispatcher: selectedReportData.dispatcher,
+          dateTimeOccurred: selectedReportData.dateTimeOccurred,
+          address: selectedReportData.address,
+        } : undefined}
+      />
     </div>
   );
 }
