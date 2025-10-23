@@ -13,6 +13,7 @@ const alertRepo = AppDataSource.getRepository("Alert");
 const rescueFormRepo = AppDataSource.getRepository("RescueForm");
 const postRescueRepo = AppDataSource.getRepository("PostRescueForm");
 const communityRepo = AppDataSource.getRepository("CommunityGroup");
+const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const focalRepo = AppDataSource.getRepository("FocalPerson");
 
 const generateRescueReport = async (req, res) => {
@@ -34,68 +35,69 @@ const generateRescueReport = async (req, res) => {
       }
     }
 
-    // Load alert WITH terminal relation (adjust relation name if different)
+    // Load alert WITH terminal relation
     const alert = await alertRepo.findOne({
       where: { id: alertID },
-      relations: ["terminal"]   
+      relations: ["terminal"]
     });
     if (!alert) return res.status(404).json({ message: "Alert Not Found" });
 
-    const rescueForm = await rescueFormRepo.findOne({where: {emergencyID: alertID} });
-    if (!rescueForm) return res.status(400).json({message: "Rescue Form Missing"});
+    const rescueForm = await rescueFormRepo.findOne({ where: { emergencyID: alertID } });
+    if (!rescueForm) return res.status(400).json({ message: "Rescue Form Missing" });
     if (rescueForm.status !== "Completed") {
-        return res.status(400).json({message: "Rescue Form Status Should be Completed"});
+      return res.status(400).json({ message: "Rescue Form Status Should be Completed" });
     }
 
-    const postRescue = await postRescueRepo.findOne({where: {alertID} });
-    if (!postRescue) return res.status(400).json({message: "Post Rescue Form Missing"});
+    const postRescue = await postRescueRepo.findOne({ where: { alertID } });
+    if (!postRescue) return res.status(400).json({ message: "Post Rescue Form Missing" });
 
-    // Terminal ID candidate (relation id OR column)
-    const terminalIdCandidate =
-      (alert.terminal && alert.terminal.id) ||
-      alert.terminalID || // raw column
-      null;
+    // Terminal/Neighborhood linkage
+    const terminalIdCandidate = (alert.terminal && alert.terminal.id) || alert.terminalID || null;
 
-    // Derive CommunityGroup via TerminalID
-    let communityGroup = null;
+    // Derive Neighborhood via TerminalID
+    let neighborhood = null;
     if (terminalIdCandidate) {
-      communityGroup = await communityRepo
-        .createQueryBuilder("cg")
-        .where("cg.terminalID = :tid", { tid: terminalIdCandidate })
+      neighborhood = await neighborhoodRepo
+        .createQueryBuilder("n")
+        .where("n.terminalID = :tid", { tid: terminalIdCandidate })
         .getOne();
     }
-
-    if (!communityGroup) {
-      return res.status(400).json({ message: "Community Group Missing"});
+    if (!neighborhood) {
+      return res.status(400).json({ message: "Neighborhood Missing" });
     }
 
-    // Pick Focal Person
-    let focalPerson = await focalRepo.findOne({
-        where: { communityGroupID: communityGroup.id, archived: false},
-    });
-
-    if (!focalPerson) {
-        focalPerson = await focalRepo.findOne({
-            where: {communityGroupID: communityGroup.id}
-        });
+    // Pick Focal Person via Neighborhood.focalPersonID
+    let focalPerson = null;
+    if (neighborhood.focalPersonID) {
+      focalPerson = await focalRepo.findOne({
+        where: { id: neighborhood.focalPersonID, archived: false }
+      }) || await focalRepo.findOne({ where: { id: neighborhood.focalPersonID } });
     }
 
-    // MAP DB Fields to Template
+    const terminalName = alert.terminal?.name || "";
+
+    const focalName = focalPerson
+      ? ([focalPerson.firstName, focalPerson.lastName].filter(Boolean).join(" ").trim() ||
+         focalPerson.name || "")
+      : "";
+
     const data = {
-        community_group_id: communityGroup.id,
-        community_group_name: communityGroup.communityGroupName,
-        focal_person_name: focalPerson?.name || "",
-        community_group_address: communityGroup.address || "",
-        focal_person_number: focalPerson?.contactNumber || "",
-        alert_id: alert.id,
-        water_level: rescueForm.waterLevel || "",
-        urgency_of_evacuation: rescueForm.urgencyOfEvacuation || "",
-        hazard_present: rescueForm.hazardPresent || "",
-        accessibility: rescueForm.accessibility || "",
-        resource_needs: rescueForm.resourceNeeds || "",
-        other_information: rescueForm.otherInformation || "",
-        time_of_rescue: postRescue.createdAt ? new Date(postRescue.createdAt).toLocaleString() : "",
-        alert_type: alert.alertType || "",
+      neighborhood_id: neighborhood.id,
+      terminal_name: terminalName,          
+      focal_person_name: focalName,
+      focal_person_address: focalPerson?.address || "", 
+      focal_person_number: focalPerson?.contactNumber || "",
+      alert_id: alert.id,
+      water_level: rescueForm.waterLevel || "",
+      urgency_of_evacuation: rescueForm.urgencyOfEvacuation || "",
+      hazard_present: rescueForm.hazardPresent || "",
+      accessibility: rescueForm.accessibility || "",
+      resource_needs: rescueForm.resourceNeeds || "",
+      other_information: rescueForm.otherInformation || "",
+      time_of_rescue: (postRescue.completedAt || postRescue.createdAt)
+        ? new Date(postRescue.completedAt || postRescue.createdAt).toLocaleString()
+        : "",
+      alert_type: alert.alertType || "",
     };
 
     const templatePath = path.resolve(__dirname, "../template/Rescue_Operation_Report.docx");
@@ -118,13 +120,13 @@ const generateRescueReport = async (req, res) => {
     });
 
     // ----- Filename Convention -----
-    const seq = (communityGroup.id.match(/(\d+)/)?.[1] || "001").padStart(3, "0");
-    const safeName = (communityGroup.communityGroupName || "CommunityGroup")
+    const seq = (String(neighborhood.id).match(/(\d+)/)?.[1] || "001").padStart(3, "0");
+    const safeName = (terminalName || "Terminal")
       .normalize("NFKD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^A-Za-z0-9]+/g, "_")
       .replace(/^_+|_+$/g, "")
-      .substring(0, 40) || "CommunityGroup";
+      .substring(0, 40) || "Terminal";
     const fileName = `${safeName}_${seq}.docx`;
     // --------------------------------
 

@@ -77,6 +77,8 @@ const createUserInitiatedAlert = async (req, res) => {
 	}
 };
 
+// Get All Alerts
+// Table View
 const getAlerts = async (req, res) => {
   try {
 	const cacheKey = "alerts:all";
@@ -85,15 +87,17 @@ const getAlerts = async (req, res) => {
 
     const alerts = await alertRepo
       .createQueryBuilder("alert")
-      .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
+	  .leftJoin("Terminal", "t", "t.id = alert.terminalID")
+	  .leftJoin("Neighborhood", "n", "n.terminalID = alert.terminalID")
+	  .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
       .select([
         "alert.id AS alertId",
         "alert.terminalID AS terminalId",
         "alert.alertType AS alertType",
         "alert.status AS status",
         "alert.dateTimeSent AS lastSignalTime",
-        "cg.communityGroupName AS communityGroup",
-        "cg.address AS address",
+        "t.name AS terminalName",
+        "fp.address AS address",
       ])
 	  .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "DESC")
 	  .addOrderBy("alert.dateTimeSent", "DESC")
@@ -107,27 +111,30 @@ const getAlerts = async (req, res) => {
   }
 };
 
-
+// List all alerts with Dispatched Alerts
+// Table View
 const getDispatchedAlerts = async (req, res) => {
 	  try {
 		const cacheKey = "alerts:dispatched";
 		const cached = await getCache(cacheKey);
 		if (cached) return res.json(cached);
 
-		const alerts = await alertRepo
+	const alerts = await alertRepo
 		.createQueryBuilder("alert")
-		.leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
+		.leftJoin("Terminal", "t", "t.id = alert.terminalID")
+		.leftJoin("Neighborhood", "n", "n.terminalID = alert.terminalID")
+		.leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
 		.select([
 			"alert.id AS alertId",
 			"alert.terminalID AS terminalId",
 			"alert.alertType AS alertType",
 			"alert.status AS status",
 			"alert.dateTimeSent AS lastSignalTime",
-			"cg.communityGroupName AS communityGroup", // force alias name
-			"cg.address AS address",
+			"t.name AS terminalName",
+			"fp.address AS address",
 		])
 		.where("alert.status = :status", { status: "Dispatched" })
-		.orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`)
+		.orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "DESC")
 		.addOrderBy("alert.dateTimeSent", "DESC")
 		.getRawMany();
 
@@ -140,28 +147,31 @@ const getDispatchedAlerts = async (req, res) => {
 }
 
 // List All Alerts with waitlist status
+// Table View
 const getWaitlistedAlerts = async (req, res) => {
   try {
 	const cacheKey = "alerts:waitlist";
 	const cached = await getCache(cacheKey);
 	if (cached) return res.json(cached);
 
-    const alerts = await alertRepo
-      .createQueryBuilder("alert")
-      .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
-      .select([
-        "alert.id AS alertId",
-        "alert.terminalID AS terminalId",
-        "alert.alertType AS alertType",
-        "alert.status AS status",
-        "alert.dateTimeSent AS lastSignalTime",
-    	"cg.communityGroupName AS communityGroup", // force alias name
-        "cg.address AS address",
-      ])
-      .where("alert.status = :status", { status: "Waitlist" })
-      .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`)
-      .addOrderBy("alert.dateTimeSent", "DESC")
-      .getRawMany();
+	const alerts = await alertRepo
+		.createQueryBuilder("alert")
+		.leftJoin("Terminal", "t", "t.id = alert.terminalID")
+		.leftJoin("Neighborhood", "n", "n.terminalID = alert.terminalID")
+		.leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+		.select([
+			"alert.id AS alertId",
+			"alert.terminalID AS terminalId",
+			"alert.alertType AS alertType",
+			"alert.status AS status",
+			"alert.dateTimeSent AS lastSignalTime",
+			"t.name AS terminalName",
+			"fp.address AS address",
+		])
+		.where("alert.status = :status", { status: "Waitlist" })
+		.orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "DESC")
+		.addOrderBy("alert.dateTimeSent", "DESC")
+		.getRawMany();
 
 	await setCache(cacheKey, alerts, 10);
     res.json(alerts);
@@ -172,28 +182,31 @@ const getWaitlistedAlerts = async (req, res) => {
 }
 
 // List Alerts with Unassigned Status
+// Table View
 const getUnassignedAlerts = async (req, res) => {
   try {
 	const cacheKey = "alerts:unassigned";
 	const cached = await getCache(cacheKey);
 	if (cached) return res.json(cached);
 
-    const alerts = await alertRepo
-      .createQueryBuilder("alert")
-      .leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
-      .select([
-        "alert.id AS alertId",
-        "alert.terminalID AS terminalId",
-        "alert.alertType AS alertType",
-        "alert.status AS status",
-        "alert.dateTimeSent AS lastSignalTime",
-    	"cg.communityGroupName AS communityGroup", // force alias name
-        "cg.address AS address",
-      ])
-      .where("alert.status = :status", { status: "Unassigned" })
-      .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`)
-      .addOrderBy("alert.dateTimeSent", "DESC")
-      .getRawMany();
+	const alerts = await alertRepo
+		.createQueryBuilder("alert")
+		.leftJoin("Terminal", "t", "t.id = alert.terminalID")
+		.leftJoin("Neighborhood", "n", "n.terminalID = alert.terminalID")
+		.leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+		.select([
+			"alert.id AS alertId",
+			"alert.terminalID AS terminalId",
+			"alert.alertType AS alertType",
+			"alert.status AS status",
+			"alert.dateTimeSent AS lastSignalTime",
+			"t.name AS terminalName",
+			"fp.address AS address",
+		])
+		.where("alert.status = :status", { status: "Unassigned" })
+		.orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "DESC")
+		.addOrderBy("alert.dateTimeSent", "DESC")
+		.getRawMany();
 
 	await setCache(cacheKey, alerts, 10);
     res.json(alerts);
@@ -203,81 +216,107 @@ const getUnassignedAlerts = async (req, res) => {
   }
 };
 
+// Get Unassigned Map Alerts
+// Map View 
 const getUnassignedMapAlerts = async (req, res) => {
-	try {
-		const cacheKey = "mapAlerts:unassigned";
-		const cached = await getCache(cacheKey);
-		if (cached) return res.json(cached);
+  try {
+    const cacheKey = "mapAlerts:unassigned";
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
 
-		const alerts = await alertRepo
-			.createQueryBuilder("alert")
-			.leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
-			.select([
-				"cg.communityGroupName AS communityGroupName",
-				"alert.alertType AS alertType",
-				"alert.dateTimeSent As timeSent",
-				"cg.address AS address",
-				"alert.status AS status"
-			])
-			.where("alert.status = :status", { status: "Unassigned" })
-			.orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "ASC")
-			.addOrderBy("alert.dateTimeSent", "DESC")
-			.getRawMany();
-		
-		await setCache(cacheKey, alerts, 10);
-		res.json(alerts);
-	} catch (err) {
-		console.error(err);
-		res.status(500).json({message: "Server Error"});
-	}
-}
+    const alerts = await alertRepo
+      .createQueryBuilder("alert")
+      .leftJoin("Terminal", "t", "t.id = alert.terminalID")
+      .leftJoin("Neighborhood", "n", "n.terminalID = alert.terminalID")
+      .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+      .select([
+        "t.name AS terminalName",
+        "alert.alertType AS alertType",
+        "alert.dateTimeSent AS timeSent",
+        "fp.address AS address",
+        "alert.status AS status",
+      ])
+      .where("alert.status = :status", { status: "Unassigned" })
+      .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "ASC")
+      .addOrderBy("alert.dateTimeSent", "DESC")
+      .getRawMany();
 
+    await setCache(cacheKey, alerts, 10);
+    res.json(alerts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({message: "Server Error"});
+  }
+};
+
+// Get Waitlist Map Alerts
+// Map View
 const getWaitlistedMapAlerts = async (req, res) => {
-	try {
-		const cacheKey = "mapAlerts:waitlist";
-		const cached = await getCache(cacheKey);
-		if (cached) return res.json(cached);
+  try {
+    const cacheKey = "mapAlerts:waitlist";
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
 
-		const alerts = await alertRepo
-			.createQueryBuilder("alert")
-			.leftJoin("CommunityGroup", "cg", "cg.terminalID = alert.terminalID")
-			.select([
-				"cg.communityGroupName AS communityGroupName",
-				"alert.alertType AS alertType",
-				"alert.dateTimeSent As timeSent",
-				"cg.address AS address",
-				"alert.status AS status"
-			])
-			.where("alert.status = :status", { status: "Waitlist" })
-			.orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "DESC")
-			.addOrderBy("alert.dateTimeSent", "DESC")
-			.getRawMany();
-		
-		await setCache(cacheKey, alerts, 10);
-		res.json(alerts);
-	} catch (err) {
-		console.error(err);
-		res.status(500).json({message: "Server Error"});
-	}
-}
+    const alerts = await alertRepo
+      .createQueryBuilder("alert")
+      .leftJoin("Terminal", "t", "t.id = alert.terminalID")
+      .leftJoin("Neighborhood", "n", "n.terminalID = alert.terminalID")
+      .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+      .select([
+        "t.name AS terminalName",
+        "alert.alertType AS alertType",
+        "alert.dateTimeSent AS timeSent",
+        "fp.address AS address",
+        "alert.status AS status",
+      ])
+      .where("alert.status = :status", { status: "Waitlist" })
+      .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "DESC")
+      .addOrderBy("alert.dateTimeSent", "DESC")
+      .getRawMany();
+
+    await setCache(cacheKey, alerts, 10);
+    res.json(alerts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({message: "Server Error"});
+  }
+};
+
 
 // Read Single Alert
+// Table View More Info
 const getAlert = async (req, res) => {
-	try {
-		const { id } = req.params;
-		const cacheKey = `alert:${id}`;
-		const cached = await getCache(cacheKey);
-		if (cached) return res.json(cached);
+  try {
+    const { id } = req.params;
+    const cacheKey = `alert:${id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
 
-		const alert = await alertRepo.findOne({ where: { id } });
-		if (!alert) return res.status(404).json({ message: "Alert Not Found" });
-		
-		await setCache(cacheKey, alert, 10);
-		res.json(alert);
-	} catch (err) {
-		console.error(err);
-		res.status(500).json({ message: "Server Error - READ Alert" });
-	}
+    const row = await alertRepo
+      .createQueryBuilder("alert")
+      .leftJoin("Terminal", "t", "t.id = alert.terminalID")
+      .leftJoin("Neighborhood", "n", "n.terminalID = alert.terminalID")
+      .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+      .select([
+        "alert.id AS alertID",
+        "alert.terminalID AS terminalID",
+        "t.name AS terminalName",
+        "alert.alertType AS alertType",
+        "alert.status AS status",
+        "alert.dateTimeSent AS timeSent",
+        "fp.address AS address",
+      ])
+      .where("alert.id = :id", { id })
+      .getRawOne();
+
+    if (!row) return res.status(404).json({ message: "Alert Not Found" });
+
+    await setCache(cacheKey, row, 10);
+    return res.json(row);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error - READ Alert" });
+  }
 };
 
 // UPDATE Alert Status
@@ -325,8 +364,6 @@ const updateAlertStatus = async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
-
-
 
 
 

@@ -49,6 +49,13 @@ const createPostRescueForm = async (req, res) => {
         rescueForm.status = "Completed";
         await rescueFormRepo.save(rescueForm);
 
+        // Cache
+        await deleteCache("completedReports");
+        await deleteCache("pendingReports");
+        await deleteCache("rescueForms:all");
+        await deleteCache(`rescueForm:${rescueForm.id}`);
+        await deleteCache(`alert:${alertID}`);
+
         return res.status(201).json({message: "Post Rescue Form Created"}, newForm);
     } catch (err) {
         console.error(err);
@@ -66,19 +73,20 @@ const getCompletedReports = async (req, res) => {
     const reports = await alertRepo
       .createQueryBuilder("alert")
       .leftJoin("alert.terminal", "terminal")
-      .leftJoin("CommunityGroup", "cg", "cg.terminalID = terminal.id")
+      .leftJoin("Neighborhood", "n", "n.terminalID = terminal.id")
+      .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
       .leftJoin("RescueForm", "rescueForm", "rescueForm.emergencyID = alert.id")
       .leftJoin("Dispatcher", "dispatcher", "dispatcher.id = rescueForm.dispatcherID")
       .leftJoin("PostRescueForm", "prf", "prf.alertID = alert.id")
       .where("rescueForm.status = :status", { status: "Completed" })
       .select([
         "alert.id AS alertId",
-        "cg.communityGroupName AS communityGroupName",
+        "terminal.name AS terminalName",
         "alert.alertType AS alertType",
         "dispatcher.name AS dispatcherName",
         "rescueForm.status AS rescueStatus",
         "prf.completedAt AS completedAt",
-        "cg.address AS communityAddress",
+        "fp.address AS address",
       ])
       .orderBy("prf.completedAt", "DESC")
       .getRawMany();
@@ -91,7 +99,6 @@ const getCompletedReports = async (req, res) => {
   }
 };
 
-// GET Pending Reports
 const getPendingReports = async (req, res) => {
   try {
     const cacheKey = "pendingReports";
@@ -101,21 +108,22 @@ const getPendingReports = async (req, res) => {
     const pending = await alertRepo
       .createQueryBuilder("alert")
       .leftJoin("alert.terminal", "terminal")
-      .leftJoin("CommunityGroup", "cg", "cg.terminalID = terminal.id")
+      .leftJoin("Neighborhood", "n", "n.terminalID = terminal.id")
+      .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
       .leftJoin("RescueForm", "rescueForm", "rescueForm.emergencyID = alert.id")
       .leftJoin("Dispatcher", "dispatcher", "dispatcher.id = rescueForm.dispatcherID")
       .leftJoin("PostRescueForm", "prf", "prf.alertID = alert.id")
       .where("rescueForm.id IS NOT NULL")
       .andWhere("rescueForm.status = :status", { status: "Pending" })
-      .andWhere("prf.id IS NULL") // ensure not yet completed
+      .andWhere("prf.id IS NULL")
       .select([
         "alert.id AS alertId",
-        "cg.communityGroupName AS communityGroupName",
+        "terminal.name AS terminalName",
         "alert.alertType AS alertType",
         "dispatcher.name AS dispatcherName",
         "rescueForm.status AS rescueStatus",
         "alert.dateTimeSent AS createdAt",
-        "cg.address AS communityAddress",
+        "fp.address AS address",
       ])
       .orderBy("alert.dateTimeSent", "DESC")
       .getRawMany();
