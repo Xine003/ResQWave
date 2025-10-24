@@ -112,15 +112,10 @@ export async function fetchNeighborhoodDetailsTransformed(id: string): Promise<C
     communityId: raw.id,
     individuals: Number(raw.noOfResidents) || 0,
     families: Number(raw.noOfHouseholds) || 0,
-    kids: raw.totalKids || 0,
-    seniors: raw.totalSeniorCitizen || 0,
-    pwds: raw.totalPWDs || 0,
-    pregnantWomen: raw.totalPregnantWomen || 0,
     floodSubsideHours: raw.floodSubsideHours || 0,
     hazards: raw.hazards ? (Array.isArray(raw.hazards) ? raw.hazards : [String(raw.hazards)]) : [],
     notableInfo: raw.otherInformation ? (Array.isArray(raw.otherInformation) ? raw.otherInformation : [String(raw.otherInformation)]) : [],
     address: (function(){
-      // Try to extract address from focal person first, then fallback to raw.address
       if (focal && focal.address) {
         try {
           if (typeof focal.address === 'string') {
@@ -135,21 +130,18 @@ export async function fetchNeighborhoodDetailsTransformed(id: string): Promise<C
       return raw.address || "N/A"
     })(),
     coordinates: (function(){
-      // Try to get coordinates from focal person address first
       if (focal && focal.address) {
         try {
           if (typeof focal.address === 'string') {
             const parsed = JSON.parse(focal.address)
-            if (parsed.coordinates && Array.isArray(parsed.coordinates)) {
+            if (parsed.coordinates && typeof parsed.coordinates === 'string') {
               return parsed.coordinates
             }
           }
         } catch {}
       }
-      // Fallback to raw coordinates
-      return raw.coordinates && Array.isArray(raw.coordinates) ? raw.coordinates : undefined
+      return (typeof raw.coordinates === 'string' && raw.coordinates.trim() !== '') ? raw.coordinates : undefined
     })(),
-    boundary: raw.boundary || undefined,
     focalPerson: {
       name: focalPerson.name || null,
       photo: focalPerson.photo || undefined,

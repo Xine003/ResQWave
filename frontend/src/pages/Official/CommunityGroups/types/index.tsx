@@ -64,24 +64,11 @@ export interface CommunityGroupDetails {
   communityId: string
   individuals: number
   families: number
-  kids: number
-  seniors: number
-  pwds: number
-  pregnantWomen: number
   floodSubsideHours?: number
   hazards: string[]
   notableInfo: string[]
-  // Frontend-only persisted map selections
-  // Top-level address from the Setting Location flow
   address?: string
-  // [lng, lat] for pinned terminal location
-  coordinates?: number[]
-  // GeoJSON Feature for boundary (LineString)
-  boundary?: {
-    type: "Feature"
-    properties: Record<string, unknown>
-    geometry: { type: "LineString"; coordinates: number[][] }
-  }
+  coordinates?: string | null
   focalPerson: FocalPerson
   alternativeFocalPerson: AlternativeFocalPerson
 }

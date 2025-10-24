@@ -1,5 +1,6 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ExpandIcon, Plus, ZoomOut } from "lucide-react";
+
 import { useEffect, useState } from "react";
 import type { CommunityGroupInfoSheetProps } from "../types";
 
@@ -17,7 +18,7 @@ export function CommunityGroupInfoSheet({
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewerUrl, setViewerUrl] = useState<string | null>(null)
   
-  // Photo state
+  // Photo state (just for auth blob conversion)
   const [photos, setPhotos] = useState<{
     mainPhoto?: string
     altPhoto?: string
@@ -29,61 +30,30 @@ export function CommunityGroupInfoSheet({
   type Zoom = (typeof zoomSteps)[number]
   const [viewerZoom, setViewerZoom] = useState<Zoom>(1)
 
-  // Load photos when communityData changes
+  // Load photos only if URLs are present and need auth (otherwise just use the URLs directly)
   useEffect(() => {
-    if (communityData?.focalPerson && open) {
-      setPhotosLoading(true)
-      
-      console.log('Loading photos for community data:', communityData)
-      
-      // Use the existing photo URLs from the transformed data instead of making new API calls
-      const loadPhotoFromUrl = async (url: string): Promise<string | undefined> => {
-        if (!url) return undefined
-        
-        try {
-          const token = localStorage.getItem('resqwave_token')
-          if (!token) {
-            console.warn('No auth token found for photo loading')
-            return undefined
-          }
-          
-          const response = await fetch(url, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-          
-          if (!response.ok) {
-            console.error(`Photo fetch failed: ${response.status} ${response.statusText}`)
-            return undefined
-          }
-          
-          const blob = await response.blob()
-          return URL.createObjectURL(blob)
-        } catch (error) {
-          console.error('Error loading photo from URL:', url, error)
-          return undefined
-        }
+    if (!communityData || !open) return;
+    setPhotosLoading(true);
+    const token = localStorage.getItem('resqwave_token');
+    const fetchPhoto = async (url?: string) => {
+      if (!url) return undefined;
+      try {
+        if (!token) return url;
+        const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!resp.ok) return url;
+        const blob = await resp.blob();
+        return URL.createObjectURL(blob);
+      } catch {
+        return url;
       }
-      
-      // Load both photos in parallel
-      Promise.all([
-        communityData.focalPerson.photo ? loadPhotoFromUrl(communityData.focalPerson.photo) : Promise.resolve(undefined),
-        communityData.alternativeFocalPerson.altPhoto ? loadPhotoFromUrl(communityData.alternativeFocalPerson.altPhoto) : Promise.resolve(undefined)
-      ])
-        .then(([mainPhoto, altPhoto]) => {
-          console.log('Successfully loaded photos:', { mainPhoto: !!mainPhoto, altPhoto: !!altPhoto })
-          setPhotos({ mainPhoto, altPhoto })
-        })
-        .catch(error => {
-          console.error('Failed to load photos:', error)
-          setPhotos({}) // Clear photos on error
-        })
-        .finally(() => {
-          setPhotosLoading(false)
-        })
-    }
-  }, [communityData, open])
+    };
+    Promise.all([
+      fetchPhoto(communityData.focalPerson?.photo),
+      fetchPhoto(communityData.alternativeFocalPerson?.altPhoto)
+    ]).then(([mainPhoto, altPhoto]) => {
+      setPhotos({ mainPhoto, altPhoto });
+    }).finally(() => setPhotosLoading(false));
+  }, [communityData, open]);
 
 
   function openViewer(url: string) {
@@ -114,43 +84,23 @@ export function CommunityGroupInfoSheet({
   if (!communityData) return null
 
 
-  // Address and coordinates extraction: handle both plain and JSON string in houseAddress
-  let terminalAddress = "N/A";
-  let terminalCoordinates = "N/A";
-  if (communityData.focalPerson) {
-    // Prefer address field for display, but use houseAddress for coordinates if it's a JSON string
-    const addr = communityData.focalPerson.address;
-    const houseAddr = communityData.focalPerson.houseAddress;
-    // Address: prefer address, fallback to houseAddress (if not JSON)
-    if (typeof addr === 'string' && addr.trim() !== '') {
-      terminalAddress = addr;
-    } else if (typeof houseAddr === 'string' && houseAddr.trim() !== '') {
-      // If houseAddress is a JSON string, extract address
-      try {
-        const parsed = JSON.parse(houseAddr);
-        if (typeof parsed === 'object' && parsed !== null && parsed.address) {
-          terminalAddress = parsed.address;
-        } else {
-          terminalAddress = houseAddr;
-        }
-      } catch {
-        terminalAddress = houseAddr;
+
+  // Use address and coordinates directly from communityData
+  const terminalAddress = communityData.address || 'N/A';
+  let terminalCoordinates: string = 'N/A';
+  if (communityData.coordinates && typeof communityData.coordinates === 'string' && communityData.coordinates.trim() !== '') {
+    terminalCoordinates = communityData.coordinates;
+  } else if (
+    communityData.focalPerson &&
+    typeof communityData.focalPerson.houseAddress === 'string' &&
+    communityData.focalPerson.houseAddress.trim() !== ''
+  ) {
+    try {
+      const parsed = JSON.parse(communityData.focalPerson.houseAddress);
+      if (parsed && typeof parsed.coordinates === 'string' && parsed.coordinates.trim() !== '') {
+        terminalCoordinates = parsed.coordinates;
       }
-    }
-    // Coordinates: prefer coordinates field, fallback to houseAddress JSON
-    if (typeof communityData.focalPerson.coordinates === 'string' && communityData.focalPerson.coordinates.trim() !== '') {
-      terminalCoordinates = communityData.focalPerson.coordinates;
-    } else if (typeof houseAddr === 'string' && houseAddr.trim() !== '') {
-      try {
-        const parsed = JSON.parse(houseAddr);
-        if (typeof parsed === 'object' && parsed !== null && parsed.coordinates) {
-          terminalCoordinates = parsed.coordinates;
-        }
-      } catch {}
-    }
-    // If still not found, set to N/A
-    if (!terminalAddress || terminalAddress.trim() === '') terminalAddress = 'N/A';
-    if (!terminalCoordinates || terminalCoordinates.trim() === '') terminalCoordinates = 'N/A';
+    } catch {}
   }
 
   return (
