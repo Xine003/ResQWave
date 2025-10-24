@@ -7,6 +7,7 @@ import AboutCommunity from "./components/AboutCommunity";
 import EditAboutCommunity from "./components/EditAboutCommunity";
 import { CommunityDataProvider } from "./context/CommunityDataContext";
 import HistoryCommunity from "./components/HistoryCommunity";
+import ActivityLogModal from "./components/ActivityLogModal";
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
@@ -44,104 +45,104 @@ export default function Dashboard() {
     const distressCoord: [number, number] = getDistressCoord();
 
 
-    // Poll sensor-data endpoint every 3 seconds and update signal color
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        let lastStatus: boolean | null = null;
-        let pulseTimeout: number | null = null;
-        interval = setInterval(async () => {
-            try {
-                const res = await apiFetch<{ status: boolean }>("/sensor-data/latest");
-                if (typeof res.status === "boolean" && OwnCommunitySignal) {
-                    // Only update if changed
-                    if (lastStatus !== res.status) {
-                        // Animate pulse on color change
-                        if (mapRef.current && mapLoaded) {
-                            // Remove previous pulse if any
-                            if (mapRef.current.getLayer('signal-pulse')) mapRef.current.removeLayer('signal-pulse');
-                            if (mapRef.current.getSource('signal-pulse')) mapRef.current.removeSource('signal-pulse');
-                            // Add a pulsing circle overlay
-                            const color = res.status ? '#ef4444' : '#22c55e';
-                            mapRef.current.addSource('signal-pulse', {
-                                type: 'geojson',
-                                data: {
-                                    type: 'FeatureCollection',
-                                    features: [
-                                        {
-                                            type: 'Feature',
-                                            geometry: { type: 'Point', coordinates: OwnCommunitySignal.coordinates },
-                                            properties: {}
-                                        }
-                                    ]
-                                }
-                            });
-                            mapRef.current.addLayer({
-                                id: 'signal-pulse',
-                                type: 'circle',
-                                source: 'signal-pulse',
-                                paint: {
-                                    'circle-color': color,
-                                    'circle-radius': [
-                                        'interpolate',
-                                        ['linear'],
-                                        ['get', 'pulse'],
-                                        0, 12,
-                                        1, 28
-                                    ],
-                                    'circle-opacity': [
-                                        'interpolate',
-                                        ['linear'],
-                                        ['get', 'pulse'],
-                                        0, 0.5,
-                                        1, 0
-                                    ]
-                                },
-                                filter: ['==', '$type', 'Point']
-                            });
-                            // Animate the pulse
-                            let start: number | null = null;
-                            function animatePulse(ts: number) {
-                                if (!start) start = ts;
-                                const elapsed = (ts - start) % 1000;
-                                const t = elapsed / 1000;
-                                const source = mapRef.current?.getSource('signal-pulse') as any;
-                                if (source) {
-                                    source.setData({
-                                        type: 'FeatureCollection',
-                                        features: [
-                                            {
-                                                type: 'Feature',
-                                                geometry: { type: 'Point', coordinates: OwnCommunitySignal.coordinates },
-                                                properties: { pulse: t }
-                                            }
-                                        ]
-                                    });
-                                }
-                                pulseTimeout = window.requestAnimationFrame(animatePulse);
-                            }
-                            pulseTimeout = window.requestAnimationFrame(animatePulse);
-                            // Remove pulse after 1.2s
-                            setTimeout(() => {
-                                if (mapRef.current?.getLayer('signal-pulse')) mapRef.current.removeLayer('signal-pulse');
-                                if (mapRef.current?.getSource('signal-pulse')) mapRef.current.removeSource('signal-pulse');
-                            }, 1200);
-                        }
-                        lastStatus = res.status;
-                        // Mutate the status property to trigger color change
-                        OwnCommunitySignal.properties.status = res.status ? 'CRITICAL' : 'ONLINE';
-                        // Force re-render of map layers
-                        if (mapRef.current && mapLoaded) {
-                            addCustomLayers(mapRef.current, otherSignals, { ...OwnCommunitySignal });
-                        }
-                    }
-                }
-            } catch (e) { /* ignore */ }
-        }, 3000);
-        return () => {
-            clearInterval(interval);
-            if (pulseTimeout) window.cancelAnimationFrame(pulseTimeout);
-        };
-    }, [OwnCommunitySignal, mapLoaded, otherSignals]);
+    // // Poll sensor-data endpoint every 3 seconds and update signal color
+    // useEffect(() => {
+    //     let interval: NodeJS.Timeout;
+    //     let lastStatus: boolean | null = null;
+    //     let pulseTimeout: number | null = null;
+    //     interval = setInterval(async () => {
+    //         try {
+    //             const res = await apiFetch<{ status: boolean }>("/sensor-data/latest");
+    //             if (typeof res.status === "boolean" && OwnCommunitySignal) {
+    //                 // Only update if changed
+    //                 if (lastStatus !== res.status) {
+    //                     // Animate pulse on color change
+    //                     if (mapRef.current && mapLoaded) {
+    //                         // Remove previous pulse if any
+    //                         if (mapRef.current.getLayer('signal-pulse')) mapRef.current.removeLayer('signal-pulse');
+    //                         if (mapRef.current.getSource('signal-pulse')) mapRef.current.removeSource('signal-pulse');
+    //                         // Add a pulsing circle overlay
+    //                         const color = res.status ? '#ef4444' : '#22c55e';
+    //                         mapRef.current.addSource('signal-pulse', {
+    //                             type: 'geojson',
+    //                             data: {
+    //                                 type: 'FeatureCollection',
+    //                                 features: [
+    //                                     {
+    //                                         type: 'Feature',
+    //                                         geometry: { type: 'Point', coordinates: OwnCommunitySignal.coordinates },
+    //                                         properties: {}
+    //                                     }
+    //                                 ]
+    //                             }
+    //                         });
+    //                         mapRef.current.addLayer({
+    //                             id: 'signal-pulse',
+    //                             type: 'circle',
+    //                             source: 'signal-pulse',
+    //                             paint: {
+    //                                 'circle-color': color,
+    //                                 'circle-radius': [
+    //                                     'interpolate',
+    //                                     ['linear'],
+    //                                     ['get', 'pulse'],
+    //                                     0, 12,
+    //                                     1, 28
+    //                                 ],
+    //                                 'circle-opacity': [
+    //                                     'interpolate',
+    //                                     ['linear'],
+    //                                     ['get', 'pulse'],
+    //                                     0, 0.5,
+    //                                     1, 0
+    //                                 ]
+    //                             },
+    //                             filter: ['==', '$type', 'Point']
+    //                         });
+    //                         // Animate the pulse
+    //                         let start: number | null = null;
+    //                         function animatePulse(ts: number) {
+    //                             if (!start) start = ts;
+    //                             const elapsed = (ts - start) % 1000;
+    //                             const t = elapsed / 1000;
+    //                             const source = mapRef.current?.getSource('signal-pulse') as any;
+    //                             if (source) {
+    //                                 source.setData({
+    //                                     type: 'FeatureCollection',
+    //                                     features: [
+    //                                         {
+    //                                             type: 'Feature',
+    //                                             geometry: { type: 'Point', coordinates: OwnCommunitySignal.coordinates },
+    //                                             properties: { pulse: t }
+    //                                         }
+    //                                     ]
+    //                                 });
+    //                             }
+    //                             pulseTimeout = window.requestAnimationFrame(animatePulse);
+    //                         }
+    //                         pulseTimeout = window.requestAnimationFrame(animatePulse);
+    //                         // Remove pulse after 1.2s
+    //                         setTimeout(() => {
+    //                             if (mapRef.current?.getLayer('signal-pulse')) mapRef.current.removeLayer('signal-pulse');
+    //                             if (mapRef.current?.getSource('signal-pulse')) mapRef.current.removeSource('signal-pulse');
+    //                         }, 1200);
+    //                     }
+    //                     lastStatus = res.status;
+    //                     // Mutate the status property to trigger color change
+    //                     OwnCommunitySignal.properties.status = res.status ? 'CRITICAL' : 'ONLINE';
+    //                     // Force re-render of map layers
+    //                     if (mapRef.current && mapLoaded) {
+    //                         addCustomLayers(mapRef.current, otherSignals, { ...OwnCommunitySignal });
+    //                     }
+    //                 }
+    //             }
+    //         } catch (e) { /* ignore */ }
+    //     }, 3000);
+    //     return () => {
+    //         clearInterval(interval);
+    //         if (pulseTimeout) window.cancelAnimationFrame(pulseTimeout);
+    //     };
+    // }, [OwnCommunitySignal, mapLoaded, otherSignals]);
 
     // Dashboard alerts are now handled by DashboardAlerts component
     const alertsRef = useRef<any>(null);
@@ -692,6 +693,8 @@ export default function Dashboard() {
     const [aboutCenter, setAboutCenter] = useState<{ x: number; y: number } | null>(null);
     const [editAboutOpen, setEditAboutOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
+    const [activityLogOpen, setActivityLogOpen] = useState(false);
+    const [activityLogCenter, setActivityLogCenter] = useState<{ x: number; y: number } | null>(null);
     const [historyCenter, setHistoryCenter] = useState<{ x: number; y: number } | null>(null);
     const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
     const [accountSettingsCenter, setAccountSettingsCenter] = useState<{ x: number; y: number } | null>(null);
@@ -814,6 +817,14 @@ export default function Dashboard() {
                 })}
                 onTabChange={handleTabChange}
                 activeTab={activeTab}
+                onActivityLogClick={() => {
+                    try {
+                        const rect = mapContainer.current?.getBoundingClientRect();
+                        if (rect) setActivityLogCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                        else setActivityLogCenter(null);
+                    } catch (e) { setActivityLogCenter(null); }
+                    setActivityLogOpen(true);
+                }}
             />
 
             <div ref={mapContainer} style={{ position: "absolute", top: 80, left: 0, right: 0, bottom: 0, zIndex: 1 }} />
@@ -854,6 +865,8 @@ export default function Dashboard() {
                 setSavedMessage('Password Updated Successfully!');
                 setSavedTrigger(prev => (prev == null ? 1 : prev + 1));
             }} isDirtyRef={accountSettingsIsDirtyRef} />
+
+            <ActivityLogModal open={activityLogOpen} onClose={() => { setActivityLogOpen(false); setActiveTab('community'); }} center={activityLogCenter} />
 
             {/* Alert dialog for confirming leaving Change Password with unsaved changes */}
             <AlertDialog open={confirmAccountOpen} onOpenChange={setConfirmAccountOpen}>
