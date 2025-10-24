@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Map } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { createCommunityGroup, getAvailableTerminals, type Terminal } from "../api/communityGroupApi"
 import { useFormStore } from "../hooks/useFormStore"
 import { useLocationPickerResults } from "../hooks/useLocationPickerResults"
 import type { CommunityGroupDrawerProps } from "../types"
@@ -38,6 +39,9 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
   const navigate = useNavigate()
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [terminals, setTerminals] = useState<Terminal[]>([])
+  const [loadingTerminals, setLoadingTerminals] = useState(false)
   
   // Use global form store instead of local state
   const {
@@ -121,6 +125,20 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
     setErrors(newErrors)
   }, [errors])
 
+  // Fetch available terminals when sheet opens
+  useEffect(() => {
+    if (open) {
+      setLoadingTerminals(true)
+      getAvailableTerminals()
+        .then(setTerminals)
+        .catch((error) => {
+          console.error('Failed to fetch terminals:', error)
+          setErrors(prev => ({ ...prev, general: 'Failed to load terminals' }))
+        })
+        .finally(() => setLoadingTerminals(false))
+    }
+  }, [open])
+
   // Debug: Log form data changes for location fields
   useEffect(() => {
     console.log("🔍 Form data update - Address:", formData.focalPersonAddress, "Coordinates:", formData.focalPersonCoordinates)
@@ -156,6 +174,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
         altFocalPersonName: editData.alternativeFocalPerson?.altName || "",
         altFocalPersonContact: editData.alternativeFocalPerson?.altContactNumber || "",
         altFocalPersonEmail: editData.alternativeFocalPerson?.altEmail || "",
+        boundaryGeoJSON: editData.boundary ? JSON.stringify(editData.boundary) : "",
       })
       setNotableInfoInputs(editData.notableInfo?.length > 0 ? editData.notableInfo : [""])
       setIsDirty(false)
@@ -196,18 +215,57 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
     [onOpenChange, requestClose]
   )
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isFormValid) {
       console.log("Form is invalid, cannot save")
       return
     }
     
-    console.log("Saving community group:", formData, "Notable info:", notableInfoInputs)
-    const infoData = convertFormToInfoData(formData, [formData.notableInfo].filter(Boolean))
-    onSave?.(infoData)
-    resetForm()
-    setErrors({})
-    onOpenChange(false)
+    setIsSubmitting(true)
+    setErrors({}) // Clear previous errors
+    
+    try {
+      console.log("Saving community group:", formData, "Notable info:", notableInfoInputs)
+      
+      // Prepare photos for upload
+      const photos = {
+        mainPhoto: formData.focalPersonPhoto || undefined,
+        altPhoto: formData.altFocalPersonPhoto || undefined,
+      }
+      
+      // Call backend API to create focal person and neighborhood
+      const response = await createCommunityGroup(formData, photos)
+      console.log("Backend response:", response)
+      
+      // Convert to frontend format for local state update
+      const infoData = convertFormToInfoData(formData, [formData.notableInfo].filter(Boolean))
+      
+      // Update the infoData with backend response
+      const updatedInfoData = {
+        ...infoData,
+        communityId: response.newFocalID, // Use focal person ID as community ID
+        focalPerson: {
+          ...infoData.focalPerson,
+          id: response.newFocalID,
+        },
+        neighborhoodId: response.newNeighborhoodID,
+      }
+      
+      onSave?.(updatedInfoData)
+      resetForm()
+      setErrors({})
+      onOpenChange(false)
+      
+      // Show success message if a generated password was created
+      if (response.generatedPassword) {
+        alert(`Community group created successfully!\nGenerated password: ${response.generatedPassword}`)
+      }
+    } catch (error) {
+      console.error("Error creating community group:", error)
+      setErrors({ general: error instanceof Error ? error.message : "Failed to create community group" })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleDiscard = () => {
@@ -232,28 +290,60 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
         </SheetHeader>
 
         <div className="px-6 py-6 space-y-6">
+          {/* Error Display */}
+          {errors.general && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-[5px] p-3">
+              <p className="text-red-400 text-sm">{errors.general}</p>
+            </div>
+          )}
+          
           {/* Assigned Terminal */}
           <div className="space-y-2">
             <Label className="text-white text-sm">Assigned Terminal</Label>
             <Select
               value={formData.assignedTerminal}
               onValueChange={(value) => updateFormData({ assignedTerminal: value })}
+              disabled={loadingTerminals || terminals.length === 0}
             >
-              <SelectTrigger className="w-full bg-[#171717] border-[#404040] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600">
-                <SelectValue placeholder="Select a Terminal" />
+              <SelectTrigger className="w-full bg-[#171717] border-[#404040] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                <SelectValue placeholder={
+                  loadingTerminals 
+                    ? "Loading terminals..." 
+                    : terminals.length === 0 
+                      ? "No available terminals"
+                      : "Select a Terminal"
+                } />
               </SelectTrigger>
               <SelectContent className="bg-[#171717] border-[#2a2a2a] text-white">
-                <SelectItem value="terminal1" className="text-white hover:bg-gray-700">
-                  Terminal 1
-                </SelectItem>
-                <SelectItem value="terminal2" className="text-white hover:bg-gray-700">
-                  Terminal 2
-                </SelectItem>
-                <SelectItem value="terminal3" className="text-white hover:bg-gray-700">
-                  Terminal 3
-                </SelectItem>
+                {loadingTerminals ? (
+                  <div className="px-3 py-2 text-gray-400 text-sm">
+                    Loading terminals...
+                  </div>
+                ) : terminals.length === 0 ? (
+                  <div className="px-3 py-2 text-gray-400 text-sm">
+                    No available terminals
+                  </div>
+                ) : (
+                  terminals.map((terminal) => (
+                    <SelectItem 
+                      key={terminal.id} 
+                      value={terminal.id} 
+                      className="text-white hover:bg-gray-700"
+                    >
+                      {terminal.name} ({terminal.id}) - {terminal.status}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
+            {!loadingTerminals && (
+              <p className="text-xs text-gray-400 mt-1">
+                {terminals.length === 0 
+                  ? "All terminals are currently occupied. Please try again later."
+                  : `${terminals.length} available terminal(s) for assignment`
+                }
+              </p>
+            )}
           </div>
 
           {/* Terminal Address */}
@@ -631,14 +721,14 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!isFormValid}
+              disabled={!isFormValid || isSubmitting}
               className={`flex-1 rounded-[5px] transition-colors ${
-                isFormValid 
+                isFormValid && !isSubmitting
                   ? "bg-[#4285f4] hover:bg-[#3367d6] text-white cursor-pointer" 
                   : "bg-gray-500 text-gray-300 cursor-not-allowed"
               }`}
             >
-              {isEditing ? "Update" : "Save"}
+              {isSubmitting ? "Saving..." : (isEditing ? "Update" : "Save Community Group")}
             </Button>
           </div>
         </div>

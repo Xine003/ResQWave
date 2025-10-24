@@ -298,7 +298,7 @@ const getNeighborhood = async (req, res) => {
       focal = await focalPersonRepo.findOne({ where: { id: neighborhood.focalPersonID } });
     }
 
-    // present hazards as array on read and include focal person details
+    // present hazards as array on read and include focal person details (now with address)
     const safe = {
       ...neighborhood,
       hazards: parseHazards(neighborhood.hazards),
@@ -315,6 +315,7 @@ const getNeighborhood = async (req, res) => {
             altContactNumber: focal.altContactNumber || null,
             altEmail: focal.altEmail || null,
             alternativeFPImage: focal.alternativeFPImage || null,
+            address: focal.address || null,
           }
         : null,
     };
