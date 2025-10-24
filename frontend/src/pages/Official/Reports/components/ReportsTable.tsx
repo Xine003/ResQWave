@@ -141,7 +141,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
         ) : (
           <Button 
             size="sm" 
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+            className="bg-blue-600 hover:bg-blue-700 rounded-[5px] text-white font-medium"
             onClick={() => handleCreateReport(row.original)}
           >
             Create Report

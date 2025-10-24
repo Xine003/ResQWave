@@ -28,7 +28,7 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
         if (showResourceInput && newResource.trim()) {
             setResources([...resources, newResource.trim()]);
             setNewResource("");
-            setShowResourceInput(false);
+            // Keep the input field open for adding more resources
         } else {
             setShowResourceInput(true);
         }
@@ -42,7 +42,7 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
         if (showActionInput && newAction.trim()) {
             setActions([...actions, newAction.trim()]);
             setNewAction("");
-            setShowActionInput(false);
+            // Keep the input field open for adding more actions
         } else {
             setShowActionInput(true);
         }
@@ -80,7 +80,7 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
                 }`}
             >
             {/* Header */}
-            <div className="p-6 border-b border-[#2a2a2a]">
+            <div className="p-5 border-b border-[#2a2a2a]">
                 <div className="flex justify-between items-center">
                     <h1 className="text-white text-xl font-medium">
                         Rescue Completion Form
@@ -101,7 +101,7 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
                 {/* Emergency Information Section */}
                 <div className="mb-6 pt-6">
                     {/* Title with white background */}
-                    <div className="bg-white rounded-lg p-4 mb-4">
+                    <div className="bg-white rounded-[5px] p-4 mb-4">
                         <h3 className="text-black font-medium">Emergency Information</h3>
                     </div>
                     
@@ -144,7 +144,7 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
                 {/* Post Rescue Operation Report Section */}
                 <div className="mb-6">
                     {/* Title with white background */}
-                    <div className="bg-white rounded-lg p-4 mb-4">
+                    <div className="bg-white rounded-[5px] p-4 mb-4">
                         <h3 className="text-black font-medium">Post Rescue Operation Report</h3>
                     </div>
                     
@@ -155,7 +155,7 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
                             <label className="block text-white font-medium text-sm mb-2">1. No. of Personnel Deployed</label>
                             <div className="relative">
                                 <input
-                                    type="number"
+              
                                     value={personnelDeployed}
                                     onChange={(e) => setPersonnelDeployed(parseInt(e.target.value) || 0)}
                                     className="w-full bg-[#2a2a2a] border border-[#3a3a3a] text-white px-3 py-3 rounded text-sm focus:border-blue-500 focus:outline-none pr-8"
@@ -190,7 +190,7 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
                             {/* Resource List */}
                             <div className="space-y-2 mb-4">
                                 {resources.map((resource, index) => (
-                                    <div key={index} className="flex items-center justify-between bg-[#2a2a2a] rounded-md p-3 border border-[#3a3a3a]">
+                                    <div key={index} className="flex items-center justify-between bg-[#2a2a2a] rounded-[5px] p-3 border border-[#3a3a3a]">
                                         <span className="text-white">{resource}</span>
                                         <button
                                             onClick={() => removeResource(index)}
@@ -219,6 +219,18 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
                                                 addResource();
                                             }
                                         }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Escape') {
+                                                setShowResourceInput(false);
+                                                setNewResource("");
+                                            }
+                                        }}
+                                        onBlur={() => {
+                                            // Only close if clicking outside and input is empty
+                                            if (!newResource.trim()) {
+                                                setShowResourceInput(false);
+                                            }
+                                        }}
                                     />
                                 </div>
                             )}
@@ -239,7 +251,7 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
                             {/* Actions List */}
                             <div className="space-y-2 mb-4">
                                 {actions.map((action, index) => (
-                                    <div key={index} className="flex items-center justify-between bg-[#2a2a2a] rounded-md p-3 border border-[#3a3a3a]">
+                                    <div key={index} className="flex items-center justify-between bg-[#2a2a2a] rounded-[5px] p-3 border border-[#3a3a3a]">
                                         <span className="text-white">{action}</span>
                                         <button
                                             onClick={() => removeAction(index)}
@@ -268,6 +280,18 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
                                                 addAction();
                                             }
                                         }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Escape') {
+                                                setShowActionInput(false);
+                                                setNewAction("");
+                                            }
+                                        }}
+                                        onBlur={() => {
+                                            // Only close if clicking outside and input is empty
+                                            if (!newAction.trim()) {
+                                                setShowActionInput(false);
+                                            }
+                                        }}
                                     />
                                 </div>
                             )}
@@ -290,13 +314,13 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
                     <Button
                         onClick={onClose}
                         variant="outline"
-                        className="flex-1 bg-transparent border-[#2a2a2a] text-white hover:bg-[#2a2a2a] hover:text-white h-12"
+                        className="flex-1 rounded-[5px] bg-transparent border-[#2a2a2a] text-white hover:bg-[#2a2a2a] hover:text-white h-12"
                     >
                         Back
                     </Button>
                     <Button
                         onClick={handleSave}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-[5px]"
                     >
                         Save
                     </Button>

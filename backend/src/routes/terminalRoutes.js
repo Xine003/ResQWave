@@ -9,7 +9,8 @@ const {
     updateTerminal,
     archivedTerminal,
     getArchivedTerminals,
-    unarchiveTerminal
+    unarchiveTerminal,
+    permanentDeleteTerminal
 } = require("../controllers/terminalController");
 
 // CRUD + Archived
@@ -22,5 +23,6 @@ router.get("/offline", getOfflineTerminals);
 router.put("/:id", updateTerminal);
 router.patch("/:id", unarchiveTerminal);
 router.delete("/:id", archivedTerminal);
+router.delete("/:id/permanent", permanentDeleteTerminal);
 
 module.exports = router;

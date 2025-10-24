@@ -2,10 +2,11 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { ArchiveRestore, Info, Trash2 } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { createColumns, type Terminal } from "./components/Column"
 import { CreateTerminalSheet } from "./components/CreateTerminalModal"
 import { DataTable } from "./components/DataTable"
+import TerminalAlerts, { type TerminalAlertsHandle } from "./components/TerminalAlerts"
 import { TerminalInfoSheet } from "./components/TerminalInfoSheet"
 import { useTerminals } from "./hooks/useTerminals"
 import type { TerminalDetails, TerminalFormData } from "./types"
@@ -84,11 +85,15 @@ export function Terminals() {
     error,
     archiveTerminalById,
     createNewTerminal,
+    permanentDeleteTerminalById,
     refreshData,
     fetchTerminalDetails,
     unarchiveTerminalById,
     updateTerminalById,
   } = useTerminals()
+
+  // Alert reference
+  const alertsRef = useRef<TerminalAlertsHandle>(null)
 
   // Local UI state
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active")
@@ -150,34 +155,33 @@ export function Terminals() {
     try {
       await unarchiveTerminalById(terminal.id)
       console.log(`Terminal ${terminal.name} restored successfully`)
-      alert('Terminal restored successfully!')
+      alertsRef.current?.showRestoreSuccess(terminal.name)
     } catch (error) {
       console.error('Failed to restore terminal:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to restore terminal'
-      alert(`Error: ${errorMessage}`)
+      alertsRef.current?.showError(errorMessage)
     }
   }, [unarchiveTerminalById])
 
   const handleDeletePermanent = useCallback(async (terminal: Terminal) => {
     const confirmed = window.confirm(
-      `Are you sure you want to permanently delete terminal "${terminal.name}"?\n\nThis action cannot be undone.`
+      `Are you sure you want to permanently delete terminal "${terminal.name}"?\n\nThis action cannot be undone and will remove all data associated with this terminal.`
     )
     
     if (!confirmed) return
     
     try {
-      // Note: Backend only supports archive, not permanent delete
-      // For now, we'll just archive the terminal
-      await archiveTerminalById(terminal.id)
+      // Permanently delete the terminal from the database
+      await permanentDeleteTerminalById(terminal.id)
       
-      console.log(`Terminal ${terminal.name} archived successfully`)
-      alert('Terminal archived successfully!')
+      console.log(`Terminal ${terminal.name} permanently deleted`)
+      alertsRef.current?.showDeleteSuccess(terminal.name)
     } catch (error) {
-      console.error('Failed to archive terminal:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to archive terminal'
-      alert(`Error: ${errorMessage}`)
+      console.error('Failed to permanently delete terminal:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to permanently delete terminal'
+      alertsRef.current?.showError(errorMessage)
     }
-  }, [archiveTerminalById])
+  }, [permanentDeleteTerminalById])
 
   const handleEdit = useCallback((terminal: Terminal) => {
     setEditingTerminal(terminal)
@@ -234,18 +238,18 @@ export function Terminals() {
         setEditData(undefined)
         setDrawerOpen(false)
         
-        alert('Terminal updated successfully!')
+        alertsRef.current?.showUpdateSuccess(formData.name)
       } else {
         // Create new terminal
         await createNewTerminal(formData)
         
         setDrawerOpen(false)
-        alert('Terminal created successfully!')
+        alertsRef.current?.showCreateSuccess(formData.name)
       }
     } catch (err) {
       console.error('Error saving terminal:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to save terminal'
-      alert(`Error: ${errorMessage}`)
+      alertsRef.current?.showError(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -408,6 +412,9 @@ export function Terminals() {
         editData={editData}
         onSave={handleSaveTerminal}
       />
+      
+      {/* Terminal Alerts */}
+      <TerminalAlerts ref={alertsRef} />
     </div>
   )
 }
