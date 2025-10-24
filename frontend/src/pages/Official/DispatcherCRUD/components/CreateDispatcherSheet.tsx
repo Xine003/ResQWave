@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { RefreshCcw, Trash, Upload } from "lucide-react"
+import { Eye, EyeOff, RefreshCcw, Trash, Upload } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import type { DispatcherDetails, DispatcherDrawerProps, DispatcherFormData } from "../types"
 import { CloseCreateDialog } from "./CloseCreateDialog"
@@ -48,8 +48,17 @@ export function CreateDispatcherSheet({
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Validation functions
+  const validateName = (name: string, field: string): string | undefined => {
+    if (!name.trim()) return `${field} is required`
+    if (/\d/.test(name)) return `${field} should not contain numbers`
+    if (name.trim().length < 2) return `${field} must be at least 2 characters long`
+    return undefined
+  }
+
   const validateContactNumber = (contact: string): string | undefined => {
     if (!contact.trim()) return "Contact number is required"
     const cleanContact = contact.replace(/\D/g, '') // Remove non-digits
@@ -92,14 +101,14 @@ export function CreateDispatcherSheet({
 
   // Check if form is valid
   const isFormValid = (): boolean => {
-    const hasFirstName = formData.firstName.trim().length > 0
-    const hasLastName = formData.lastName.trim().length > 0
+    const hasValidFirstName = !validateName(formData.firstName, "First name")
+    const hasValidLastName = !validateName(formData.lastName, "Last name")
     const hasValidContact = !validateContactNumber(formData.contactNumber)
     const hasValidEmail = !validateEmail(formData.email)
     const hasValidPassword = isEditing || !validatePassword(formData.password)
     const hasValidConfirmPassword = isEditing || !validateConfirmPassword(formData.confirmPassword, formData.password)
     
-    return hasFirstName && hasLastName && hasValidContact && hasValidEmail && hasValidPassword && hasValidConfirmPassword
+    return hasValidFirstName && hasValidLastName && hasValidContact && hasValidEmail && hasValidPassword && hasValidConfirmPassword
   }
 
   // Reset form when opening/closing or when edit data changes
@@ -123,6 +132,8 @@ export function CreateDispatcherSheet({
       setPhotoPreview(editData.photo || null)
       setErrors({})
       setIsDirty(false)
+      setShowPassword(false)
+      setShowConfirmPassword(false)
     } else if (open && !isEditing) {
       // Reset for new dispatcher
       setFormData({
@@ -137,8 +148,35 @@ export function CreateDispatcherSheet({
       setPhotoPreview(null)
       setErrors({})
       setIsDirty(false)
+      setShowPassword(false)
+      setShowConfirmPassword(false)
     }
   }, [open, isEditing, editData])
+
+  // Special handler for name fields to reject numbers
+  const handleNameChange = useCallback((field: 'firstName' | 'lastName', value: string) => {
+    // Remove any numbers from the input
+    const filteredValue = value.replace(/\d/g, '')
+    
+    setFormData(prev => ({
+      ...prev,
+      [field]: filteredValue
+    }))
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: undefined
+      }))
+    }
+    
+    // Real-time validation
+    const fieldName = field === 'firstName' ? 'First name' : 'Last name'
+    const error = validateName(filteredValue, fieldName)
+    setErrors(prev => ({ ...prev, [field]: error }))
+    setIsDirty(true)
+  }, [errors.firstName, errors.lastName, validateName])
 
   // Special handler for contact number with digit limiting
   const handleContactNumberChange = useCallback((value: string) => {
@@ -258,12 +296,14 @@ export function CreateDispatcherSheet({
     // Validate all fields
     const newErrors: FormErrors = {}
     
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required"
+    const firstNameError = validateName(formData.firstName, "First name")
+    if (firstNameError) {
+      newErrors.firstName = firstNameError
     }
     
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required"
+    const lastNameError = validateName(formData.lastName, "Last name")
+    if (lastNameError) {
+      newErrors.lastName = lastNameError
     }
     
     const contactError = validateContactNumber(formData.contactNumber)
@@ -294,6 +334,11 @@ export function CreateDispatcherSheet({
       return
     }
 
+    // Determine if photo was removed during editing
+    const originalPhotoExists = isEditing && editData && editData.photo
+    const currentPhotoExists = photoPreview !== null
+    const photoWasRemoved = originalPhotoExists && !currentPhotoExists
+
     const dispatcherData: DispatcherDetails = {
       id: isEditing && editData ? editData.id : `CG-${Date.now()}`,
       name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
@@ -301,7 +346,8 @@ export function CreateDispatcherSheet({
       email: formData.email.trim(),
       createdAt: isEditing && editData ? editData.createdAt : new Date().toLocaleDateString(),
       createdBy: isEditing && editData ? editData.createdBy : "Franxine Orias",
-      photo: photoPreview || (isEditing && editData ? editData.photo : undefined),
+      // For editing, if photo was removed, set to null; otherwise use preview or existing photo
+      photo: photoWasRemoved ? null : (photoPreview || (isEditing && editData ? editData.photo : undefined)),
     }
 
     // Prepare raw form data for API calls
@@ -316,7 +362,7 @@ export function CreateDispatcherSheet({
     onSave?.(dispatcherData, rawFormData)
     setIsDirty(false)
     onOpenChange(false)
-  }, [formData, isEditing, editData, onSave, onOpenChange, photoPreview, validateContactNumber, validateEmail, validatePassword, validateConfirmPassword])
+  }, [formData, isEditing, editData, onSave, onOpenChange, photoPreview, validateName, validateContactNumber, validateEmail, validatePassword, validateConfirmPassword])
 
   const handleClose = useCallback(() => {
     if (isDirty) {
@@ -441,7 +487,7 @@ export function CreateDispatcherSheet({
                 <Input
                   id="firstName"
                   value={formData.firstName}
-                  onChange={(e) => handleInputChange("firstName", e.target.value)}
+                  onChange={(e) => handleNameChange("firstName", e.target.value)}
                   className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
                     errors.firstName 
                       ? "border-red-500 focus:border-red-500" 
@@ -459,7 +505,7 @@ export function CreateDispatcherSheet({
                 <Input
                   id="lastName"
                   value={formData.lastName}
-                  onChange={(e) => handleInputChange("lastName", e.target.value)}
+                  onChange={(e) => handleNameChange("lastName", e.target.value)}
                   className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
                     errors.lastName 
                       ? "border-red-500 focus:border-red-500" 
@@ -522,17 +568,33 @@ export function CreateDispatcherSheet({
                   <Label htmlFor="password" className="text-white text-xs">
                     Password
                   </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
-                    className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
-                      errors.password 
-                        ? "border-red-500 focus:border-red-500" 
-                        : "border-[#2a2a2a] focus:border-gray-600"
-                    }`}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(e) => handleInputChange("password", e.target.value)}
+                      className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 pr-10 ${
+                        errors.password 
+                          ? "border-red-500 focus:border-red-500" 
+                          : "border-[#2a2a2a] focus:border-gray-600"
+                      }`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </Button>
+                  </div>
                   {errors.password && (
                     <p className="text-red-500 text-xs mt-1">{errors.password}</p>
                   )}
@@ -542,17 +604,33 @@ export function CreateDispatcherSheet({
                   <Label htmlFor="confirmPassword" className="text-white text-xs">
                     Confirm Password
                   </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                    className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
-                      errors.confirmPassword 
-                        ? "border-red-500 focus:border-red-500" 
-                        : "border-[#2a2a2a] focus:border-gray-600"
-                    }`}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                      className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 pr-10 ${
+                        errors.confirmPassword 
+                          ? "border-red-500 focus:border-red-500" 
+                          : "border-[#2a2a2a] focus:border-gray-600"
+                      }`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </Button>
+                  </div>
                   {errors.confirmPassword && (
                     <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
                   )}

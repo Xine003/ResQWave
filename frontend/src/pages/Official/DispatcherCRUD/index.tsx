@@ -2,10 +2,11 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { ArchiveRestore, Info, Trash2 } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { createColumns, type Dispatcher } from "./components/Column"
 import { CreateDispatcherSheet } from "./components/CreateDispatcherSheet"
 import { DataTable } from "./components/DataTable"
+import DispatcherAlerts, { type DispatcherAlertsHandle } from "./components/DispatcherAlerts"
 import { DispatcherInfoSheet } from "./components/DispatcherInfoSheet"
 import { useDispatchers } from "./hooks/useDispatchers"
 import type { DispatcherDetails, DispatcherFormData } from "./types"
@@ -75,6 +76,9 @@ const makeArchivedColumns = (
   })
 
 export function Dispatchers() {
+  // Alerts ref
+  const alertsRef = useRef<DispatcherAlertsHandle>(null)
+  
   // Use the custom hook for dispatcher data
   const {
     activeDispatchers,
@@ -84,12 +88,12 @@ export function Dispatchers() {
     error,
     archiveDispatcherById,
     createNewDispatcher,
+    updateDispatcherById,
     deleteDispatcherPermanentlyById,
     refreshData,
     fetchDispatcherDetails,
     setActiveDispatchers,
     setArchivedDispatchers,
-    setInfoById,
   } = useDispatchers()
 
   // Local UI state
@@ -139,18 +143,32 @@ export function Dispatchers() {
       // Switch to archive tab to show the archived dispatcher
       setActiveTab("archived")
       
-      console.log(`Dispatcher ${dispatcher.name} archived successfully`)
+      // Show success alert
+      alertsRef.current?.showArchiveSuccess(dispatcher.name)
     } catch (error) {
       console.error('Failed to archive dispatcher:', error)
-      // Handle error (could show toast notification)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to archive dispatcher'
+      alertsRef.current?.showError(errorMessage)
     }
   }, [archiveDispatcherById])
 
   const handleRestore = useCallback(async (dispatcher: Dispatcher) => {
-    // TODO: Implement API call to restore dispatcher (update archived status)
-    // For now, do optimistic update
-    setArchivedDispatchers((prev) => prev.filter((d) => d.id !== dispatcher.id))
-    setActiveDispatchers((prev) => [dispatcher, ...prev])
+    try {
+      // TODO: Implement API call to restore dispatcher (update archived status)
+      // For now, do optimistic update
+      setArchivedDispatchers((prev) => prev.filter((d) => d.id !== dispatcher.id))
+      setActiveDispatchers((prev) => [dispatcher, ...prev])
+      
+      // Show success alert
+      alertsRef.current?.showRestoreSuccess(dispatcher.name)
+      
+      // Switch to active tab to show the restored dispatcher
+      setActiveTab("active")
+    } catch (error) {
+      console.error('Failed to restore dispatcher:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to restore dispatcher'
+      alertsRef.current?.showError(errorMessage)
+    }
   }, [setArchivedDispatchers, setActiveDispatchers])
 
   const handleDeletePermanent = useCallback(async (dispatcher: Dispatcher) => {
@@ -165,10 +183,12 @@ export function Dispatchers() {
       // Call the backend API to permanently delete the dispatcher
       await deleteDispatcherPermanentlyById(dispatcher.id)
       
-      console.log(`Dispatcher ${dispatcher.name} permanently deleted successfully`)
+      // Show success alert
+      alertsRef.current?.showDeleteSuccess(dispatcher.name)
     } catch (error) {
       console.error('Failed to permanently delete dispatcher:', error)
-      // Handle error (could show toast notification)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to permanently delete dispatcher'
+      alertsRef.current?.showError(errorMessage)
     }
   }, [deleteDispatcherPermanentlyById])
 
@@ -216,29 +236,46 @@ export function Dispatchers() {
     
     try {
       if (editingDispatcher) {
-        // TODO: Implement update dispatcher API call
         // Update existing dispatcher
-        const updatedRow: Dispatcher = {
-          ...editingDispatcher,
-          name: dispatcherData.name,
-          contactNumber: dispatcherData.contactNumber,
-          email: dispatcherData.email,
+        if (!formData) {
+          throw new Error('Form data is required for updating dispatcher')
         }
         
-        // Update in the appropriate list (active or archived)
-        setActiveDispatchers((prev) => 
-          prev.map((dispatcher) => dispatcher.id === editingDispatcher.id ? updatedRow : dispatcher)
-        )
-        setArchivedDispatchers((prev) => 
-          prev.map((dispatcher) => dispatcher.id === editingDispatcher.id ? updatedRow : dispatcher)
-        )
+        // Prepare update data
+        const updateData: {
+          name?: string
+          email?: string
+          contactNumber?: string
+          password?: string
+          photo?: File
+          removePhoto?: boolean
+        } = {
+          name: formData.name,
+          email: formData.email,
+          contactNumber: formData.contactNumber,
+        }
+
+        // Only include password if provided (for editing, password is optional)
+        if (formData.password && formData.password.trim()) {
+          updateData.password = formData.password
+        }
+
+        // Handle photo updates
+        if (formData.photo) {
+          updateData.photo = formData.photo
+        } else if (dispatcherData.photo === null || dispatcherData.photo === undefined) {
+          // If no photo in dispatcherData, it means the photo was removed
+          updateData.removePhoto = true
+        }
         
-        // Update detailed info including photo
-        setInfoById((prev) => ({ ...prev, [editingDispatcher.id]: dispatcherData }))
+        await updateDispatcherById(editingDispatcher.id, updateData)
         
         // Clear edit state
         setEditingDispatcher(null)
         setEditData(undefined)
+        
+        // Show success alert
+        alertsRef.current?.showUpdateSuccess(dispatcherData.name)
       } else {
         // Create new dispatcher using raw form data
         if (!formData) {
@@ -253,21 +290,17 @@ export function Dispatchers() {
           photo: formData.photo
         })
         
-        // Show success message if temporary password was generated
-        if (result.temporaryPassword) {
-          alert(`Dispatcher created successfully!\nTemporary password: ${result.temporaryPassword}\nPlease save this password and share it with the dispatcher.`)
-        } else {
-          alert('Dispatcher created successfully!')
-        }
+        // Show success alert with or without temporary password
+        alertsRef.current?.showCreateSuccess(formData.name, result.temporaryPassword)
       }
     } catch (err) {
       console.error('Error saving dispatcher:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to save dispatcher'
-      alert(`Error: ${errorMessage}`)
+      alertsRef.current?.showError(errorMessage)
     } finally {
       setSaving(false)
     }
-  }, [editingDispatcher, createNewDispatcher, setActiveDispatchers, setArchivedDispatchers, setInfoById])
+  }, [editingDispatcher, createNewDispatcher, updateDispatcherById])
 
   // Show loading state
   if (loading) {
@@ -428,6 +461,9 @@ export function Dispatchers() {
         onSave={handleSaveDispatcher}
         saving={saving}
       />
+
+      {/* Dispatcher Alerts */}
+      <DispatcherAlerts ref={alertsRef} />
     </div>
   )
 }

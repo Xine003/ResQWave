@@ -105,6 +105,13 @@ export async function unarchiveTerminal(id: string): Promise<{ message: string }
   })
 }
 
+// Permanently delete terminal (only archived terminals)
+export async function permanentDeleteTerminal(id: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/terminal/${id}/permanent`, {
+    method: 'DELETE',
+  })
+}
+
 // Helper function to convert backend response to frontend Terminal type
 export function transformTerminalResponse(apiData: TerminalApiResponse) {
   return {

@@ -32,7 +32,7 @@ export interface DispatcherDetails {
   email: string
   createdAt: string
   createdBy?: string
-  photo?: string
+  photo?: string | null
 }
 
 // Raw form data for API calls

@@ -12,7 +12,7 @@ import RescueFormPreview from './components/RescueFormPreview';
 import SignalPopover from './components/SignalPopover';
 import { RescueWaitlistProvider, useRescueWaitlist, type WaitlistedRescueForm } from './contexts/RescueWaitlistContext';
 import useSignals from './hooks/useSignals';
-import type { Signal, VisualizationSignals } from './types/signals';
+import type { VisualizationSignals } from './types/signals';
 import { cinematicMapEntrance, flyToSignal } from './utils/flyingEffects';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
 
@@ -71,85 +71,100 @@ function VisualizationContent() {
         }
     }, [isLiveReportOpen]);
 
-    // Helper function to display signal boundary
-    const displaySignalBoundary = (signal: Signal) => {
-        const map = mapRef.current;
-        if (!map || !signal.boundary) return;
 
-        // Remove previous boundary layer/source
+
+    // Helper to create a GeoJSON circle polygon from center and radius (meters) - copied exactly from mapHelpers
+    const createGeoJSONCircle = (center: [number, number], radiusInMeters: number, points = 64): GeoJSON.Feature<GeoJSON.Polygon> => {
+        const coords: [number, number][] = [];
+        const earthRadius = 6378137;
+        const lat = center[1] * Math.PI / 180;
+        const lon = center[0] * Math.PI / 180;
+        for (let i = 0; i < points; i++) {
+            const angle = (i * 360 / points) * Math.PI / 180;
+            const dx = Math.cos(angle) * radiusInMeters / earthRadius;
+            const dy = Math.sin(angle) * radiusInMeters / earthRadius;
+            const latOffset = lat + dy;
+            const lonOffset = lon + dx / Math.cos(lat);
+            coords.push([
+                lonOffset * 180 / Math.PI,
+                latOffset * 180 / Math.PI
+            ]);
+        }
+        coords.push(coords[0]); // close the polygon
+        return {
+            type: "Feature",
+            geometry: {
+                type: "Polygon",
+                coordinates: [coords]
+            },
+            properties: {}
+        };
+    };
+
+    // Helper function to display circle around signal (copied exactly from mapHelpers)
+    const displayBeatingCircle = (signal: any) => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        // Remove previous circle layers/sources
         try {
-            if (map.getLayer('signal-boundary')) map.removeLayer('signal-boundary');
-            if (map.getLayer('signal-boundary-line')) map.removeLayer('signal-boundary-line');
-            if (map.getSource('signal-boundary')) map.removeSource('signal-boundary');
+            if (map.getLayer('signal-circle')) map.removeLayer('signal-circle');
+            if (map.getLayer('signal-circle-border')) map.removeLayer('signal-circle-border');
+            if (map.getSource('signal-circle')) map.removeSource('signal-circle');
         } catch (e) { /* ignore */ }
 
-        // Determine color by alert type
-        let fillColor = '#22c55e'; // Default green
-        let lineColor = '#22c55e'; // Default green
-        let opacity = 0.15;
-        const alertType = signal.properties.alertType;
-        
-        switch (alertType) {
-            case 'CRITICAL':
-                fillColor = '#ef4444'; // Red
-                lineColor = '#ef4444';
-                opacity = 0.2; // Slightly more opacity for critical
-                break;
-            case 'USER-INITIATED':
-                fillColor = '#eab308'; // Yellow
-                lineColor = '#eab308';
-                opacity = 0.15;
-                break;
-            case 'ONLINE':
-                fillColor = '#22c55e'; // Green
-                lineColor = '#22c55e';
-                opacity = 0.15;
-                break;
-            case 'OFFLINE':
-                fillColor = '#6b7280'; // Gray
-                lineColor = '#6b7280';
-                opacity = 0.1;
-                break;
-            default:
-                fillColor = '#6b7280'; // Default gray
-                lineColor = '#6b7280';
-                opacity = 0.1;
-                break;
-        }
+        // Get color based on alert type (same as pin color)
+        const getCircleColor = (alertType: string) => {
+            switch (alertType?.toLowerCase()) {
+                case 'critical':
+                    return '#ef4444'; // Red
+                case 'user-initiated':
+                    return '#eab308'; // Yellow
+                case 'online':
+                    return '#22c55e'; // Green
+                case 'offline':
+                    return '#6b7280'; // Gray
+                default:
+                    return '#6b7280'; // Default gray
+            }
+        };
 
-        // Add boundary source and layers
-        map.addSource('signal-boundary', {
+        const alertType = signal.properties.alertType || signal.properties.status || 'offline';
+        const circleColor = getCircleColor(alertType);
+
+        // Create smaller GeoJSON circle with radius
+        const circleFeature = createGeoJSONCircle(signal.coordinates, 50, 64); // 50 meter radius (smaller)
+
+        // Add circle source
+        map.addSource('signal-circle', {
             type: 'geojson',
-            data: {
-                type: 'Feature',
-                properties: {},
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [signal.boundary]
-                }
-            }
+            data: circleFeature
         });
 
+        // Add circle layer (fill style like mapHelpers would use for radius overlays)
         map.addLayer({
-            id: 'signal-boundary',
+            id: 'signal-circle',
             type: 'fill',
-            source: 'signal-boundary',
+            source: 'signal-circle',
             paint: {
-                'fill-color': fillColor,
-                'fill-opacity': opacity
+                'fill-color': circleColor,
+                'fill-opacity': 0.2
             }
         });
 
+        // Add circle border
         map.addLayer({
-            id: 'signal-boundary-line',
+            id: 'signal-circle-border',
             type: 'line',
-            source: 'signal-boundary',
+            source: 'signal-circle',
             paint: {
-                'line-color': lineColor,
-                'line-width': 3,
-                'line-dasharray': [2, 4]
+                'line-color': circleColor,
+                'line-width': 2,
+                'line-opacity': 0.8
             }
         });
+
+
     };
 
     // Clean up: close sidebar when component unmounts
@@ -204,87 +219,19 @@ function VisualizationContent() {
                     map.on('click', layerId, (e: any) => {
                         const f = e.features?.[0];
                         const coord = (f?.geometry?.coordinates as [number, number]) || [e.lngLat.lng, e.lngLat.lat];
-                        let boundary = null;
-                        // Find boundary for clicked signal using deviceId
                         const deviceId = f?.properties?.deviceId;
-                        if (deviceId) {
-                            if (deviceId === OwnCommunitySignal.properties.deviceId) {
-                                boundary = OwnCommunitySignal.boundary;
-                            } else {
-                                const found = otherSignals.find(s => s.properties.deviceId === deviceId);
-                                if (found) boundary = found.boundary;
-                            }
+
+                        // Find the signal data for the beating circle
+                        let signalData = null;
+                        if (deviceId === OwnCommunitySignal.properties.deviceId) {
+                            signalData = OwnCommunitySignal;
+                        } else {
+                            signalData = otherSignals.find(s => s.properties.deviceId === deviceId);
                         }
 
-                        // Remove previous boundary layer/source
-                        if (map.getLayer('signal-boundary')) map.removeLayer('signal-boundary');
-                        if (map.getLayer('signal-boundary-line')) map.removeLayer('signal-boundary-line');
-                        if (map.getSource('signal-boundary')) map.removeSource('signal-boundary');
-
-                        if (boundary) {
-                            // Determine color by alert type
-                            let fillColor = '#22c55e'; // Default green
-                            let lineColor = '#22c55e'; // Default green
-                            let opacity = 0.15;
-                            let alertType = f?.properties?.alertType;
-                            
-                            switch (alertType) {
-                                case 'CRITICAL':
-                                    fillColor = '#ef4444'; // Red
-                                    lineColor = '#ef4444';
-                                    opacity = 0.2; // Slightly more opacity for critical
-                                    break;
-                                case 'USER-INITIATED':
-                                    fillColor = '#eab308'; // Yellow
-                                    lineColor = '#eab308';
-                                    opacity = 0.15;
-                                    break;
-                                case 'ONLINE':
-                                    fillColor = '#22c55e'; // Green
-                                    lineColor = '#22c55e';
-                                    opacity = 0.15;
-                                    break;
-                                case 'OFFLINE':
-                                    fillColor = '#6b7280'; // Gray
-                                    lineColor = '#6b7280';
-                                    opacity = 0.1;
-                                    break;
-                                default:
-                                    fillColor = '#6b7280'; // Default gray
-                                    lineColor = '#6b7280';
-                                    opacity = 0.1;
-                                    break;
-                            }
-                            map.addSource('signal-boundary', {
-                                type: 'geojson',
-                                data: {
-                                    type: 'Feature',
-                                    properties: {},
-                                    geometry: {
-                                        type: 'Polygon',
-                                        coordinates: [boundary]
-                                    }
-                                }
-                            });
-                            map.addLayer({
-                                id: 'signal-boundary',
-                                type: 'fill',
-                                source: 'signal-boundary',
-                                paint: {
-                                    'fill-color': fillColor,
-                                    'fill-opacity': opacity
-                                }
-                            });
-                            map.addLayer({
-                                id: 'signal-boundary-line',
-                                type: 'line',
-                                source: 'signal-boundary',
-                                paint: {
-                                    'line-color': lineColor,
-                                    'line-width': 3,
-                                    'line-dasharray': [2, 4]
-                                }
-                            });
+                        // Display beating circle around the clicked signal
+                        if (signalData) {
+                            displayBeatingCircle(signalData);
                         }
 
                         try {
@@ -358,6 +305,12 @@ function VisualizationContent() {
                 // Check if the click was on a signal layer
                 const features = map.queryRenderedFeatures(e.point, { layers: signalLayers });
                 if (features.length === 0 && sidebarOpenRef.current) {
+                    // Remove circle when clicking on empty map area
+                    try {
+                        if (map.getLayer('signal-circle')) map.removeLayer('signal-circle');
+                        if (map.getLayer('signal-circle-border')) map.removeLayer('signal-circle-border');
+                        if (map.getSource('signal-circle')) map.removeSource('signal-circle');
+                    } catch (e) { /* ignore */ }
                     // Only close if clicking on empty map area and sidebar is open
                     setIsLiveReportOpen(false);
                 }
@@ -422,14 +375,16 @@ function VisualizationContent() {
                 onOpenCommunityInfo={handleOpenCommunityInfo}
                 onDispatchRescue={handleDispatchRescue}
                 onClose={() => {
-                    // remove any temporary signal boundary overlay when popover closes
+                    // Remove circle when popover closes
                     const map = mapRef.current;
-                    if (!map) return;
-                    try {
-                        if (map.getLayer('signal-boundary')) map.removeLayer('signal-boundary');
-                        if (map.getLayer('signal-boundary-line')) map.removeLayer('signal-boundary-line');
-                        if (map.getSource('signal-boundary')) map.removeSource('signal-boundary');
-                    } catch (e) { /* ignore */ }
+                    if (map) {
+                        try {
+                            if (map.getLayer('signal-circle')) map.removeLayer('signal-circle');
+                            if (map.getLayer('signal-circle-border')) map.removeLayer('signal-circle-border');
+                            if (map.getSource('signal-circle')) map.removeSource('signal-circle');
+                        } catch (e) { /* ignore */ }
+                    }
+                    setPopover(null);
                 }}
             />
 
@@ -453,8 +408,8 @@ function VisualizationContent() {
                     
                     const coord = signal.coordinates;
                     
-                    // Display the signal boundary
-                    displaySignalBoundary(signal);
+                    // Display beating circle around the selected signal
+                    displayBeatingCircle(signal);
                     
                     // Fly to the signal location
                     flyToSignal(map, coord);
