@@ -48,6 +48,7 @@ const {
   setCache,
   deleteCache
 } = require("../config/cache");
+const { diffFields, addLogs, toJSONSafe } = require("../utils/logs");
 
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const terminalRepo = AppDataSource.getRepository("Terminal");
@@ -349,10 +350,8 @@ const updateNeighborhood = async (req, res) => {
       altLastName,
       altContactNumber,
       altEmail,
-      altFocal, // legacy support: { name, email, contact }
     } = req.body || {};
 
-    // photos (multipart/form-data): main photo and alternative focal photo
     const photoFile = req.file || req.files?.photo?.[0];
     const altPhotoFile = req.files?.alternativeFPImage?.[0] || req.files?.altPhoto?.[0];
 
@@ -360,56 +359,108 @@ const updateNeighborhood = async (req, res) => {
     if (!neighborhood) return res.status(404).json({ message: "Neighborhood Not Found" });
     if (neighborhood.archived) return res.status(400).json({ message: "Cannot update archived neighborhood" });
 
+    // snapshots BEFORE
+    const nbBefore = { ...neighborhood, hazards: neighborhood.hazards };
+
     // Neighborhood updates
-    if (noOfHouseholds != null) neighborhood.noOfHouseholds = noOfHouseholds;
-    if (noOfResidents != null) neighborhood.noOfResidents = noOfResidents;
-    if (floodSubsideHours != null) neighborhood.floodSubsideHours = floodSubsideHours;
-    if (hazards != null) neighborhood.hazards = stringifyHazards(hazards);
-    if (otherInformation != null) neighborhood.otherInformation = otherInformation;
+    if (noOfHouseholds != null && Number(noOfHouseholds) !== Number(neighborhood.noOfHouseholds)) {
+      neighborhood.noOfHouseholds = Number(noOfHouseholds);
+    }
+    if (noOfResidents != null && Number(noOfResidents) !== Number(neighborhood.noOfResidents)) {
+      neighborhood.noOfResidents = Number(noOfResidents);
+    }
+    if (floodSubsideHours != null && Number(floodSubsideHours) !== Number(neighborhood.floodSubsideHours)) {
+      neighborhood.floodSubsideHours = Number(floodSubsideHours);
+    }
+    if (hazards != null) {
+      const incoming = stringifyHazards(hazards);
+      if (incoming !== (neighborhood.hazards ?? null)) {
+        neighborhood.hazards = incoming;
+      }
+    }
+    if (otherInformation != null && String(otherInformation) !== String(neighborhood.otherInformation ?? "")) {
+      neighborhood.otherInformation = otherInformation;
+    }
 
     // Focal person updates (if linked)
+    let fpBefore = null;
+    let fpAfter = null;
     if (neighborhood.focalPersonID) {
       const focal = await focalPersonRepo.findOne({ where: { id: neighborhood.focalPersonID } });
       if (focal) {
-        // Basic fields
-        if (firstName != null) focal.firstName = firstName;
-        if (lastName != null) focal.lastName = lastName;
-        if (contactNumber != null) focal.contactNumber = contactNumber;
-        if (email != null) focal.email = email;
+        // take BEFORE snapshot first
+        fpBefore = { ...focal };
 
-        // Photos: replace only if provided
+        // apply only real changes
+        if (firstName != null && String(firstName) !== String(focal.firstName ?? "")) focal.firstName = firstName;
+        if (lastName != null && String(lastName) !== String(focal.lastName ?? "")) focal.lastName = lastName;
+        if (contactNumber != null && String(contactNumber) !== String(focal.contactNumber ?? "")) focal.contactNumber = contactNumber;
+        if (email != null && String(email) !== String(focal.email ?? "")) focal.email = email;
+        if (altFirstName != null && String(altFirstName) !== String(focal.altFirstName ?? "")) focal.altFirstName = altFirstName;
+        if (altLastName != null && String(altLastName) !== String(focal.altLastName ?? "")) focal.altLastName = altLastName;
+        if (altContactNumber != null && String(altContactNumber) !== String(focal.altContactNumber ?? "")) focal.altContactNumber = altContactNumber;
+        if (altEmail != null && String(altEmail) !== String(focal.altEmail ?? "")) focal.altEmail = altEmail;
+
+        // optional photos
+        const photoFile = req.file || req.files?.photo?.[0];
+        const altPhotoFile = req.files?.alternativeFPImage?.[0] || req.files?.altPhoto?.[0];
         if (photoFile?.buffer) focal.photo = photoFile.buffer;
         if (altPhotoFile?.buffer) focal.alternativeFPImage = altPhotoFile.buffer;
 
-        // Alt focal fields (prefer explicit fields; fallback to legacy altFocal.name split)
-        let altFN = altFirstName ?? null;
-        let altLN = altLastName ?? null;
-        if ((altFN == null || altLN == null) && altFocal?.name) {
-          const parts = String(altFocal.name).trim().split(" ");
-          if (parts.length > 1) {
-            altFN = altFN ?? parts.slice(0, -1).join(" ");
-            altLN = altLN ?? parts.slice(-1).join(" ");
-          } else if (parts.length === 1) {
-            altFN = altFN ?? parts[0];
-          }
-        }
-
-        if (altFN != null) focal.altFirstName = altFN;
-        if (altLN != null) focal.altLastName = altLN;
-        if (altContactNumber != null) focal.altContactNumber = altContactNumber ?? altFocal?.contact ?? null;
-        if (altEmail != null) focal.altEmail = altEmail ?? altFocal?.email ?? null;
-
         focal.updatedAt = new Date();
         await focalPersonRepo.save(focal);
+
+        // AFTER snapshot
+        fpAfter = { ...focal };
       }
     }
 
     neighborhood.updatedAt = new Date();
     await neighborhoodRepo.save(neighborhood);
 
+    // WRITE LOGS
+    const actorID = req.user?.focalPersonID || req.user?.id || neighborhood.focalPersonID || null;
+    const actorRole = req.user?.role || "FocalPerson";
+
+    // Neighborhood changes
+    const nbAfter = { ...neighborhood, hazards: neighborhood.hazards };
+    const nbChanges = diffFields(nbBefore, nbAfter, [
+      "noOfHouseholds","noOfResidents","floodSubsideHours","hazards","otherInformation"
+    ]);
+    await addLogs({
+      entityType: "Neighborhood",
+      entityID: id,
+      changes: nbChanges,
+      actorID,
+      actorRole,
+    });
+
+    // Focal person changes
+    if (fpBefore && fpAfter) {
+      const fpChanges = diffFields(fpBefore, fpAfter, [
+        "firstName","lastName","contactNumber","email",
+        "altFirstName","altLastName","altContactNumber","altEmail"
+      ]);
+
+      if (photoFile?.buffer) {
+        fpChanges.push({ field: "photo", oldValue: toJSONSafe(fpBefore.photo), newValue: "[BLOB]" });
+      }
+      if (altPhotoFile?.buffer) {
+        fpChanges.push({ field: "alternativeFPImage", oldValue: toJSONSafe(fpBefore.alternativeFPImage), newValue: "[BLOB]" });
+      }
+
+      await addLogs({
+        entityType: "FocalPerson",                 
+        entityID: neighborhood.focalPersonID,      
+        changes: fpChanges,                         
+        actorID,
+        actorRole,
+      });
+    }
+
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
-
+    
     return res.json({
       message: "Neighborhood Updated",
       neighborhood: {
@@ -492,8 +543,8 @@ const deleteNeighborhood = async(req, res) => {
 
     await neighborhoodRepo.delete({id});
 
-    await deleteCache(`neighborhood${id}`);
-    await deleteCache(`neighborhoods:active`);
+    await deleteCache(`neighborhood:${id}`);
+    await deleteCache("neighborhoods:active");
     await deleteCache("neighborhoods:archived");
 
     return res.json({message: "Neighborhood permanently delete"});
