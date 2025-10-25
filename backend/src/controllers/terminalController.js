@@ -177,6 +177,14 @@ const archivedTerminal = async (req, res) => {
             return res.status(404).json({ message: "Terminal Not Found" });
         }
 
+        // Block if occupied (linked to a non-archived neighborhood)
+        const linked = await neighborhoodRepo.findOne({ where: { terminalID: id, archived: false } });
+        if (linked) {
+            return res.status(400).json({
+                message: "Cannot archive: Terminal is currently assigned to a neighborhood. Detach it first."
+            });
+        }
+
         // Archive the terminal
         terminal.archived = true;
         terminal.availability = "Available"; // Make it available again
