@@ -42,12 +42,13 @@ export type CloseCreateDialogProps = {
 
 // Detailed community group information used by drawer/info sheet
 export interface FocalPerson {
-  name: string
+  name: string | null
   photo?: string
-  contactNumber: string
-  email: string
-  houseAddress: string
-  coordinates: string
+  contactNumber: string | null
+  email: string | null
+  houseAddress: string | null
+  coordinates: string | null
+  address?: string
 }
 
 export interface AlternativeFocalPerson {
@@ -63,22 +64,11 @@ export interface CommunityGroupDetails {
   communityId: string
   individuals: number
   families: number
-  kids: number
-  seniors: number
-  pwds: number
-  pregnantWomen: number
+  floodSubsideHours?: number
+  hazards: string[]
   notableInfo: string[]
-  // Frontend-only persisted map selections
-  // Top-level address from the Setting Location flow
   address?: string
-  // [lng, lat] for pinned terminal location
-  coordinates?: number[]
-  // GeoJSON Feature for boundary (LineString)
-  boundary?: {
-    type: "Feature"
-    properties: Record<string, unknown>
-    geometry: { type: "LineString"; coordinates: number[][] }
-  }
+  coordinates?: string | null
   focalPerson: FocalPerson
   alternativeFocalPerson: AlternativeFocalPerson
 }

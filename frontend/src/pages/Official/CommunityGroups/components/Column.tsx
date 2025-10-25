@@ -85,7 +85,21 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
   {
     accessorKey: "address",
     header: "Address",
-    cell: ({ row }) => <div className="text-[#a1a1a1] truncate max-w-[200px]">{row.getValue("address")}</div>,
+    cell: ({ row }) => {
+      const raw = row.getValue("address");
+      let display = raw;
+      if (typeof raw === 'string' && raw.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object' && parsed.address) {
+            display = parsed.address;
+          }
+        } catch {
+          // fallback to raw
+        }
+      }
+      return <div className="text-[#a1a1a1] truncate max-w-[200px]">{String(display)}</div>;
+    },
   },
   {
     accessorKey: "registeredAt",

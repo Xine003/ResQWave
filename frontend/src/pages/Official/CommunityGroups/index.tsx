@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArchiveRestore, Info, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { fetchNeighborhoodDetailsTransformed, getArchivedNeighborhoods, getNeighborhoods, transformNeighborhoodToCommunityGroup } from "./api/communityGroupApi"
 import { createColumns, type CommunityGroup } from "./components/Column"
 import { CommunityGroupApprovalSheet } from "./components/CommunityGroupApprovalSheet"
 import { CommunityGroupInfoSheet } from "./components/CommunityGroupInfoSheet"
 import { CommunityGroupDrawer } from "./components/CreateCommunityGroupSheet"
 import { DataTable } from "./components/DataTable"
-import { predefinedAwaitingGroupDetails, predefinedAwaitingGroups, predefinedCommunityGroupDetails, predefinedCommunityGroups } from "./data/predefinedCommunityGroups"
+import { predefinedAwaitingGroupDetails, predefinedAwaitingGroups } from "./data/predefinedCommunityGroups"
 import type { CommunityGroupDetails } from "./types"
 
 const makeArchivedColumns = (
@@ -79,10 +80,12 @@ export function CommunityGroups() {
   const [selectedApprovalData, setSelectedApprovalData] = useState<CommunityGroupDetails | undefined>(undefined)
   const [pendingApprovalData, setPendingApprovalData] = useState<CommunityGroupDetails | undefined>(undefined)
   const [selectedTerminal, setSelectedTerminal] = useState<string>("")
-  const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>(predefinedCommunityGroups)
+  const [activeGroups, setActiveGroups] = useState<CommunityGroup[]>([])
   const [archivedGroups, setArchivedGroups] = useState<CommunityGroup[]>([])
   const [awaitingGroups, setAwaitingGroups] = useState<CommunityGroup[]>(predefinedAwaitingGroups)
-  const [infoById, setInfoById] = useState<Record<string, CommunityGroupDetails>>(predefinedCommunityGroupDetails)
+  const [infoById, setInfoById] = useState<Record<string, CommunityGroupDetails>>({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [awaitingInfoById, setAwaitingInfoById] = useState<Record<string, CommunityGroupDetails>>(predefinedAwaitingGroupDetails)
   const [searchVisible, setSearchVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -106,14 +109,25 @@ export function CommunityGroups() {
         setSelectedApprovalData(detailed)
         setApprovalOpen(true)
       }
-    } else {
-      // For active/archived, show the regular info sheet
-      const detailed = infoById[group.id]
-      if (detailed) {
-        setSelectedInfoData(detailed)
-        setInfoOpen(true)
-      }
+      return
     }
+
+    // For active/archived, fetch full neighborhood + focal person details from backend
+    (async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const details = await fetchNeighborhoodDetailsTransformed(group.id)
+        setInfoById(prev => ({ ...prev, [group.id]: details }))
+        setSelectedInfoData(details)
+        setInfoOpen(true)
+      } catch (err) {
+        console.error('Failed to load neighborhood details:', err)
+        setError('Failed to load neighborhood details')
+      } finally {
+        setLoading(false)
+      }
+    })()
   }, [infoById, awaitingInfoById, activeTab])
 
   const handleArchive = useCallback((group: CommunityGroup) => {
@@ -251,6 +265,37 @@ export function CommunityGroups() {
 
   const tableData = activeTab === "active" ? filteredActiveGroups : activeTab === "archived" ? filteredArchivedGroups : filteredAwaitingGroups
   const tableColumns = activeTab === "active" ? activeColumns : activeTab === "archived" ? archivedColumns : awaitingColumns
+
+  // Fetch neighborhoods data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Fetch active and archived neighborhoods in parallel
+        const [activeData, archivedData] = await Promise.all([
+          getNeighborhoods(),
+          getArchivedNeighborhoods()
+        ])
+        
+        // Transform backend data to frontend format
+        const transformedActive = activeData.map(transformNeighborhoodToCommunityGroup)
+        const transformedArchived = archivedData.map(transformNeighborhoodToCommunityGroup)
+        
+        setActiveGroups(transformedActive)
+        setArchivedGroups(transformedArchived)
+        
+      } catch (err) {
+        console.error('Failed to fetch neighborhoods:', err)
+        setError('Failed to load neighborhoods')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchData()
+  }, [])
 
   // Reopen the drawer automatically if we return from the map flow
   useEffect(() => {
@@ -393,51 +438,34 @@ export function CommunityGroups() {
               }}
               editData={editData}
               isEditing={!!editingGroup}
-              onSave={(infoData) => {
+              onSave={async () => {
                 if (editingGroup) {
-                  // Update existing group
-                  const updatedRow: CommunityGroup = {
-                    ...editingGroup,
-                    name: infoData.name,
-                    focalPerson: infoData.focalPerson.name,
-                    contactNumber: infoData.focalPerson.contactNumber,
-                    address: infoData.address || infoData.focalPerson.houseAddress,
-                  }
-                  
-                  // Update in the appropriate list (active or archived)
-                  setActiveGroups((prev) => 
-                    prev.map((group) => group.id === editingGroup.id ? updatedRow : group)
-                  )
-                  setArchivedGroups((prev) => 
-                    prev.map((group) => group.id === editingGroup.id ? updatedRow : group)
-                  )
-                  
-                  // Update detailed info
-                  const fullInfo = { ...infoData, communityId: editingGroup.id }
-                  setInfoById((prev) => ({ ...prev, [editingGroup.id]: fullInfo }))
-                  setSelectedInfoData(fullInfo)
-                  setInfoOpen(true)
+                  // TODO: Implement edit functionality when backend supports it
+                  console.log('Edit functionality not yet implemented')
                   
                   // Clear edit state
                   setEditingGroup(null)
                   setEditData(undefined)
                 } else {
-                  // Add new group
-                  const newId = `RSQW-${String(Date.now()).slice(-3)}`
-                  const row: CommunityGroup = {
-                    id: newId,
-                    name: infoData.name,
-                    status: "OFFLINE",
-                    focalPerson: infoData.focalPerson.name,
-                    contactNumber: infoData.focalPerson.contactNumber,
-                    address: infoData.address || infoData.focalPerson.houseAddress,
-                    registeredAt: new Date().toLocaleDateString(),
+                  // After successful creation, refresh the data from backend
+                  try {
+                    const [activeData, archivedData] = await Promise.all([
+                      getNeighborhoods(),
+                      getArchivedNeighborhoods()
+                    ])
+                    
+                    const transformedActive = activeData.map(transformNeighborhoodToCommunityGroup)
+                    const transformedArchived = archivedData.map(transformNeighborhoodToCommunityGroup)
+                    
+                    setActiveGroups(transformedActive)
+                    setArchivedGroups(transformedArchived)
+                    
+                    // Show the newly created item in active tab
+                    setActiveTab("active")
+                    
+                  } catch (err) {
+                    console.error('Failed to refresh data after creation:', err)
                   }
-                  setActiveGroups((prev) => [row, ...prev])
-                  const fullInfo = { ...infoData, communityId: newId }
-                  setInfoById((prev) => ({ ...prev, [newId]: fullInfo }))
-                  setSelectedInfoData(fullInfo)
-                  setInfoOpen(true)
                 }
               }}
             />
@@ -445,11 +473,33 @@ export function CommunityGroups() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-auto">
-          <DataTable
-            columns={tableColumns}
-            data={tableData}
-            onRowClick={(row) => handleMoreInfo(row as CommunityGroup)}
-          />
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                <p className="text-gray-400">Loading neighborhoods...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <p className="text-red-400 mb-2">{error}</p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline" 
+                  className="bg-transparent border-gray-600 text-white hover:bg-gray-800"
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <DataTable
+              columns={tableColumns}
+              data={tableData}
+              onRowClick={(row) => handleMoreInfo(row as CommunityGroup)}
+            />
+          )}
         </div>
       </div>
 

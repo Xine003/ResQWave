@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ExpandIcon, Plus, ZoomOut } from "lucide-react";
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import type { CommunityGroupInfoSheetProps } from "../types";
 
 export function CommunityGroupInfoSheet({
@@ -9,13 +10,50 @@ export function CommunityGroupInfoSheet({
   communityData,
 }: CommunityGroupInfoSheetProps) {
   // Image viewer state
+  useEffect(() => {
+    if (open && communityData) {
+      console.debug('[InfoSheet] communityData:', communityData);
+    }
+  }, [open, communityData]);
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewerUrl, setViewerUrl] = useState<string | null>(null)
+  
+  // Photo state (just for auth blob conversion)
+  const [photos, setPhotos] = useState<{
+    mainPhoto?: string
+    altPhoto?: string
+  }>({})
+  const [photosLoading, setPhotosLoading] = useState(false)
 
   // Discrete zoom steps and class mappings (no inline styles)
   const zoomSteps = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3] as const
   type Zoom = (typeof zoomSteps)[number]
   const [viewerZoom, setViewerZoom] = useState<Zoom>(1)
+
+  // Load photos only if URLs are present and need auth (otherwise just use the URLs directly)
+  useEffect(() => {
+    if (!communityData || !open) return;
+    setPhotosLoading(true);
+    const token = localStorage.getItem('resqwave_token');
+    const fetchPhoto = async (url?: string) => {
+      if (!url) return undefined;
+      try {
+        if (!token) return url;
+        const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!resp.ok) return url;
+        const blob = await resp.blob();
+        return URL.createObjectURL(blob);
+      } catch {
+        return url;
+      }
+    };
+    Promise.all([
+      fetchPhoto(communityData.focalPerson?.photo),
+      fetchPhoto(communityData.alternativeFocalPerson?.altPhoto)
+    ]).then(([mainPhoto, altPhoto]) => {
+      setPhotos({ mainPhoto, altPhoto });
+    }).finally(() => setPhotosLoading(false));
+  }, [communityData, open]);
 
 
   function openViewer(url: string) {
@@ -44,6 +82,26 @@ export function CommunityGroupInfoSheet({
 
   // No data yet: don't render static fallback
   if (!communityData) return null
+
+
+
+  // Use address and coordinates directly from communityData
+  const terminalAddress = communityData.address || 'N/A';
+  let terminalCoordinates: string = 'N/A';
+  if (communityData.coordinates && typeof communityData.coordinates === 'string' && communityData.coordinates.trim() !== '') {
+    terminalCoordinates = communityData.coordinates;
+  } else if (
+    communityData.focalPerson &&
+    typeof communityData.focalPerson.houseAddress === 'string' &&
+    communityData.focalPerson.houseAddress.trim() !== ''
+  ) {
+    try {
+      const parsed = JSON.parse(communityData.focalPerson.houseAddress);
+      if (parsed && typeof parsed.coordinates === 'string' && parsed.coordinates.trim() !== '') {
+        terminalCoordinates = parsed.coordinates;
+      }
+    } catch {}
+  }
 
   return (
     <Sheet
@@ -81,20 +139,20 @@ export function CommunityGroupInfoSheet({
             <span className="text-white text-sm">{communityData.terminalId}</span>
           </div>
 
+
           {/* Terminal Address */}
           <div className="flex justify-between items-center">
             <span className="text-white text-sm">Terminal Address</span>
-            <span className="text-white text-sm">{communityData.address || "N/A"}</span>
+            <span className="text-white text-sm">
+              {terminalAddress}
+            </span>
           </div>
 
           {/* Coordinates */}
           <div className="flex justify-between items-center">
             <span className="text-white text-sm">Coordinates</span>
             <span className="text-white text-sm">
-              {communityData.coordinates ? 
-                `${communityData.coordinates[1]}, ${communityData.coordinates[0]}` : 
-                "N/A"
-              }
+              {terminalCoordinates !== 'N/A' ? terminalCoordinates : 'N/A'}
             </span>
           </div>
 
@@ -118,16 +176,18 @@ export function CommunityGroupInfoSheet({
           {/* Floodwater Subsidence Duration */}
           <div className="flex justify-between items-center">
             <span className="text-white text-sm">Floodwater Subsidence Duration</span>
-            <span className="text-white text-sm">N/A</span>
+            <span className="text-white text-sm">
+              {communityData.floodSubsideHours ? `${communityData.floodSubsideHours} hours` : "N/A"}
+            </span>
           </div>
 
           {/* Flood-related hazards */}
           <div className="bg-[#262626] border border-[#404040] rounded p-4">
             <h3 className="text-white text-sm font-medium mb-3">Flood-related hazards</h3>
-            {communityData.notableInfo && communityData.notableInfo.length > 0 ? (
+            {communityData.hazards && communityData.hazards.length > 0 ? (
               <ul className="space-y-1 text-white text-sm">
-                {communityData.notableInfo.map((info, index) => (
-                  <li key={index}>• {info}</li>
+                {communityData.hazards.map((hazard, index) => (
+                  <li key={index}>• {hazard}</li>
                 ))}
               </ul>
             ) : (
@@ -138,7 +198,15 @@ export function CommunityGroupInfoSheet({
           {/* Other notable information */}
           <div className="bg-[#262626] border border-[#404040] rounded p-4">
             <h3 className="text-white text-sm font-medium mb-3">Other notable information</h3>
-            <p className="text-white text-sm">No additional information</p>
+            {communityData.notableInfo && communityData.notableInfo.length > 0 ? (
+              <ul className="space-y-1 text-white text-sm">
+                {communityData.notableInfo.map((info, index) => (
+                  <li key={index}>• {info}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-white text-sm">No additional information</p>
+            )}
           </div>
 
           {/* Focal Persons Section */}
@@ -149,37 +217,77 @@ export function CommunityGroupInfoSheet({
           {/* Main Focal Person Photo */}
           <div className="bg-[#0b0b0b] rounded-[6px] flex justify-center mt-1">
             <div className="relative w-full max-w-full h-60 rounded-[8px] overflow-hidden bg-[#111]">
-              {communityData.focalPerson?.photo ? (
+              {photos.mainPhoto ? (
                 <>
                   {/* Blurred backdrop */}
                   <img
-                    src={communityData.focalPerson.photo}
+                    src={photos.mainPhoto}
                     alt=""
                     aria-hidden
                     className="absolute inset-0 w-full h-full object-cover filter blur-[18px] brightness-50 scale-[1.2]"
+                    onError={(e) => {
+                      console.error('Error loading focal person photo backdrop:', e)
+                      e.currentTarget.classList.add('hidden')
+                    }}
                   />
                   {/* Foreground image */}
                   <img
-                    src={communityData.focalPerson.photo}
+                    src={photos.mainPhoto}
                     alt="Focal Person"
                     className="relative w-auto h-full max-w-[60%] m-auto block object-contain"
+                    onError={(e) => {
+                      console.error('Error loading focal person photo:', e)
+                      console.error('Photo URL that failed:', photos.mainPhoto)
+                      const img = e.currentTarget
+                      const parent = img.parentElement
+                      if (parent) {
+                        img.style.display = 'none'
+                        // Find backdrop image and hide it too
+                        const backdrop = parent.querySelector('[aria-hidden]') as HTMLImageElement
+                        if (backdrop) backdrop.classList.add('hidden')
+                        
+                        // Create fallback element
+                        const fallback = document.createElement('div')
+                        fallback.className = 'relative w-full h-full flex items-center justify-center'
+                        fallback.innerHTML = `
+                          <div class="w-24 h-24 bg-[#3a3a3a] rounded-full flex items-center justify-center">
+                            <span class="text-[#a1a1a1] text-2xl font-semibold">
+                              ${communityData.focalPerson?.name?.charAt(0) || 'F'}
+                            </span>
+                          </div>
+                        `
+                        parent.appendChild(fallback)
+                      }
+                    }}
                   />
                   {/* Expand button */}
                   <button
                     type="button"
-                    onClick={() => openViewer(communityData.focalPerson.photo!)}
+                    onClick={() => openViewer(photos.mainPhoto!)}
                     aria-label="Expand focal person image"
                     className="absolute right-3 bottom-3 w-9 h-9 rounded-[5px] bg-white text-black flex items-center justify-center shadow hover:bg-gray-100 active:scale-[0.98]"
                   >
                     <ExpandIcon className="w-4 h-4" />
                   </button>
                 </>
+              ) : photosLoading ? (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <div className="w-24 h-24 bg-[#3a3a3a] rounded-full flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  </div>
+                  <div className="absolute bottom-3 right-3 text-[#666] text-sm">
+                    Loading...
+                  </div>
+                </div>
               ) : (
                 <div className="relative w-full h-full flex items-center justify-center">
                   <div className="w-24 h-24 bg-[#3a3a3a] rounded-full flex items-center justify-center">
                     <span className="text-[#a1a1a1] text-2xl font-semibold">
                       {communityData.focalPerson?.name?.charAt(0) || 'F'}
                     </span>
+                  </div>
+                  <div className="absolute bottom-3 right-3 text-[#666] text-sm">
+                    No photo
                   </div>
                 </div>
               )}
@@ -211,37 +319,77 @@ export function CommunityGroupInfoSheet({
           {/* Alternative Focal Person Photo */}
           <div className="bg-[#0b0b0b] rounded-[6px] flex justify-center mt-1">
             <div className="relative w-full max-w-full h-60 rounded-[8px] overflow-hidden bg-[#111]">
-              {communityData.alternativeFocalPerson?.altPhoto ? (
+              {photos.altPhoto ? (
                 <>
                   {/* Blurred backdrop */}
                   <img
-                    src={communityData.alternativeFocalPerson.altPhoto}
+                    src={photos.altPhoto}
                     alt=""
                     aria-hidden
                     className="absolute inset-0 w-full h-full object-cover filter blur-[18px] brightness-50 scale-[1.2]"
+                    onError={(e) => {
+                      console.error('Error loading alternative focal person photo backdrop:', e)
+                      e.currentTarget.classList.add('hidden')
+                    }}
                   />
                   {/* Foreground image */}
                   <img
-                    src={communityData.alternativeFocalPerson.altPhoto}
+                    src={photos.altPhoto}
                     alt="Alternative Focal Person"
                     className="relative w-auto h-full max-w-[60%] m-auto block object-contain"
+                    onError={(e) => {
+                      console.error('Error loading alternative focal person photo:', e)
+                      console.error('Alt photo URL that failed:', photos.altPhoto)
+                      const img = e.currentTarget
+                      const parent = img.parentElement
+                      if (parent) {
+                        img.classList.add('hidden')
+                        // Find backdrop image and hide it too
+                        const backdrop = parent.querySelector('[aria-hidden]') as HTMLImageElement
+                        if (backdrop) backdrop.classList.add('hidden')
+                        
+                        // Create fallback element
+                        const fallback = document.createElement('div')
+                        fallback.className = 'relative w-full h-full flex items-center justify-center'
+                        fallback.innerHTML = `
+                          <div class="w-24 h-24 bg-[#3a3a3a] rounded-full flex items-center justify-center">
+                            <span class="text-[#a1a1a1] text-2xl font-semibold">
+                              ${communityData.alternativeFocalPerson?.altName?.charAt(0) || 'A'}
+                            </span>
+                          </div>
+                        `
+                        parent.appendChild(fallback)
+                      }
+                    }}
                   />
                   {/* Expand button */}
                   <button
                     type="button"
-                    onClick={() => openViewer(communityData.alternativeFocalPerson.altPhoto!)}
+                    onClick={() => openViewer(photos.altPhoto!)}
                     aria-label="Expand alternative focal person image"
                     className="absolute right-3 bottom-3 w-9 h-9 rounded-[5px] bg-white text-black flex items-center justify-center shadow hover:bg-gray-100 active:scale-[0.98]"
                   >
                     <ExpandIcon className="w-4 h-4" />
                   </button>
                 </>
+              ) : photosLoading ? (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <div className="w-24 h-24 bg-[#3a3a3a] rounded-full flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  </div>
+                  <div className="absolute bottom-3 right-3 text-[#666] text-sm">
+                    Loading...
+                  </div>
+                </div>
               ) : (
                 <div className="relative w-full h-full flex items-center justify-center">
                   <div className="w-24 h-24 bg-[#3a3a3a] rounded-full flex items-center justify-center">
                     <span className="text-[#a1a1a1] text-2xl font-semibold">
                       {communityData.alternativeFocalPerson?.altName?.charAt(0) || 'A'}
                     </span>
+                  </div>
+                  <div className="absolute bottom-3 right-3 text-[#666] text-sm">
+                    No photo
                   </div>
                 </div>
               )}
