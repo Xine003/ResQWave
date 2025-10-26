@@ -1,5 +1,74 @@
 import { API_BASE_URL, apiFetch } from "@/lib/api"
 import type { CommunityFormData } from "../types/forms"
+/**
+ * Archive a neighborhood (move from active to archived)
+ * Sets archived from 0 to 1 in the neighborhood table
+ */
+export async function archiveNeighborhood(id: string): Promise<{ message: string }> {
+  return apiFetch(`/neighborhood/${id}`, { method: 'DELETE' })
+}
+
+/**
+ * Permanently delete an archived neighborhood from the database
+ */
+export async function deleteNeighborhood(id: string): Promise<{ message: string }> {
+  return apiFetch(`/neighborhood/${id}/permanent`, { method: 'DELETE' })
+}
+
+/**
+ * Update an existing neighborhood and its focal person
+ */
+export async function updateNeighborhood(
+  id: string,
+  formData: CommunityFormData,
+  photos?: {
+    mainPhoto?: File
+    altPhoto?: File
+  }
+): Promise<{ message: string }> {
+  const payload = transformFormDataToPayload(formData)
+  
+  // Use FormData to handle both JSON data and file uploads
+  const formDataToSend = new FormData()
+  
+  // Add all text fields
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      if (Array.isArray(value)) {
+        formDataToSend.append(key, JSON.stringify(value))
+      } else {
+        formDataToSend.append(key, String(value))
+      }
+    }
+  })
+  
+  // Add photo files if provided
+  if (photos?.mainPhoto) {
+    formDataToSend.append('photo', photos.mainPhoto)
+  }
+  if (photos?.altPhoto) {
+    formDataToSend.append('altPhoto', photos.altPhoto)
+  }
+  
+  const token = localStorage.getItem('resqwave_token')
+  
+  const response = await fetch(`${API_BASE_URL}/neighborhood/${id}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+      // Don't set Content-Type - browser will set it with boundary for multipart
+    },
+    body: formDataToSend,
+  })
+  
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(error || response.statusText)
+  }
+  
+  return response.json()
+}
 
 export interface CreateCommunityGroupPayload {
   terminalID: string

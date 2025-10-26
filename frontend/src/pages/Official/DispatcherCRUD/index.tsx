@@ -171,25 +171,25 @@ export function Dispatchers() {
     }
   }, [setArchivedDispatchers, setActiveDispatchers])
 
-  const handleDeletePermanent = useCallback(async (dispatcher: Dispatcher) => {
-    // Show confirmation dialog
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete dispatcher "${dispatcher.name}"?\n\nThis action cannot be undone.`
+  const handleDeletePermanent = useCallback((dispatcher: Dispatcher) => {
+    // Show confirmation dialog using the alert component
+    alertsRef.current?.showDeleteConfirmation(
+      dispatcher.id,
+      dispatcher.name,
+      async () => {
+        try {
+          // Call the backend API to permanently delete the dispatcher
+          await deleteDispatcherPermanentlyById(dispatcher.id)
+          
+          // Show success alert
+          alertsRef.current?.showDeleteSuccess(dispatcher.name)
+        } catch (error) {
+          console.error('Failed to permanently delete dispatcher:', error)
+          const errorMessage = error instanceof Error ? error.message : 'Failed to permanently delete dispatcher'
+          alertsRef.current?.showError(errorMessage)
+        }
+      }
     )
-    
-    if (!confirmed) return
-    
-    try {
-      // Call the backend API to permanently delete the dispatcher
-      await deleteDispatcherPermanentlyById(dispatcher.id)
-      
-      // Show success alert
-      alertsRef.current?.showDeleteSuccess(dispatcher.name)
-    } catch (error) {
-      console.error('Failed to permanently delete dispatcher:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to permanently delete dispatcher'
-      alertsRef.current?.showError(errorMessage)
-    }
   }, [deleteDispatcherPermanentlyById])
 
   const handleEdit = useCallback((dispatcher: Dispatcher) => {

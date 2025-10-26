@@ -4,9 +4,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArchiveRestore, Info, Trash2 } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { fetchNeighborhoodDetailsTransformed, getArchivedNeighborhoods, getNeighborhoods, transformNeighborhoodToCommunityGroup } from "./api/communityGroupApi"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { archiveNeighborhood, deleteNeighborhood, fetchNeighborhoodDetailsTransformed, getArchivedNeighborhoods, getNeighborhoods, transformNeighborhoodToCommunityGroup } from "./api/communityGroupApi"
 import { createColumns, type CommunityGroup } from "./components/Column"
+import CommunityGroupAlerts, { type CommunityGroupAlertsHandle } from "./components/CommunityGroupAlerts"
 import { CommunityGroupApprovalSheet } from "./components/CommunityGroupApprovalSheet"
 import { CommunityGroupInfoSheet } from "./components/CommunityGroupInfoSheet"
 import { CommunityGroupDrawer } from "./components/CreateCommunityGroupSheet"
@@ -71,6 +72,7 @@ const makeArchivedColumns = (
 ]
 
 export function CommunityGroups() {
+  const alertsRef = useRef<CommunityGroupAlertsHandle>(null)
   const [activeTab, setActiveTab] = useState<"active" | "archived" | "awaiting">("active")
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
@@ -130,9 +132,23 @@ export function CommunityGroups() {
     })()
   }, [infoById, awaitingInfoById, activeTab])
 
-  const handleArchive = useCallback((group: CommunityGroup) => {
-    setActiveGroups((prev) => prev.filter((g) => g.id !== group.id))
-    setArchivedGroups((prev) => [group, ...prev])
+  const handleArchive = useCallback(async (group: CommunityGroup) => {
+    try {
+      await archiveNeighborhood(group.id)
+      // Refetch lists to sync frontend with backend
+      const [activeData, archivedData] = await Promise.all([
+        getNeighborhoods(),
+        getArchivedNeighborhoods()
+      ])
+      setActiveGroups(activeData.map(transformNeighborhoodToCommunityGroup))
+      setArchivedGroups(archivedData.map(transformNeighborhoodToCommunityGroup))
+      
+      // Show success alert
+      alertsRef.current?.showArchiveSuccess(group.name || group.focalPerson || 'Neighborhood Group')
+    } catch (err) {
+      console.error('Failed to archive neighborhood:', err)
+      alertsRef.current?.showError('Failed to archive neighborhood. Please try again.')
+    }
   }, [])
 
   const handleRestore = useCallback((group: CommunityGroup) => {
@@ -141,11 +157,29 @@ export function CommunityGroups() {
   }, [])
 
   const handleDeletePermanent = useCallback((group: CommunityGroup) => {
-    setArchivedGroups((prev) => prev.filter((g) => g.id !== group.id))
-    setInfoById((prev) => {
-      const { [group.id]: _omit, ...rest } = prev
-      return rest
-    })
+    // Show confirmation dialog before deleting
+    alertsRef.current?.showDeleteConfirmation(
+      group.id,
+      group.name || group.focalPerson || 'Neighborhood Group',
+      async () => {
+        try {
+          await deleteNeighborhood(group.id)
+          // Refetch archived list to sync frontend with backend
+          const archivedData = await getArchivedNeighborhoods()
+          setArchivedGroups(archivedData.map(transformNeighborhoodToCommunityGroup))
+          setInfoById((prev) => {
+            const { [group.id]: _omit, ...rest } = prev
+            return rest
+          })
+          
+          // Show success alert
+          alertsRef.current?.showDeleteSuccess(group.name || group.focalPerson || 'Neighborhood Group')
+        } catch (err) {
+          console.error('Failed to delete neighborhood:', err)
+          alertsRef.current?.showError('Failed to delete neighborhood. Please try again.')
+        }
+      }
+    )
   }, [])
 
   const handleApprove = useCallback((communityData: CommunityGroupDetails) => {
@@ -210,38 +244,22 @@ export function CommunityGroups() {
     }
   }, [awaitingGroups])
 
-  const handleEdit = useCallback((group: CommunityGroup) => {
+  const handleEdit = useCallback(async (group: CommunityGroup) => {
     setEditingGroup(group)
     
-    // Get the detailed info for this group, or create default data
-    const detailed = infoById[group.id] || {
-      name: group.name,
-      terminalId: group.id.replace("CG-", "RSQW-"),
-      communityId: group.id,
-      individuals: 0,
-      families: 0,
-      kids: 0,
-      seniors: 0,
-      pwds: 0,
-      pregnantWomen: 0,
-      notableInfo: [],
-      focalPerson: {
-        name: group.focalPerson,
-        contactNumber: group.contactNumber,
-        email: "",
-        houseAddress: group.address,
-        coordinates: "",
-      },
-      alternativeFocalPerson: {
-        altName: "",
-        altContactNumber: "",
-        altEmail: "",
-      },
+    try {
+      setLoading(true)
+      // Fetch the detailed neighborhood data from backend
+      const detailed = await fetchNeighborhoodDetailsTransformed(group.id)
+      setEditData(detailed)
+      setDrawerOpen(true)
+    } catch (err) {
+      console.error('Failed to load neighborhood details for editing:', err)
+      alertsRef.current?.showError('Failed to load neighborhood details for editing')
+    } finally {
+      setLoading(false)
     }
-    
-    setEditData(detailed)
-    setDrawerOpen(true)
-  }, [infoById])
+  }, [])
 
   const activeColumns = useMemo(() => createColumns({ onMoreInfo: handleMoreInfo, onEdit: handleEdit, onArchive: handleArchive }), [handleMoreInfo, handleEdit, handleArchive])
   const archivedColumns = useMemo(() => makeArchivedColumns(handleMoreInfo, handleRestore, handleDeletePermanent), [handleMoreInfo, handleRestore, handleDeletePermanent])
@@ -297,46 +315,6 @@ export function CommunityGroups() {
     fetchData()
   }, [])
 
-  // Reopen the drawer automatically if we return from the map flow
-  useEffect(() => {
-    const maybeReopen = () => {
-      try {
-        const flag = sessionStorage.getItem("cg_reopen_sheet")
-        if (flag === "1") {
-          // Clear the flag immediately to prevent automatic reopening on subsequent visits
-          sessionStorage.removeItem("cg_reopen_sheet")
-          
-          setDrawerOpen(true)
-          
-          // Also restore edit state if it was persisted
-          const snapshot = sessionStorage.getItem("cg_form_snapshot")
-          if (snapshot) {
-            try {
-              const snap = JSON.parse(snapshot)
-              if (snap?.isEditing && snap?.editData) {
-                setEditingGroup(snap.editData?.communityId ? {
-                  id: snap.editData.communityId,
-                  name: snap.editData.name || "",
-                  status: "OFFLINE" as const,
-                  focalPerson: snap.editData.focalPerson?.name || "",
-                  contactNumber: snap.editData.focalPerson?.contactNumber || "",
-                  address: snap.editData.address || snap.editData.focalPerson?.houseAddress || "",
-                  registeredAt: new Date().toLocaleDateString(),
-                } : null)
-                setEditData(snap.editData)
-              }
-            } catch {
-              // Ignore malformed data
-            }
-          }
-        }
-      } catch {}
-    }
-    
-    // Only run on initial mount, not on focus events
-    maybeReopen()
-  }, [])
-
   return (
     <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col h-[calc(100vh-73px)]">
       <div className="w-full max-w-9xl mx-auto flex-1 flex flex-col min-h-0">
@@ -364,6 +342,7 @@ export function CommunityGroups() {
                 Archived
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{archivedGroups.length}</span>
               </button>
+              {/*
               <button
                 onClick={() => setActiveTab("awaiting")}
                 className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
@@ -375,6 +354,7 @@ export function CommunityGroups() {
                 Awaiting Approval
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{awaitingGroups.length}</span>
               </button>
+              */}
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -428,44 +408,46 @@ export function CommunityGroups() {
                   // Clear edit state when closing
                   setEditingGroup(null)
                   setEditData(undefined)
-                  
-                  // Clear any sessionStorage flags that might cause the drawer to reopen
-                  try {
-                    sessionStorage.removeItem("cg_reopen_sheet")
-                    sessionStorage.removeItem("cg_form_snapshot")
-                  } catch {}
                 }
               }}
               editData={editData}
               isEditing={!!editingGroup}
-              onSave={async () => {
-                if (editingGroup) {
-                  // TODO: Implement edit functionality when backend supports it
-                  console.log('Edit functionality not yet implemented')
+              onSave={async (_infoData, saveInfo) => {
+                try {
+                  // Refresh the data from backend after create or update
+                  const [activeData, archivedData] = await Promise.all([
+                    getNeighborhoods(),
+                    getArchivedNeighborhoods()
+                  ])
+                  
+                  const transformedActive = activeData.map(transformNeighborhoodToCommunityGroup)
+                  const transformedArchived = archivedData.map(transformNeighborhoodToCommunityGroup)
+                  
+                  setActiveGroups(transformedActive)
+                  setArchivedGroups(transformedArchived)
                   
                   // Clear edit state
                   setEditingGroup(null)
                   setEditData(undefined)
-                } else {
-                  // After successful creation, refresh the data from backend
-                  try {
-                    const [activeData, archivedData] = await Promise.all([
-                      getNeighborhoods(),
-                      getArchivedNeighborhoods()
-                    ])
-                    
-                    const transformedActive = activeData.map(transformNeighborhoodToCommunityGroup)
-                    const transformedArchived = archivedData.map(transformNeighborhoodToCommunityGroup)
-                    
-                    setActiveGroups(transformedActive)
-                    setArchivedGroups(transformedArchived)
-                    
-                    // Show the newly created item in active tab
-                    setActiveTab("active")
-                    
-                  } catch (err) {
-                    console.error('Failed to refresh data after creation:', err)
+                  
+                  // Show the newly created/updated item in active tab
+                  setActiveTab("active")
+                  
+                  // Show appropriate success alert
+                  if (saveInfo?.groupName) {
+                    if (editingGroup) {
+                      alertsRef.current?.showUpdateSuccess(saveInfo.groupName)
+                    } else {
+                      alertsRef.current?.showCreateSuccess(
+                        saveInfo.groupName,
+                        saveInfo.generatedPassword
+                      )
+                    }
                   }
+                  
+                } catch (err) {
+                  console.error('Failed to refresh data:', err)
+                  alertsRef.current?.showError('Failed to refresh data')
                 }
               }}
             />
@@ -581,6 +563,9 @@ export function CommunityGroups() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Alerts */}
+      <CommunityGroupAlerts ref={alertsRef} />
     </div>
   )
 }

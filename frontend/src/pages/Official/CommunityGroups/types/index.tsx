@@ -76,7 +76,7 @@ export interface CommunityGroupDetails {
 export interface CommunityGroupDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave?: (infoData: CommunityGroupDetails) => void
+  onSave?: (infoData: CommunityGroupDetails, saveInfo?: { generatedPassword?: string, groupName: string }) => void
   editData?: CommunityGroupDetails // Data to pre-fill when editing
   isEditing?: boolean // Flag to indicate edit mode
 }

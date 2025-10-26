@@ -6,13 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Map } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { createCommunityGroup, getAvailableTerminals, type Terminal } from "../api/communityGroupApi"
-import { useFormStore } from "../hooks/useFormStore"
-import { useLocationPickerResults } from "../hooks/useLocationPickerResults"
+import { createCommunityGroup, getAllTerminals, getAvailableTerminals, updateNeighborhood, type Terminal } from "../api/communityGroupApi"
 import type { CommunityGroupDrawerProps } from "../types"
+import type { CommunityFormData } from "../types/forms"
 import { convertFormToInfoData } from "../utils/formHelpers"
 import { CloseCreateDialog } from "./CloseCreateDialog"
+import { MapboxLocationPickerModal } from "./MapboxLocationPickerModal"
 import { PhotoUploadArea } from "./PhotoUploadArea"
 
 // Validation utility functions
@@ -35,32 +34,82 @@ const formatPhoneNumber = (phone: string): string => {
   return cleanPhone.slice(0, 11)
 }
 
+const sanitizeName = (name: string): string => {
+  // Remove any numbers from the name, keep only letters, spaces, and common name characters
+  return name.replace(/[0-9]/g, '')
+}
+
+// Create initial empty form data
+const createEmptyFormData = (): CommunityFormData => ({
+  assignedTerminal: "",
+  communityGroupName: "",
+  totalIndividuals: "",
+  totalFamilies: "",
+  totalKids: 0,
+  totalSeniorCitizen: 0,
+  totalPregnantWomen: 0,
+  totalPWDs: 0,
+  floodwaterDuration: "",
+  floodHazards: [],
+  notableInfo: "",
+  focalPersonPhoto: null,
+  focalPersonFirstName: "",
+  focalPersonLastName: "",
+  focalPersonName: "",
+  focalPersonContact: "",
+  focalPersonEmail: "",
+  focalPersonAddress: "",
+  focalPersonCoordinates: "",
+  altFocalPersonPhoto: null,
+  altFocalPersonFirstName: "",
+  altFocalPersonLastName: "",
+  altFocalPersonName: "",
+  altFocalPersonContact: "",
+  altFocalPersonEmail: "",
+  boundaryGeoJSON: "",
+})
+
 export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isEditing }: CommunityGroupDrawerProps) {
-  const navigate = useNavigate()
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [terminals, setTerminals] = useState<Terminal[]>([])
   const [loadingTerminals, setLoadingTerminals] = useState(false)
+  const [showLocationPicker, setShowLocationPicker] = useState(false)
   
-  // Use global form store instead of local state
-  const {
-    formData,
-    photoUrls,
-    notableInfoInputs,
-    isDirty,
-    updateFormData,
-    setFormData,
-    setNotableInfoInputs,
-    setIsDirty,
-    setIsEditing,
-    setEditData,
-    resetForm,
-    handleFileUpload,
-  } = useFormStore()
-
-  // Handle location picker results
-  useLocationPickerResults()
+  // Use ONLY local state - like Terminal modal (simple and no infinite loops)
+  const [formData, setFormData] = useState<CommunityFormData>(createEmptyFormData())
+  const [photoUrls, setPhotoUrls] = useState<{ focalPersonPhoto: string | null; altFocalPersonPhoto: string | null }>({ 
+    focalPersonPhoto: null, 
+    altFocalPersonPhoto: null 
+  })
+  const [isDirty, setIsDirty] = useState(false)
+  
+  // Simple update function - just like Terminal modal
+  const updateFormData = useCallback((data: Partial<CommunityFormData>) => {
+    setFormData(prev => ({ ...prev, ...data }))
+    setIsDirty(true)
+  }, [])
+  
+  // Simple photo upload handler
+  const handleFileUpload = useCallback((field: "focalPersonPhoto" | "altFocalPersonPhoto", file: File | null) => {
+    setFormData(prev => ({ ...prev, [field]: file }))
+    setIsDirty(true)
+    
+    // Update photo URLs for display
+    if (file) {
+      const url = URL.createObjectURL(file)
+      setPhotoUrls(prev => ({ ...prev, [field]: url }))
+    } else {
+      // Clean up existing URL
+      setPhotoUrls(prev => {
+        if (prev[field]) {
+          URL.revokeObjectURL(prev[field]!)
+        }
+        return { ...prev, [field]: null }
+      })
+    }
+  }, [])
 
   // Form validation
   const isFormValid = useMemo(() => {
@@ -125,74 +174,151 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
     setErrors(newErrors)
   }, [errors])
 
-  // Fetch available terminals when sheet opens
+  // Fetch terminals when sheet opens
   useEffect(() => {
     if (open) {
       setLoadingTerminals(true)
-      getAvailableTerminals()
-        .then(setTerminals)
+      // When editing, fetch all terminals to include the currently assigned one
+      // When creating, fetch only available terminals
+      const fetchTerminals = isEditing ? getAllTerminals() : getAvailableTerminals()
+      
+      fetchTerminals
+        .then((terminalList) => {
+          // When editing, filter to show available terminals + the currently assigned terminal
+          if (isEditing && editData?.terminalId) {
+            const availableOrAssigned = terminalList.filter(
+              t => t.availability === "Available" || t.id === editData.terminalId
+            )
+            setTerminals(availableOrAssigned)
+          } else {
+            setTerminals(terminalList)
+          }
+        })
         .catch((error) => {
           console.error('Failed to fetch terminals:', error)
           setErrors(prev => ({ ...prev, general: 'Failed to load terminals' }))
         })
         .finally(() => setLoadingTerminals(false))
     }
-  }, [open])
+  }, [open, isEditing, editData?.terminalId])
 
-  // Debug: Log form data changes for location fields
+  // Pre-fill form when editing - only run once when opening in edit mode
   useEffect(() => {
-    console.log("🔍 Form data update - Address:", formData.focalPersonAddress, "Coordinates:", formData.focalPersonCoordinates)
-  }, [formData.focalPersonAddress, formData.focalPersonCoordinates])
-
-  // Pre-fill form when editing
-  useEffect(() => {
-    if (open && isEditing && editData) {
-      console.log("📝 Pre-filling edit data")
-      setFormData({
+    if (!open) return
+    
+    if (isEditing && editData) {
+      // Parse name into first and last name
+      const focalPersonName = editData.focalPerson?.name || ""
+      const nameParts = focalPersonName.split(" ")
+      const firstName = nameParts[0] || ""
+      const lastName = nameParts.slice(1).join(" ") || ""
+      
+      const altFocalPersonName = editData.alternativeFocalPerson?.altName || ""
+      const altNameParts = altFocalPersonName.split(" ")
+      const altFirstName = altNameParts[0] || ""
+      const altLastName = altNameParts.slice(1).join(" ") || ""
+      
+      // Convert numeric values to range strings that match the select options
+      const mapToIndividualsRange = (num: number): string => {
+        if (num <= 10) return "5-10"
+        if (num <= 15) return "10-15"
+        return "15-20"
+      }
+      
+      const mapToFamiliesRange = (num: number): string => {
+        if (num <= 10) return "5-10"
+        if (num <= 15) return "10-15"
+        return "15-20"
+      }
+      
+      const mapToFloodDuration = (hours: number): string => {
+        if (hours < 1) return "< 1 hr"
+        if (hours <= 3) return "1-3 hrs"
+        if (hours <= 6) return "3-6 hrs"
+        if (hours <= 12) return "6-12 hrs"
+        return "> 12 hrs"
+      }
+      
+      // Load photo URLs if available - fetch and convert to blob URLs
+      const token = localStorage.getItem('resqwave_token')
+      const fetchPhoto = async (url?: string) => {
+        if (!url) return undefined
+        try {
+          if (!token) return url
+          const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+          if (!resp.ok) return url
+          const blob = await resp.blob()
+          return URL.createObjectURL(blob)
+        } catch {
+          return url
+        }
+      }
+      
+      // Fetch photos and set them
+      Promise.all([
+        fetchPhoto(editData.focalPerson?.photo),
+        fetchPhoto(editData.alternativeFocalPerson?.altPhoto)
+      ]).then(([mainPhoto, altPhoto]) => {
+        if (mainPhoto) {
+          setPhotoUrls(prev => ({ ...prev, focalPersonPhoto: mainPhoto }))
+        }
+        if (altPhoto) {
+          setPhotoUrls(prev => ({ ...prev, altFocalPersonPhoto: altPhoto }))
+        }
+      })
+      
+      const newFormData: CommunityFormData = {
         assignedTerminal: editData.terminalId || "",
-        communityGroupName: "",
-        totalIndividuals: editData.individuals || "",
-        totalFamilies: editData.families || "",
-        totalKids: editData.kids || 0,
-        totalSeniorCitizen: editData.seniors || 0,
-        totalPregnantWomen: editData.pregnantWomen || 0,
-        totalPWDs: editData.pwds || 0,
-        floodwaterDuration: "",
-        floodHazards: [],
-        notableInfo: "",
+        communityGroupName: editData.name || "",
+        totalIndividuals: mapToIndividualsRange(editData.individuals || 0),
+        totalFamilies: mapToFamiliesRange(editData.families || 0),
+        totalKids: 0,
+        totalSeniorCitizen: 0,
+        totalPregnantWomen: 0,
+        totalPWDs: 0,
+        floodwaterDuration: mapToFloodDuration(editData.floodSubsideHours || 0),
+        floodHazards: Array.isArray(editData.hazards) ? editData.hazards : [],
+        notableInfo: Array.isArray(editData.notableInfo) ? editData.notableInfo.join(", ") : (editData.notableInfo || ""),
         focalPersonPhoto: null,
-        focalPersonFirstName: "",
-        focalPersonLastName: "",
-        focalPersonName: editData.focalPerson?.name || "",
+        focalPersonFirstName: firstName,
+        focalPersonLastName: lastName,
+        focalPersonName: focalPersonName,
         focalPersonContact: editData.focalPerson?.contactNumber || "",
         focalPersonEmail: editData.focalPerson?.email || "",
         focalPersonAddress: editData.focalPerson?.houseAddress || editData.address || "",
-        focalPersonCoordinates: editData.focalPerson?.coordinates || "",
+        focalPersonCoordinates: editData.focalPerson?.coordinates || editData.coordinates || "",
         altFocalPersonPhoto: null,
-        altFocalPersonFirstName: "",
-        altFocalPersonLastName: "",
-        altFocalPersonName: editData.alternativeFocalPerson?.altName || "",
+        altFocalPersonFirstName: altFirstName,
+        altFocalPersonLastName: altLastName,
+        altFocalPersonName: altFocalPersonName,
         altFocalPersonContact: editData.alternativeFocalPerson?.altContactNumber || "",
         altFocalPersonEmail: editData.alternativeFocalPerson?.altEmail || "",
-        boundaryGeoJSON: editData.boundary ? JSON.stringify(editData.boundary) : "",
-      })
-      setNotableInfoInputs(editData.notableInfo?.length > 0 ? editData.notableInfo : [""])
-      setIsDirty(false)
-      setIsEditing(true)
-      setEditData(editData)
-    } else if (open && !isEditing) {
-      // Reset form for new creation if the form is not dirty
-      if (!isDirty) {
-        resetForm()
-        setErrors({})
+        boundaryGeoJSON: "",
       }
+      
+      setFormData(newFormData)
+      setIsDirty(false)
+    } else if (!isEditing) {
+      // Reset form for new creation
+      setFormData(createEmptyFormData())
+      setPhotoUrls({ focalPersonPhoto: null, altFocalPersonPhoto: null })
+      setIsDirty(false)
+      setErrors({})
     }
-  }, [open, isEditing, editData, setFormData, setNotableInfoInputs, setIsDirty, setIsEditing, setEditData, resetForm, isDirty])
+    // Only run when sheet opens or editData changes, NOT when isDirty changes
+  }, [open, isEditing, editData])
 
   const openAddressPicker = useCallback(() => {
-    console.log("📍 Opening address picker, form data will persist...")
-    navigate("/community-groups/setting-location")
-  }, [navigate])
+    setShowLocationPicker(true)
+  }, [])
+
+  // Handle location select from modal
+  const handleLocationSelect = useCallback((address: string, coordinates: string) => {
+    updateFormData({
+      focalPersonAddress: address,
+      focalPersonCoordinates: coordinates
+    })
+  }, [updateFormData])
 
   // Centralized handler when an attempt is made to close the sheet
   const requestClose = useCallback(() => {
@@ -217,7 +343,6 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
 
   const handleSave = async () => {
     if (!isFormValid) {
-      console.log("Form is invalid, cannot save")
       return
     }
     
@@ -225,7 +350,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
     setErrors({}) // Clear previous errors
     
     try {
-      console.log("Saving community group:", formData, "Notable info:", notableInfoInputs)
+      const groupName = `${formData.focalPersonFirstName} ${formData.focalPersonLastName}`.trim()
       
       // Prepare photos for upload
       const photos = {
@@ -233,36 +358,51 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
         altPhoto: formData.altFocalPersonPhoto || undefined,
       }
       
-      // Call backend API to create focal person and neighborhood
-      const response = await createCommunityGroup(formData, photos)
-      console.log("Backend response:", response)
-      
-      // Convert to frontend format for local state update
-      const infoData = convertFormToInfoData(formData, [formData.notableInfo].filter(Boolean))
-      
-      // Update the infoData with backend response
-      const updatedInfoData = {
-        ...infoData,
-        communityId: response.newFocalID, // Use focal person ID as community ID
-        focalPerson: {
-          ...infoData.focalPerson,
-          id: response.newFocalID,
-        },
-        neighborhoodId: response.newNeighborhoodID,
+      if (isEditing && editData) {
+        // UPDATE existing neighborhood
+        await updateNeighborhood(editData.communityId, formData, photos)
+        
+        // Convert to frontend format for local state update
+        const infoData = convertFormToInfoData(formData, [formData.notableInfo].filter(Boolean))
+        
+        // Pass the updated data
+        onSave?.(infoData, {
+          groupName
+        })
+      } else {
+        // CREATE new neighborhood
+        const response = await createCommunityGroup(formData, photos)
+        
+        // Convert to frontend format for local state update
+        const infoData = convertFormToInfoData(formData, [formData.notableInfo].filter(Boolean))
+        
+        // Update the infoData with backend response
+        const updatedInfoData = {
+          ...infoData,
+          communityId: response.newFocalID, // Use focal person ID as community ID
+          focalPerson: {
+            ...infoData.focalPerson,
+            id: response.newFocalID,
+          },
+          neighborhoodId: response.newNeighborhoodID,
+        }
+        
+        // Pass the response data including generated password and name
+        onSave?.(updatedInfoData, {
+          generatedPassword: response.generatedPassword,
+          groupName
+        })
       }
       
-      onSave?.(updatedInfoData)
-      resetForm()
+      // Reset form
+      setFormData(createEmptyFormData())
+      setPhotoUrls({ focalPersonPhoto: null, altFocalPersonPhoto: null })
+      setIsDirty(false)
       setErrors({})
       onOpenChange(false)
-      
-      // Show success message if a generated password was created
-      if (response.generatedPassword) {
-        alert(`Community group created successfully!\nGenerated password: ${response.generatedPassword}`)
-      }
     } catch (error) {
-      console.error("Error creating community group:", error)
-      setErrors({ general: error instanceof Error ? error.message : "Failed to create community group" })
+      console.error(`Error ${isEditing ? 'updating' : 'creating'} community group:`, error)
+      setErrors({ general: error instanceof Error ? error.message : `Failed to ${isEditing ? 'update' : 'create'} community group` })
     } finally {
       setIsSubmitting(false)
     }
@@ -270,7 +410,11 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
 
   const handleDiscard = () => {
     setShowCloseConfirm(false)
-    resetForm()
+    
+    // Reset form
+    setFormData(createEmptyFormData())
+    setPhotoUrls({ focalPersonPhoto: null, altFocalPersonPhoto: null })
+    setIsDirty(false)
     setErrors({})
     onOpenChange(false)
   }
@@ -586,7 +730,10 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
               <Label className="text-white text-sm">First Name</Label>
               <Input
                 value={formData.focalPersonFirstName || ""}
-                onChange={(e) => updateFormData({ focalPersonFirstName: e.target.value })}
+                onChange={(e) => {
+                  const sanitized = sanitizeName(e.target.value)
+                  updateFormData({ focalPersonFirstName: sanitized })
+                }}
                 className="bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
               />
             </div>
@@ -594,7 +741,10 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
               <Label className="text-white text-sm">Last Name</Label>
               <Input
                 value={formData.focalPersonLastName || ""}
-                onChange={(e) => updateFormData({ focalPersonLastName: e.target.value })}
+                onChange={(e) => {
+                  const sanitized = sanitizeName(e.target.value)
+                  updateFormData({ focalPersonLastName: sanitized })
+                }}
                 className="bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
               />
             </div>
@@ -657,7 +807,10 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
               <Label className="text-white text-sm">First Name</Label>
               <Input
                 value={formData.altFocalPersonFirstName || ""}
-                onChange={(e) => updateFormData({ altFocalPersonFirstName: e.target.value })}
+                onChange={(e) => {
+                  const sanitized = sanitizeName(e.target.value)
+                  updateFormData({ altFocalPersonFirstName: sanitized })
+                }}
                 className="bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
               />
             </div>
@@ -665,7 +818,10 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
               <Label className="text-white text-sm">Last Name</Label>
               <Input
                 value={formData.altFocalPersonLastName || ""}
-                onChange={(e) => updateFormData({ altFocalPersonLastName: e.target.value })}
+                onChange={(e) => {
+                  const sanitized = sanitizeName(e.target.value)
+                  updateFormData({ altFocalPersonLastName: sanitized })
+                }}
                 className="bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600"
               />
             </div>
@@ -739,6 +895,14 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
           onOpenChange={setShowCloseConfirm}
           onCancel={() => setShowCloseConfirm(false)}
           onDiscard={handleDiscard}
+        />
+
+        {/* Location Picker Modal */}
+        <MapboxLocationPickerModal
+          open={showLocationPicker}
+          onOpenChange={setShowLocationPicker}
+          onLocationSelect={handleLocationSelect}
+          initialCoordinates={formData.focalPersonCoordinates}
         />
       </SheetContent>
     </Sheet>

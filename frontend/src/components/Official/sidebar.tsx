@@ -39,12 +39,29 @@ const adminOnlyItems = [
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  
+  // Safely get auth context - may be null if outside provider
+  let isAdminUser = false;
+  try {
+    const { isAdmin } = useAuth();
+    isAdminUser = isAdmin();
+  } catch (error) {
+    // useAuth will throw if outside provider, fallback to checking localStorage
+    const storedUser = localStorage.getItem('resqwave_user');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        isAdminUser = user.role === 'admin';
+      } catch {
+        isAdminUser = false;
+      }
+    }
+  }
 
   // Combine navigation items based on user role
   const navigationItems = [
     ...baseNavigationItems,
-    ...(isAdmin() ? adminOnlyItems : [])
+    ...(isAdminUser ? adminOnlyItems : [])
   ];
 
   return (

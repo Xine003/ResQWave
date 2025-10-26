@@ -137,6 +137,14 @@ export function Terminals() {
   }, [fetchTerminalDetails])
 
   const handleArchive = useCallback(async (terminal: Terminal) => {
+    // Check if terminal is occupied before archiving
+    if (terminal.availability === "Occupied") {
+      alertsRef.current?.showError(
+        `Cannot archive terminal "${terminal.name}" because it is currently occupied. Please unassign it from the neighborhood first.`
+      )
+      return
+    }
+
     try {
       // Call the backend API to archive the terminal
       await archiveTerminalById(terminal.id)
@@ -144,10 +152,12 @@ export function Terminals() {
       // Switch to archive tab to show the archived terminal
       setActiveTab("archived")
       
-      console.log(`Terminal ${terminal.name} archived successfully`)
+      // Show success alert
+      alertsRef.current?.showArchiveSuccess(terminal.name)
     } catch (error) {
       console.error('Failed to archive terminal:', error)
-      // Handle error (could show toast notification)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to archive terminal'
+      alertsRef.current?.showError(errorMessage)
     }
   }, [archiveTerminalById])
 
@@ -163,24 +173,33 @@ export function Terminals() {
     }
   }, [unarchiveTerminalById])
 
-  const handleDeletePermanent = useCallback(async (terminal: Terminal) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete terminal "${terminal.name}"?\n\nThis action cannot be undone and will remove all data associated with this terminal.`
-    )
-    
-    if (!confirmed) return
-    
-    try {
-      // Permanently delete the terminal from the database
-      await permanentDeleteTerminalById(terminal.id)
-      
-      console.log(`Terminal ${terminal.name} permanently deleted`)
-      alertsRef.current?.showDeleteSuccess(terminal.name)
-    } catch (error) {
-      console.error('Failed to permanently delete terminal:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to permanently delete terminal'
-      alertsRef.current?.showError(errorMessage)
+  const handleDeletePermanent = useCallback((terminal: Terminal) => {
+    // Check if terminal is occupied before deleting (safety check)
+    if (terminal.availability === "Occupied") {
+      alertsRef.current?.showError(
+        `Cannot delete terminal "${terminal.name}" because it is currently occupied. Please unassign it from the neighborhood first.`
+      )
+      return
     }
+
+    // Show confirmation dialog using the alert component
+    alertsRef.current?.showDeleteConfirmation(
+      terminal.id,
+      terminal.name,
+      async () => {
+        try {
+          // Permanently delete the terminal from the database
+          await permanentDeleteTerminalById(terminal.id)
+          
+          console.log(`Terminal ${terminal.name} permanently deleted`)
+          alertsRef.current?.showDeleteSuccess(terminal.name)
+        } catch (error) {
+          console.error('Failed to permanently delete terminal:', error)
+          const errorMessage = error instanceof Error ? error.message : 'Failed to permanently delete terminal'
+          alertsRef.current?.showError(errorMessage)
+        }
+      }
+    )
   }, [permanentDeleteTerminalById])
 
   const handleEdit = useCallback((terminal: Terminal) => {

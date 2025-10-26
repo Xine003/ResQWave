@@ -1,4 +1,5 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import { UserCheck, UserPlus, UserX } from "lucide-react"
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
 
@@ -9,6 +10,7 @@ export type DispatcherAlertsHandle = {
 	showArchiveSuccess: (dispatcherName: string) => void
 	showRestoreSuccess: (dispatcherName: string) => void
 	showError: (message: string) => void
+	showDeleteConfirmation: (dispatcherId: string, dispatcherName: string, onConfirm: () => void) => void
 	hideAll: () => void
 }
 
@@ -44,6 +46,11 @@ export default forwardRef<DispatcherAlertsHandle, {}>(function DispatcherAlerts(
 	const [showError, setShowError] = useState(false)
 	const [errorMessage, setErrorMessage] = useState("")
 	const errorTimer = useRef<number | null>(null)
+
+	// Delete confirmation dialog (center)
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+	const [deleteConfirmId, setDeleteConfirmId] = useState("")
+	const [deleteConfirmCallback, setDeleteConfirmCallback] = useState<(() => void) | null>(null)
 
 	// Clear timers on unmount
 	useEffect(() => {
@@ -152,6 +159,11 @@ export default forwardRef<DispatcherAlertsHandle, {}>(function DispatcherAlerts(
 				errorTimer.current = null
 			}, 5000)
 		},
+		showDeleteConfirmation: (dispatcherId: string, _dispatcherName: string, onConfirm: () => void) => {
+			setDeleteConfirmId(dispatcherId)
+			setDeleteConfirmCallback(() => onConfirm)
+			setShowDeleteConfirm(true)
+		},
 		hideAll: hideAllAlerts
 	}), [])
 
@@ -235,6 +247,54 @@ export default forwardRef<DispatcherAlertsHandle, {}>(function DispatcherAlerts(
 					</AlertDescription>
 				</Alert>
 			</div>
+
+			{/* Delete Confirmation Dialog - Center */}
+			{showDeleteConfirm && (
+				<div className="fixed inset-0 z-[100001] flex items-center justify-center bg-black/50">
+					<div className="bg-[#171717] border border-[#2a2a2a] rounded-[5px] p-6 max-w-md w-full mx-4 shadow-xl">
+						<div className="flex items-start gap-4">
+							<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-red-600/25 flex-shrink-0">
+								<UserX className="size-6 text-[#ef4444]" />
+							</div>
+							<div className="flex-1">
+								<h3 className="text-lg font-semibold text-white mb-2">Delete Permanently</h3>
+								<p className="text-[14px] text-[#a1a1a1] mb-1">
+									Are you sure you want to permanently delete dispatcher <span className="text-white font-semibold">{deleteConfirmId}</span>?
+								</p>
+								<p className="text-[13px] text-[#a1a1a1]">
+									This action cannot be undone.
+								</p>
+							</div>
+						</div>
+						<div className="flex justify-end gap-3 mt-6">
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => {
+									setShowDeleteConfirm(false)
+									setDeleteConfirmCallback(null)
+								}}
+								className="bg-transparent border-[#404040] text-white hover:bg-[#262626]"
+							>
+								Cancel
+							</Button>
+							<Button
+								type="button"
+								onClick={() => {
+									if (deleteConfirmCallback) {
+										deleteConfirmCallback()
+									}
+									setShowDeleteConfirm(false)
+									setDeleteConfirmCallback(null)
+								}}
+								className="bg-[#ef4444] hover:bg-[#dc2626] text-white"
+							>
+								Delete
+							</Button>
+						</div>
+					</div>
+				</div>
+			)}
 		</>
 	)
 })
