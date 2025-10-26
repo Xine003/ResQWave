@@ -1,20 +1,19 @@
 import { OfficialLayout } from '@/components/Official/officialLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { AuthProvider } from '@/contexts/AuthContext';
 import React from 'react';
-import { createBrowserRouter, Outlet, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { Landing, LoginFocal, RegisterAccount } from '../pages/Focal';
-import AccountReview from '../pages/Focal/LoginFocal/pages/RegisterAccount/AccountReview';
-import InfoDetailsRegister from '../pages/Focal/LoginFocal/pages/RegisterAccount/InfoDetailsRegister';
 import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount';
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/SignAccount/ForgotPassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
 import {
-    CommunityGroups,
-    LoginOfficial,
-    Reports,
-    Tabular,
-    VerificationOfficial,
-    Visualization
+  CommunityGroups,
+  LoginOfficial,
+  Reports,
+  Tabular,
+  VerificationOfficial,
+  Visualization
 } from '../pages/Official';
 // TypeScript declaration for window property
 declare global {
@@ -39,11 +38,23 @@ const FocalProtectedRoute: React.FC = () => {
   return <Outlet />;
 };
 
+// Root layout with AuthProvider
+const RootLayout: React.FC = () => {
+  return (
+    <AuthProvider>
+      <Outlet />
+    </AuthProvider>
+  );
+};
+
 export const router = createBrowserRouter([
   {
-    path: '/',
-    element: <Landing />,
-  },
+    element: <RootLayout />,
+    children: [
+      {
+        path: '/',
+        element: <Landing />,
+      },
   // Public login route for focal users
   {
     path: '/login-focal',
@@ -180,4 +191,6 @@ export const router = createBrowserRouter([
     path: 'community-groups/setting-location',
     element: <SettingLocationPage />
   },
+    ]
+  }
 ]);

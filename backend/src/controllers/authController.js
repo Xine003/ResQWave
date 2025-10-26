@@ -279,6 +279,89 @@ const adminDispatcherVerify = async (req, res) => {
   }
 };
 
+// Get Current User (Token Validation)
+const getCurrentUser = async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({ message: "No Token Provided" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        if (!token) {
+            return res.status(401).json({ message: "Invalid Token Format" });
+        }
+
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (err) {
+            return res.status(401).json({ message: "Invalid or Expired Token" });
+        }
+
+        // Verify session is still active (if sessionID exists)
+        if (decoded.sessionID) {
+            const session = await loginVerificationRepo.findOne({
+                where: { sessionID: decoded.sessionID }
+            });
+            
+            if (!session) {
+                return res.status(401).json({ message: "Session Expired" });
+            }
+
+            // Check if session has expired
+            if (session.expiry && new Date() > new Date(session.expiry)) {
+                await loginVerificationRepo.delete({ sessionID: decoded.sessionID });
+                return res.status(401).json({ message: "Session Expired" });
+            }
+        }
+
+        // Get user data based on role
+        let userData = null;
+        if (decoded.role === "admin") {
+            const admin = await adminRepo.findOne({ where: { id: decoded.id } });
+            if (!admin) {
+                return res.status(404).json({ message: "Admin Not Found" });
+            }
+            userData = {
+                id: admin.id,
+                name: admin.name,
+                email: admin.email,
+                role: "admin"
+            };
+        } else if (decoded.role === "dispatcher") {
+            const dispatcher = await dispatcherRepo.findOne({ where: { id: decoded.id } });
+            if (!dispatcher) {
+                return res.status(404).json({ message: "Dispatcher Not Found" });
+            }
+            userData = {
+                id: dispatcher.id,
+                name: dispatcher.name,
+                email: dispatcher.email,
+                role: "dispatcher"
+            };
+        } else if (decoded.role === "focalPerson") {
+            const focal = await focalRepo.findOne({ where: { id: decoded.id } });
+            if (!focal) {
+                return res.status(404).json({ message: "Focal Person Not Found" });
+            }
+            userData = {
+                id: focal.id,
+                name: focal.name,
+                email: focal.email,
+                role: "focalPerson"
+            };
+        } else {
+            return res.status(400).json({ message: "Invalid User Role" });
+        }
+
+        res.json({ user: userData });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
 // Logout
 const logout = async (req, res) => {
     try {
@@ -305,4 +388,5 @@ module.exports = {
     logout,
     adminDispatcherLogin,
     adminDispatcherVerify,
+    getCurrentUser,
 };

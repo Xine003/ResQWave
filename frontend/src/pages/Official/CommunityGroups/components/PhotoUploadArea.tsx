@@ -93,7 +93,7 @@ export const PhotoUploadArea = ({
       />
 
       {/* Clickable area only when there is no photo (avoids nested interactive elements) */}
-      {!photo ? (
+      {!photo && !photoUrls[photoUrlKey] ? (
         <div
           role="button"
           tabIndex={0}
