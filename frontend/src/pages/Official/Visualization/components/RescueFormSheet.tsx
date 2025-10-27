@@ -65,8 +65,6 @@ export default function RescueFormSheet({ isOpen, onClose, focalPerson = "Gwynet
     };
 
     const handleSubmit = () => {
-        // Show preview instead of closing
-        console.log("Confirm button clicked, showing preview");
         setShowPreview(true);
     };
 

@@ -263,65 +263,81 @@ const getUnassignedAlerts = async (req, res) => {
 };
 
 // Get Unassigned Map Alerts
-// Map View 
+// Map View - Display ALL occupied terminals (terminals with neighborhood/focal person)
 const getUnassignedMapAlerts = async (req, res) => {
   try {
-    const cacheKey = "mapAlerts:unassigned";
+    const cacheKey = "mapAlerts:allOccupied";
     const cached = await getCache(cacheKey);
-    if (cached) return res.json(cached);
+    if (cached) {
+      console.log('[BACKEND] Returning cached occupied terminals:', cached.length);
+      return res.json(cached);
+    }
 
-    const alerts = await alertRepo
-      .createQueryBuilder("alert")
-      .leftJoin("Terminal", "t", "t.id = alert.terminalID")
-      .leftJoin("Neighborhood", "n", "n.terminalID = alert.terminalID")
+    console.log('[BACKEND] Fetching all occupied terminals from database...');
+
+    // Fetch all terminals that have a neighborhood/focal person (occupied terminals)
+    // Join with the latest alert for each terminal to get alert data
+    const latestAlertSQ = alertRepo
+      .createQueryBuilder("a")
+      .select("a.terminalID", "terminalID")
+      .addSelect("MAX(a.dateTimeSent)", "lastTime")
+      .groupBy("a.terminalID");
+
+    const terminals = await terminalRepo
+      .createQueryBuilder("t")
+      .leftJoin("Neighborhood", "n", "n.terminalID = t.id")
       .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+      .leftJoin(
+        "(" + latestAlertSQ.getQuery() + ")",
+        "latestAlert",
+        "latestAlert.terminalID = t.id"
+      )
+      .leftJoin("Alert", "alert", "alert.terminalID = t.id AND alert.dateTimeSent = latestAlert.lastTime")
+      .setParameters(latestAlertSQ.getParameters())
       .select([
+        // Terminal data
+        "t.id AS terminalId",
         "t.name AS terminalName",
-        "alert.alertType AS alertType",
-        "alert.dateTimeSent AS timeSent",
-        "fp.address AS address",
-        "alert.status AS status",
+        "t.status AS terminalStatus",
+        // Alert data (from latest alert, or null if no alerts exist)
+        "alert.id AS alertId",
+        "alert.alertType AS alertType", // Can be NULL, 'Critical', or 'User-Initiated'
+        "COALESCE(alert.dateTimeSent, t.dateCreated) AS timeSent",
+        "alert.status AS alertStatus",
+        // Focal Person data
+        "fp.id AS focalPersonId",
+        "fp.firstName AS focalFirstName",
+        "fp.lastName AS focalLastName",
+        "fp.address AS focalAddress",
+        "fp.contactNumber AS focalContactNumber",
       ])
-      .where("alert.status = :status", { status: "Unassigned" })
-      .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "ASC")
-      .addOrderBy("alert.dateTimeSent", "DESC")
+      .where("n.focalPersonID IS NOT NULL") // Only occupied terminals
       .getRawMany();
 
-    await setCache(cacheKey, alerts, 10);
-    res.json(alerts);
+    console.log('[BACKEND] Found occupied terminals:', terminals.length);
+    if (terminals.length > 0) {
+      console.log('[BACKEND] First terminal sample:', {
+        terminalId: terminals[0].terminalId,
+        terminalName: terminals[0].terminalName,
+        terminalStatus: terminals[0].terminalStatus,
+        focalAddress: terminals[0].focalAddress
+      });
+    }
+
+    await setCache(cacheKey, terminals, 10);
+    res.json(terminals);
   } catch (err) {
-    console.error(err);
+    console.error('[BACKEND] Error in getUnassignedMapAlerts:', err);
     res.status(500).json({message: "Server Error"});
   }
 };
 
 // Get Waitlist Map Alerts
-// Map View
+// Map View - Returns empty array since we're showing all terminals in unassigned endpoint
 const getWaitlistedMapAlerts = async (req, res) => {
   try {
-    const cacheKey = "mapAlerts:waitlist";
-    const cached = await getCache(cacheKey);
-    if (cached) return res.json(cached);
-
-    const alerts = await alertRepo
-      .createQueryBuilder("alert")
-      .leftJoin("Terminal", "t", "t.id = alert.terminalID")
-      .leftJoin("Neighborhood", "n", "n.terminalID = alert.terminalID")
-      .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
-      .select([
-        "t.name AS terminalName",
-        "alert.alertType AS alertType",
-        "alert.dateTimeSent AS timeSent",
-        "fp.address AS address",
-        "alert.status AS status",
-      ])
-      .where("alert.status = :status", { status: "Waitlist" })
-      .orderBy(`CASE WHEN alert.alertType = 'Critical' THEN 0 ELSE 1 END`, "DESC")
-      .addOrderBy("alert.dateTimeSent", "DESC")
-      .getRawMany();
-
-    await setCache(cacheKey, alerts, 10);
-    res.json(alerts);
+    // Return empty array since we're now showing all occupied terminals in the unassigned endpoint
+    res.json([]);
   } catch (err) {
     console.error(err);
     res.status(500).json({message: "Server Error"});

@@ -239,7 +239,9 @@ export interface CreateCommunityGroupResponse {
  * Transforms frontend form data to backend API payload format
  */
 export function transformFormDataToPayload(formData: CommunityFormData): CreateCommunityGroupPayload {
-  // Parse coordinates from the string format (lng,lat)
+  // Parse coordinates from the string format
+  // IMPORTANT: Coordinates MUST be in "lng, lat" format (Mapbox standard)
+  // This will be stored as JSON: {"address":"...","coordinates":"lng, lat"}
   const addressData = {
     address: formData.focalPersonAddress,
     coordinates: formData.focalPersonCoordinates

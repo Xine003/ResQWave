@@ -11,6 +11,8 @@ export type Signal = {
         date?: string;
         name?: string;
         alertType?: 'CRITICAL' | 'USER-INITIATED' | 'ONLINE' | 'OFFLINE';
+        contactNumber?: string;
+        timeSent?: string;
     };
     boundary: [number, number][];
     // Include full community group details for more info functionality
