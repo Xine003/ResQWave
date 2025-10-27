@@ -7,7 +7,19 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, isLoading } = useAuth()
+
+  // Show loading state while validating token
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#171717]">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-white border-r-transparent"></div>
+          <p className="mt-4 text-white/60">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   // If not logged in, redirect to login
   if (!user) {

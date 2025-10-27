@@ -1,5 +1,5 @@
-import * as React from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
+import * as React from "react";
 import { Separator } from "./separator";
 
 export const Popover = PopoverPrimitive.Root;
@@ -14,7 +14,7 @@ export const PopoverContent = React.forwardRef<
     React.ElementRef<typeof PopoverPrimitive.Content>,
     React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & PortalProps
 >(function PopoverContent({ className, align = "center", sideOffset = 8, container, zIndex, style, ...props }, ref) {
-    const resolvedZ = zIndex !== undefined ? zIndex : 9999;
+    const resolvedZ = zIndex !== undefined ? zIndex : 100002;
     const mergedStyle = { ...(style as React.CSSProperties | undefined), zIndex: resolvedZ } as React.CSSProperties;
 
     return (

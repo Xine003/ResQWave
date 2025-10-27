@@ -48,6 +48,7 @@ const {
   setCache,
   deleteCache
 } = require("../config/cache");
+const { diffFields, addLogs, toJSONSafe } = require("../utils/logs");
 
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const terminalRepo = AppDataSource.getRepository("Terminal");
@@ -132,7 +133,7 @@ const viewAboutYourNeighborhood = async (req, res) => {
     });
     if (!nb) return res.status(404).json({ message: "Neighborhood Not Found" });
 
-    return res.json({
+    const payload = {
       neighborhoodID: nb.id,
       terminalID: nb.terminalID,
       noOfHouseholds: nb.noOfHouseholds !== undefined && nb.noOfHouseholds !== null ? String(nb.noOfHouseholds) : '',
@@ -144,7 +145,7 @@ const viewAboutYourNeighborhood = async (req, res) => {
         name: [focal.firstName, focal.lastName].filter(Boolean).join(" ").trim() || focal.name || null,
         number: focal.contactNumber || null,
         email: focal.email || null,
-        photo: focal.photo || null, // note: returns blob if selected; consider a separate photo endpoint if large
+        photo: focal.photo || null, 
         alternativeFPFirstName: focal.altFirstName || null,
         alternativeFPLastName: focal.altLastName || null,
         alternativeFPEmail: focal.altEmail || null,
@@ -154,7 +155,9 @@ const viewAboutYourNeighborhood = async (req, res) => {
       address: focal.address ?? null,
       createdDate: nb.createdAt ?? null,
       updatedDate: nb.updatedAt ?? null,
-    });
+    }
+
+    return res.json(payload);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server Error -- VIEW OWN Neighborhood (More)" });
@@ -216,42 +219,60 @@ const getNeighborhoods = async (req, res) => {
     const cached = await getCache(cacheKey);
     if (cached) return res.json(cached);
 
+    // Include focalPersonID for later lookup
     const neighborhoods = await neighborhoodRepo
       .createQueryBuilder("n")
       .select([
         "n.id",
         "n.terminalID",
-        "n.noOfHouseholds",
-        "n.noOfResidents",
-        "n.floodSubsideHours",
-        "n.hazards",
+        "n.focalPersonID",
         "n.createdAt",
       ])
       .where("n.archived = :arch", { arch: false })
       .orderBy("n.createdAt", "DESC")
       .getRawMany();
 
+    // Terminal status lookup
     const terminalIds = Array.from(new Set(neighborhoods.map(x => x.n_terminalID).filter(Boolean)));
-
     const terminals = terminalIds.length
       ? await terminalRepo
-        .createQueryBuilder("t")
-        .select(["t.id", "t.availability"])
-        .where("t.id IN (:...ids)", { ids: terminalIds })
-        .getRawMany()
+          .createQueryBuilder("t")
+          .select(["t.id", "t.status"])
+          .where("t.id IN (:...ids)", { ids: terminalIds })
+          .getRawMany()
       : [];
     const byTerminal = {};
-    terminals.forEach(t => (byTerminal[t.t_id] = t.t_availability));
+    terminals.forEach(t => (byTerminal[t.t_id] = t.t_status));
 
-    const result = neighborhoods.map(n => ({
-      neighborhoodID: n.n_id,
-      terminalStatus: byTerminal[n.n_terminalID] || (n.n_terminalID ? "unknown" : "unlinked"),
-      noOfHouseholds: n.n_noOfHouseholds ?? 0,
-      noOfResidents: n.n_noOfResidents ?? 0,
-      floodSubsideHours: n.n_floodSubsideHours ?? 0,
-      hazards: parseHazards(n.n_hazards),
-      createdDate: n.n_createdAt || null,
-    }));
+    // Focal person lookup (name, contact, address)
+    const focalIds = Array.from(new Set(neighborhoods.map(x => x.n_focalPersonID).filter(Boolean)));
+    const focalRows = focalIds.length
+      ? await focalPersonRepo
+          .createQueryBuilder("f")
+          .select(["f.id", "f.firstName", "f.lastName", "f.contactNumber", "f.address"])
+          .where("f.id IN (:...ids)", { ids: focalIds })
+          .getRawMany()
+      : [];
+    const byFocal = {};
+    focalRows.forEach(f => {
+      byFocal[f.f_id] = {
+        name: [f.f_firstName, f.f_lastName].filter(Boolean).join(" ").trim() || null,
+        contactNumber: f.f_contactNumber || null,
+        address: f.f_address || null,
+      };
+    });
+
+    const result = neighborhoods.map(n => {
+      const focal = byFocal[n.n_focalPersonID] || {};
+      return {
+        neighborhoodID: n.n_id,
+        terminalStatus: byTerminal[n.n_terminalID] || (n.n_terminalID ? "unknown" : "unlinked"),
+        focalPerson: focal.name || null,
+        contactNumber: focal.contactNumber || null,
+        address: focal.address || null,
+        registeredAt: n.n_createdAt || null,
+      };
+    });
 
     await setCache(cacheKey, result, 60);
     return res.json(result);
@@ -272,10 +293,32 @@ const getNeighborhood = async (req, res) => {
     const neighborhood = await neighborhoodRepo.findOne({ where: { id } });
     if (!neighborhood) return res.status(404).json({ message: "Neighborhood Not Found" });
 
-    // present hazards as array on read
+    // Load focal person info (if linked)
+    let focal = null;
+    if (neighborhood.focalPersonID) {
+      focal = await focalPersonRepo.findOne({ where: { id: neighborhood.focalPersonID } });
+    }
+
+    // present hazards as array on read and include focal person details (now with address)
     const safe = {
       ...neighborhood,
       hazards: parseHazards(neighborhood.hazards),
+      focalPerson: focal
+        ? {
+            id: focal.id,
+            firstName: focal.firstName || null,
+            lastName: focal.lastName || null,
+            contactNumber: focal.contactNumber || null,
+            email: focal.email || null,
+            photo: focal.photo || null,
+            altFirstName: focal.altFirstName || null,
+            altLastName: focal.altLastName || null,
+            altContactNumber: focal.altContactNumber || null,
+            altEmail: focal.altEmail || null,
+            alternativeFPImage: focal.alternativeFPImage || null,
+            address: focal.address || null,
+          }
+        : null,
     };
 
     await setCache(cacheKey, safe, 300);
@@ -297,53 +340,133 @@ const updateNeighborhood = async (req, res) => {
       floodSubsideHours,
       hazards,
       otherInformation,
-      altFocal
+      // focal person fields (optional)
+      firstName,
+      lastName,
+      contactNumber,
+      email,
+      // alternative focal person fields (optional)
+      altFirstName,
+      altLastName,
+      altContactNumber,
+      altEmail,
     } = req.body || {};
+
+    const photoFile = req.file || req.files?.photo?.[0];
+    const altPhotoFile = req.files?.alternativeFPImage?.[0] || req.files?.altPhoto?.[0];
 
     const neighborhood = await neighborhoodRepo.findOne({ where: { id } });
     if (!neighborhood) return res.status(404).json({ message: "Neighborhood Not Found" });
     if (neighborhood.archived) return res.status(400).json({ message: "Cannot update archived neighborhood" });
 
-    if (noOfHouseholds != null) neighborhood.noOfHouseholds = noOfHouseholds;
-    if (noOfResidents != null) neighborhood.noOfResidents = noOfResidents;
-    if (floodSubsideHours != null) neighborhood.floodSubsideHours = floodSubsideHours;
-    if (hazards != null) neighborhood.hazards = stringifyHazards(hazards);
-    if (otherInformation != null) neighborhood.otherInformation = otherInformation;
+    // snapshots BEFORE
+    const nbBefore = { ...neighborhood, hazards: neighborhood.hazards };
 
+    // Neighborhood updates
+    if (noOfHouseholds != null && Number(noOfHouseholds) !== Number(neighborhood.noOfHouseholds)) {
+      neighborhood.noOfHouseholds = Number(noOfHouseholds);
+    }
+    if (noOfResidents != null && Number(noOfResidents) !== Number(neighborhood.noOfResidents)) {
+      neighborhood.noOfResidents = Number(noOfResidents);
+    }
+    if (floodSubsideHours != null && Number(floodSubsideHours) !== Number(neighborhood.floodSubsideHours)) {
+      neighborhood.floodSubsideHours = Number(floodSubsideHours);
+    }
+    if (hazards != null) {
+      const incoming = stringifyHazards(hazards);
+      if (incoming !== (neighborhood.hazards ?? null)) {
+        neighborhood.hazards = incoming;
+      }
+    }
+    if (otherInformation != null && String(otherInformation) !== String(neighborhood.otherInformation ?? "")) {
+      neighborhood.otherInformation = otherInformation;
+    }
 
-    // Update alt focal person fields if provided
-    if (altFocal && neighborhood.focalPersonID) {
+    // Focal person updates (if linked)
+    let fpBefore = null;
+    let fpAfter = null;
+    if (neighborhood.focalPersonID) {
       const focal = await focalPersonRepo.findOne({ where: { id: neighborhood.focalPersonID } });
       if (focal) {
-        // Split altFocal.name into first and last name if possible
-        let altFirstName = altFocal.name || '';
-        let altLastName = '';
-        if (altFocal.name && altFocal.name.trim().includes(' ')) {
-          const parts = altFocal.name.trim().split(' ');
-          altFirstName = parts.slice(0, -1).join(' ');
-          altLastName = parts.slice(-1).join(' ');
-        }
-        focal.altFirstName = altFirstName;
-        focal.altLastName = altLastName;
-        focal.altEmail = altFocal.email || null;
-        focal.altContactNumber = altFocal.contact || null;
+        // take BEFORE snapshot first
+        fpBefore = { ...focal };
+
+        // apply only real changes
+        if (firstName != null && String(firstName) !== String(focal.firstName ?? "")) focal.firstName = firstName;
+        if (lastName != null && String(lastName) !== String(focal.lastName ?? "")) focal.lastName = lastName;
+        if (contactNumber != null && String(contactNumber) !== String(focal.contactNumber ?? "")) focal.contactNumber = contactNumber;
+        if (email != null && String(email) !== String(focal.email ?? "")) focal.email = email;
+        if (altFirstName != null && String(altFirstName) !== String(focal.altFirstName ?? "")) focal.altFirstName = altFirstName;
+        if (altLastName != null && String(altLastName) !== String(focal.altLastName ?? "")) focal.altLastName = altLastName;
+        if (altContactNumber != null && String(altContactNumber) !== String(focal.altContactNumber ?? "")) focal.altContactNumber = altContactNumber;
+        if (altEmail != null && String(altEmail) !== String(focal.altEmail ?? "")) focal.altEmail = altEmail;
+
+        // optional photos
+        const photoFile = req.file || req.files?.photo?.[0];
+        const altPhotoFile = req.files?.alternativeFPImage?.[0] || req.files?.altPhoto?.[0];
+        if (photoFile?.buffer) focal.photo = photoFile.buffer;
+        if (altPhotoFile?.buffer) focal.alternativeFPImage = altPhotoFile.buffer;
+
         focal.updatedAt = new Date();
         await focalPersonRepo.save(focal);
+
+        // AFTER snapshot
+        fpAfter = { ...focal };
       }
     }
 
-    // Update the updatedAt field to now
     neighborhood.updatedAt = new Date();
     await neighborhoodRepo.save(neighborhood);
 
+    // WRITE LOGS
+    const actorID = req.user?.focalPersonID || req.user?.id || neighborhood.focalPersonID || null;
+    const actorRole = req.user?.role || "FocalPerson";
+
+    // Neighborhood changes
+    const nbAfter = { ...neighborhood, hazards: neighborhood.hazards };
+    const nbChanges = diffFields(nbBefore, nbAfter, [
+      "noOfHouseholds","noOfResidents","floodSubsideHours","hazards","otherInformation"
+    ]);
+    await addLogs({
+      entityType: "Neighborhood",
+      entityID: id,
+      changes: nbChanges,
+      actorID,
+      actorRole,
+    });
+
+    // Focal person changes
+    if (fpBefore && fpAfter) {
+      const fpChanges = diffFields(fpBefore, fpAfter, [
+        "firstName","lastName","contactNumber","email",
+        "altFirstName","altLastName","altContactNumber","altEmail"
+      ]);
+
+      if (photoFile?.buffer) {
+        fpChanges.push({ field: "photo", oldValue: toJSONSafe(fpBefore.photo), newValue: "[BLOB]" });
+      }
+      if (altPhotoFile?.buffer) {
+        fpChanges.push({ field: "alternativeFPImage", oldValue: toJSONSafe(fpBefore.alternativeFPImage), newValue: "[BLOB]" });
+      }
+
+      await addLogs({
+        entityType: "FocalPerson",                 
+        entityID: neighborhood.focalPersonID,      
+        changes: fpChanges,                         
+        actorID,
+        actorRole,
+      });
+    }
+
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
-
+    
     return res.json({
-      message: "Neighborhood Updated", neighborhood: {
+      message: "Neighborhood Updated",
+      neighborhood: {
         ...neighborhood,
         hazards: parseHazards(neighborhood.hazards),
-      }
+      },
     });
   } catch (err) {
     console.error(err);
@@ -388,6 +511,46 @@ const archivedNeighborhood = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server Error - ARCHIVED Neighborhood", error: err.message });
+  }
+};
+
+// DELETE Neighborhood
+const deleteNeighborhood = async(req, res) => {
+  try {
+    const {id} = req.params;
+
+    const nb = await neighborhoodRepo
+      .createQueryBuilder("n")
+      .select(["n.id", "n.archived", "n.focalPersonID", "n.terminalID"])
+      .where("n.id = :id", {id})
+      .getRawOne();
+
+    if (!nb) return res.status(404).json({message: "Neighborhood Not Found"});
+    if (!nb.n_archived) {
+      return res.status(400).json({message: "Neighborhood Must Be Archived"});
+    }
+
+    // Terminal is Unlinked and Available
+    if (nb.n_terminalID) {
+      await terminalRepo.update({id: nb.n_terminalID}, {availability: "Available"});
+      await neighborhoodRepo.update({id}, {terminalID: null});
+    }
+
+    // Delete Linked Focal Person
+    if (nb.n_focalPersonID) {
+      await focalPersonRepo.delete({id: nb.n_focalPersonID});
+    }
+
+    await neighborhoodRepo.delete({id});
+
+    await deleteCache(`neighborhood:${id}`);
+    await deleteCache("neighborhoods:active");
+    await deleteCache("neighborhoods:archived");
+
+    return res.json({message: "Neighborhood permanently delete"});
+  } catch (err) {
+    console.error(err);
+    return res.status(500).son({message: "Server Error"});
   }
 };
 
@@ -446,4 +609,5 @@ module.exports = {
   getArchivedNeighborhoods,
   uploadAltFocalPhoto,
   getAltFocalPhoto,
+  deleteNeighborhood
 };

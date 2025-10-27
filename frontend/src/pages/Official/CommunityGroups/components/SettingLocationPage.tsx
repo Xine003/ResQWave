@@ -92,20 +92,26 @@ export default function SettingLocationPage() {
 
     function onMapClick(e: any) {
       const { lng, lat } = e.lngLat
+      
+      console.log(`📍 Map clicked at: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`)
+      
       // set marker
       if (markerRef.current) {
         markerRef.current.setLngLat([lng, lat])
       } else {
         markerRef.current = new mapboxgl.Marker({ color: "#3b82f6" }).setLngLat([lng, lat]).addTo(m)
       }
+      
       // reverse geocode for address
       reverseGeocode(lng, lat).then((address) => {
+        console.log(`✅ Address found: ${address}`)
         setSelectedPoint({ lng, lat, address })
-        alertsRef.current?.showPinAlert(`${address}\n${lat.toFixed(6)}, ${lng.toFixed(6)}`)
-      }).catch(() => {
-        const fallback = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+        alertsRef.current?.showPinAlert(`${address}\n${lng.toFixed(6)}, ${lat.toFixed(6)}`)
+      }).catch((err) => {
+        console.error("❌ Geocoding failed:", err)
+        const fallback = `${lng.toFixed(6)}, ${lat.toFixed(6)}`
         setSelectedPoint({ lng, lat, address: fallback })
-        alertsRef.current?.showPinAlert(fallback)
+        alertsRef.current?.showPinAlert(`Coordinates: ${fallback}`)
       })
     }
 

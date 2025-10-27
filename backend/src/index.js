@@ -10,7 +10,6 @@ const dispatcherRoutes = require("./routes/dispatcherRoutes");
 const terminalRoutes = require("./routes/terminalRoutes");
 const focalPersonRoutes = require("./routes/focalPersonRoutes");
 const neighborhoodRoutes = require("./routes/neighborhoodRoutes");
-const communityGroupRoutes = require("./routes/communityGroupRoutes");
 const alertRoutes = require("./routes/alertRoutes");
 const verificationRoutes = require("./routes/verificationRoutes");
 const rescueFormRoutes = require("./routes/rescueFormRoutes");
@@ -18,7 +17,7 @@ const postRescueRoutes = require("./routes/postRescueRoutes");
 const graphRoutes = require("./routes/graphRoutes");
 const documentRoutes = require("./routes/documentRoutes");
 const focalRegistrationRoutes = require("./routes/focalRegistrationRoutes");
-
+const logsRoute = require("./routes/logRoutes");
 const sensorDataRoutes = require("./routes/sensorDataRoutes");
 const { authMiddleware, requireRole } = require("./middleware/authMiddleware");
 
@@ -57,10 +56,10 @@ AppDataSource.initialize()
         // Protected Routes
         // Only Admin can access Dispatcher Management
         app.use("/dispatcher", requireRole("admin"), dispatcherRoutes);
-        app.use("/terminal", terminalRoutes);
+        app.use("/terminal", requireRole("admin"), terminalRoutes);
         app.use("/focalperson", focalPersonRoutes);
         app.use("/neighborhood", neighborhoodRoutes);
-        app.use("/communitygroup", communityGroupRoutes);
+        app.use("/logs", logsRoute);
         app.use("/alerts", alertRoutes);
         app.use("/forms", rescueFormRoutes);
         app.use("/post", postRescueRoutes);

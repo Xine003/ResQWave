@@ -37,6 +37,10 @@ const authMiddleware = async (req, res, next) => {
 
         // Attach user info to request (contains id, name, role)
         req.user = decoded;
+        // Optional: normalize for focal users so code can read either field
+        if (req.user?.role && req.user.role.toLowerCase() === "focalperson") {
+          req.user.focalPersonID = req.user.id; // alias
+        }
         next();
     } catch (err) {
         return res.status(403).json({ message: "Invalid or Expired Token"});

@@ -35,8 +35,6 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
     const { removeFromWaitlist } = useRescueWaitlist();
 
     const handleWaitlist = () => {
-        // Handle waitlist action
-        console.log("Added to waitlist", formData);
         if (onWaitlist) {
             onWaitlist(formData);
         }

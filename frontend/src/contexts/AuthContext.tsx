@@ -1,7 +1,9 @@
+import { setGlobalLogoutCallback } from '@/lib/api'
 import type { LoginRequest, UnifiedVerificationRequest } from '@/pages/Official/LoginDispatcher/api'
-import { ApiException, logout as apiLogout, unifiedLogin, unifiedVerifyLogin } from '@/pages/Official/LoginDispatcher/api'
+import { ApiException, logout as apiLogout, getCurrentUser, unifiedLogin, unifiedVerifyLogin } from '@/pages/Official/LoginDispatcher/api'
 import type { ReactNode } from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 export interface User {
   id: string
@@ -14,7 +16,7 @@ interface AuthContextType {
   user: User | null
   login: (id: string, password: string) => Promise<boolean>
   verifyLogin: (verificationCode: string) => Promise<boolean>
-  logout: () => void
+  logout: () => Promise<void>
   isAdmin: () => boolean
   isLoading: boolean
 }
@@ -23,22 +25,61 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  // Check for stored auth on mount
+  // Register global logout callback for API 401/403 errors
   useEffect(() => {
-    const storedUser = localStorage.getItem('resqwave_user')
-    const storedToken = localStorage.getItem('resqwave_token')
-    
-    if (storedUser && storedToken) {
+    setGlobalLogoutCallback(() => {
+      setUser(null)
+      navigate('/login-official', { replace: true })
+    })
+  }, [navigate])
+
+  // Validate token and restore session on mount
+  useEffect(() => {
+    const validateToken = async () => {
+      const storedToken = localStorage.getItem('resqwave_token')
+      
+      if (!storedToken) {
+        setIsLoading(false)
+        return
+      }
+
       try {
-        setUser(JSON.parse(storedUser))
-      } catch {
-        localStorage.removeItem('resqwave_user')
+        // Validate token with backend
+        const userData = await getCurrentUser()
+        
+        // Update user state with validated data
+        const user: User = {
+          id: userData.id,
+          role: userData.role,
+          name: userData.name || userData.id,
+          email: userData.email
+        }
+        
+        setUser(user)
+        localStorage.setItem('resqwave_user', JSON.stringify(user))
+      } catch (error) {
+        // Token is invalid or expired, clear storage
+        console.error('Token validation failed:', error)
         localStorage.removeItem('resqwave_token')
+        localStorage.removeItem('resqwave_user')
+        
+        // Only redirect to login if user is on a protected route
+        const publicRoutes = ['/login-official', '/verification-official', '/']
+        if (!publicRoutes.includes(location.pathname)) {
+          navigate('/login-official', { replace: true })
+        }
+      } finally {
+        setIsLoading(false)
       }
     }
-  }, [])
+
+    validateToken()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Run only once on mount
 
   // Step 1: Unified login (both admin and dispatcher with 2FA)
   const login = async (id: string, password: string): Promise<boolean> => {
@@ -107,9 +148,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    apiLogout() // This clears localStorage and sessionStorage
+  const logout = async () => {
+    setIsLoading(true)
+    try {
+      // Call backend logout (which also clears local storage)
+      await apiLogout()
+      
+      // Clear user state
+      setUser(null)
+      
+      // Navigate to login
+      navigate('/login-official', { replace: true })
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Even if backend call fails, clear local state
+      setUser(null)
+      navigate('/login-official', { replace: true })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const isAdmin = (): boolean => {
@@ -130,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider')

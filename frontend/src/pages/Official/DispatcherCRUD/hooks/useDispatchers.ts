@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-    archiveDispatcher,
-    createDispatcher,
-    deleteDispatcherPermanently,
-    getActiveDispatchers,
-    getArchivedDispatchers,
-    getDispatcher,
-    transformDispatcherDetailsResponse,
-    transformDispatcherResponse
+  archiveDispatcher,
+  createDispatcher,
+  deleteDispatcherPermanently,
+  getActiveDispatchers,
+  getArchivedDispatchers,
+  getDispatcher,
+  transformDispatcherDetailsResponse,
+  transformDispatcherResponse,
+  updateDispatcher
 } from '../api/dispatcherApi'
 import type { Dispatcher, DispatcherDetails } from '../types'
 
@@ -96,7 +97,7 @@ export function useDispatchers() {
     loadInitialData()
   }, [fetchActiveDispatchers, fetchArchivedDispatchers])
 
-  // Create new dispatcher
+  // Create new dispatcher with optimistic updates
   const createNewDispatcher = useCallback(async (dispatcherData: {
     name: string
     email: string
@@ -106,12 +107,38 @@ export function useDispatchers() {
   }) => {
     try {
       setError(null)
-      const result = await createDispatcher(dispatcherData)
       
-      // Refresh the active dispatchers list after successful creation
-      await fetchActiveDispatchers()
+      // Create optimistic entry
+      const tempId = `temp-${Date.now()}`
+      const optimisticDispatcher: Dispatcher = {
+        id: tempId,
+        name: dispatcherData.name,
+        email: dispatcherData.email,
+        contactNumber: dispatcherData.contactNumber,
+        createdAt: new Date().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }),
+      }
       
-      return result
+      // Add optimistic entry to the list
+      setActiveDispatchers(prev => [optimisticDispatcher, ...prev])
+      
+      try {
+        const result = await createDispatcher(dispatcherData)
+        
+        // Remove optimistic entry and refresh with real data
+        setActiveDispatchers(prev => prev.filter(d => d.id !== tempId))
+        await fetchActiveDispatchers()
+        
+        return result
+      } catch (apiError) {
+        // Remove optimistic entry on failure
+        setActiveDispatchers(prev => prev.filter(d => d.id !== tempId))
+        throw apiError
+      }
+      
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create dispatcher'
       setError(errorMessage)
@@ -134,33 +161,163 @@ export function useDispatchers() {
     }
   }, [fetchActiveDispatchers, fetchArchivedDispatchers])
 
-  // Archive dispatcher
+  // Archive dispatcher with optimistic updates
   const archiveDispatcherById = useCallback(async (id: string): Promise<void> => {
     try {
       setError(null)
-      await archiveDispatcher(id)
-      // Refresh data after successful archive
-      await refreshData()
+      
+      // Find the dispatcher to archive
+      const dispatcherToArchive = activeDispatchers.find(d => d.id === id)
+      if (!dispatcherToArchive) {
+        throw new Error('Dispatcher not found')
+      }
+      
+      // Store original state for rollback
+      const originalActiveDispatchers = [...activeDispatchers]
+      const originalArchivedDispatchers = [...archivedDispatchers]
+      
+      // Optimistic update: move from active to archived
+      setActiveDispatchers(prev => prev.filter(d => d.id !== id))
+      setArchivedDispatchers(prev => [dispatcherToArchive, ...prev])
+      
+      try {
+        await archiveDispatcher(id)
+        // Success - optimistic update was correct, no need to refresh
+      } catch (apiError) {
+        // Rollback optimistic update on failure
+        setActiveDispatchers(originalActiveDispatchers)
+        setArchivedDispatchers(originalArchivedDispatchers)
+        throw apiError
+      }
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to archive dispatcher')
       console.error('Error archiving dispatcher:', err)
       throw err
     }
-  }, [refreshData])
+  }, [activeDispatchers, archivedDispatchers])
 
-  // Permanently delete dispatcher
+  // Update dispatcher with optimistic updates
+  const updateDispatcherById = useCallback(async (id: string, dispatcherData: {
+    name?: string
+    email?: string
+    contactNumber?: string
+    password?: string
+    photo?: File
+    removePhoto?: boolean
+  }) => {
+    try {
+      setError(null)
+      
+      // Store original state for potential rollback
+      const originalActiveDispatchers = [...activeDispatchers]
+      const originalArchivedDispatchers = [...archivedDispatchers]
+      const originalInfoById = { ...infoById }
+      
+      // Optimistic update: Update local state immediately
+      if (dispatcherData.name || dispatcherData.email || dispatcherData.contactNumber) {
+        const updateFields = (dispatcher: Dispatcher) => {
+          if (dispatcher.id === id) {
+            return {
+              ...dispatcher,
+              ...(dispatcherData.name && { name: dispatcherData.name }),
+              ...(dispatcherData.email && { email: dispatcherData.email }),
+              ...(dispatcherData.contactNumber && { contactNumber: dispatcherData.contactNumber }),
+            }
+          }
+          return dispatcher
+        }
+        
+        setActiveDispatchers(prev => prev.map(updateFields))
+        setArchivedDispatchers(prev => prev.map(updateFields))
+        
+        // Update detailed info as well
+        if (infoById[id]) {
+          setInfoById(prev => ({
+            ...prev,
+            [id]: {
+              ...prev[id],
+              ...(dispatcherData.name && { name: dispatcherData.name }),
+              ...(dispatcherData.email && { email: dispatcherData.email }),
+              ...(dispatcherData.contactNumber && { contactNumber: dispatcherData.contactNumber }),
+              // Handle photo updates optimistically
+              ...(dispatcherData.photo && { photo: URL.createObjectURL(dispatcherData.photo) }),
+              ...(dispatcherData.removePhoto && { photo: undefined }),
+            }
+          }))
+        }
+      }
+      
+      // Create FormData for multipart upload
+      const formData = new FormData()
+      
+      if (dispatcherData.name) formData.append('name', dispatcherData.name)
+      if (dispatcherData.email) formData.append('email', dispatcherData.email)
+      if (dispatcherData.contactNumber) formData.append('contactNumber', dispatcherData.contactNumber)
+      if (dispatcherData.password) formData.append('password', dispatcherData.password)
+      if (dispatcherData.photo) formData.append('photo', dispatcherData.photo)
+      if (dispatcherData.removePhoto) formData.append('removePhoto', 'true')
+      
+      try {
+        const result = await updateDispatcher(id, formData)
+        
+        // After successful API call, fetch fresh data to ensure consistency
+        // but only refresh the detailed info for this specific dispatcher
+        if (dispatcherData.photo || dispatcherData.removePhoto) {
+          // For photo changes, we need to get the fresh data from the server
+          const freshDetails = await getDispatcher(id)
+          const transformedDetails = transformDispatcherDetailsResponse(freshDetails)
+          setInfoById(prev => ({ ...prev, [id]: transformedDetails }))
+        }
+        
+        return result
+      } catch (apiError) {
+        // Rollback optimistic updates on API failure
+        setActiveDispatchers(originalActiveDispatchers)
+        setArchivedDispatchers(originalArchivedDispatchers)
+        setInfoById(originalInfoById)
+        throw apiError
+      }
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update dispatcher'
+      setError(errorMessage)
+      throw err
+    }
+  }, [activeDispatchers, archivedDispatchers, infoById])
+
+  // Permanently delete dispatcher with optimistic updates
   const deleteDispatcherPermanentlyById = useCallback(async (id: string): Promise<void> => {
     try {
       setError(null)
-      await deleteDispatcherPermanently(id)
-      // Refresh data after successful permanent deletion
-      await refreshData()
+      
+      // Store original state for rollback
+      const originalArchivedDispatchers = [...archivedDispatchers]
+      const originalInfoById = { ...infoById }
+      
+      // Optimistic update: remove from archived list immediately
+      setArchivedDispatchers(prev => prev.filter(d => d.id !== id))
+      setInfoById(prev => {
+        const { [id]: removed, ...rest } = prev
+        return rest
+      })
+      
+      try {
+        await deleteDispatcherPermanently(id)
+        // Success - optimistic update was correct
+      } catch (apiError) {
+        // Rollback optimistic update on failure
+        setArchivedDispatchers(originalArchivedDispatchers)
+        setInfoById(originalInfoById)
+        throw apiError
+      }
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to permanently delete dispatcher')
       console.error('Error permanently deleting dispatcher:', err)
       throw err
     }
-  }, [refreshData])
+  }, [archivedDispatchers, infoById])
 
   return {
     // Data
@@ -175,6 +332,7 @@ export function useDispatchers() {
     // Actions
     archiveDispatcherById,
     createNewDispatcher,
+    updateDispatcherById,
     deleteDispatcherPermanentlyById,
     fetchActiveDispatchers,
     fetchArchivedDispatchers,

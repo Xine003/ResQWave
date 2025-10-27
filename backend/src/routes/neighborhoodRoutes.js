@@ -9,6 +9,7 @@ const {
   updateNeighborhood,
   archivedNeighborhood,
   getArchivedNeighborhoods,
+  deleteNeighborhood
 } = require("../controllers/neighborhoodController");
 const { requireRole } = require("../middleware/authMiddleware");
 const { uploadFocalPhotos } = require("../middleware/uploadFocalPhotos");
@@ -24,8 +25,9 @@ router.get("/own", requireRole("focalPerson"), viewAboutYourNeighborhood);
 
 router.get("/", getNeighborhoods);
 router.get("/:id", getNeighborhood);
-router.put("/:id", updateNeighborhood);
+router.put("/:id", uploadFocalPhotos, updateNeighborhood);
 router.delete("/:id", archivedNeighborhood);
+router.delete("/:id/permanent", deleteNeighborhood);
 
 // Upload alternative focal person photo
 router.post("/:id/alt-photo", uploadFocalPhotos, requireRole("focalPerson"), require("../controllers/neighborhoodController").uploadAltFocalPhoto);

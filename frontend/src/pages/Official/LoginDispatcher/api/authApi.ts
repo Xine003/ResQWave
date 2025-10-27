@@ -86,16 +86,36 @@ export async function getCurrentUser(): Promise<VerificationResponse['user']> {
     throw new ApiException('No authentication token found')
   }
 
-  return apiRequest<VerificationResponse['user']>('/me', {
+  const response = await apiRequest<{ user: VerificationResponse['user'] }>('/me', {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
     },
   })
+  
+  return response.user
 }
 
-// Logout - clears stored authentication data
-export function logout(): void {
+// Logout - calls backend to invalidate session and clears stored authentication data
+export async function logout(): Promise<void> {
+  const token = localStorage.getItem('resqwave_token')
+  
+  // Call backend to invalidate session if token exists
+  if (token) {
+    try {
+      await apiRequest('/logout', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+    } catch (error) {
+      // Continue with local cleanup even if backend call fails
+      console.error('Logout backend call failed:', error)
+    }
+  }
+  
+  // Clear all stored authentication data
   localStorage.removeItem('resqwave_token')
   localStorage.removeItem('resqwave_user')
   sessionStorage.removeItem('tempToken')

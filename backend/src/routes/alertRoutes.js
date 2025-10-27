@@ -3,6 +3,7 @@ const router = express.Router();
 const {
     createCriticalAlert,
     createUserInitiatedAlert,
+    getMapAlert,
     getAlerts,
     getWaitlistedAlerts,
     getDispatchedAlerts,
@@ -19,6 +20,7 @@ router.post("/user", createUserInitiatedAlert);
 
 // Read alerts
 router.get("/", getAlerts);
+router.get("/map", getMapAlert);
 router.get("/unassigned", getUnassignedAlerts);
 router.get("/waitlist", getWaitlistedAlerts);
 router.get("/dispatched", getDispatchedAlerts);

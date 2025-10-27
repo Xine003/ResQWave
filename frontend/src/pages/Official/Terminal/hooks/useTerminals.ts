@@ -5,6 +5,7 @@ import {
     getActiveTerminals,
     getArchivedTerminals,
     getTerminal,
+    permanentDeleteTerminal,
     transformTerminalDetailsResponse,
     transformTerminalResponse,
     unarchiveTerminal,
@@ -176,6 +177,23 @@ export function useTerminals() {
     }
   }, [fetchActiveTerminals, fetchArchivedTerminals])
 
+  // Permanently delete terminal (only archived terminals)
+  const permanentDeleteTerminalById = useCallback(async (id: string) => {
+    try {
+      setError(null)
+      const result = await permanentDeleteTerminal(id)
+      
+      // Refresh archived terminals list after successful permanent deletion
+      await fetchArchivedTerminals()
+      
+      return result
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to permanently delete terminal'
+      setError(errorMessage)
+      throw err
+    }
+  }, [fetchArchivedTerminals])
+
   // Refresh all data
   const refreshData = useCallback(async () => {
     setLoading(true)
@@ -219,6 +237,7 @@ export function useTerminals() {
     fetchArchivedTerminals,
     fetchTerminalDetails,
     getTerminalInfo,
+    permanentDeleteTerminalById,
     refreshData,
     unarchiveTerminalById,
     updateTerminalById,
