@@ -5,17 +5,14 @@ import { useRescueWaitlist } from '../contexts/RescueWaitlistContext';
 import type { SignalPopupProps } from '../types/popup';
 import RescueFormSheet from './RescueFormSheet';
 
-// Reusable style constants
 const styles = {
     popoverRow: "flex flex-row gap-3",
     popoverLabel: "w-[180px] text-sm font-medium",
     popoverValue: "ml-auto text-right text-sm max-w-[170px] whitespace-normal break-words",
     popoverValueWide: "flex-1 text-right text-sm leading-tight max-w-[220px] whitespace-normal break-words",
     popoverContainer: "flex flex-col gap-2 mb-4",
-    popoverTitle: "font-bold uppercase text-base mb-4"
-};
+} as const;
 
-// Reusable PopoverRow component
 const PopoverRow = ({ label, value, isWide = false }: { label: string; value: React.ReactNode; isWide?: boolean }) => (
     <div className={styles.popoverRow}>
         <div className={styles.popoverLabel}>{label}</div>
@@ -33,7 +30,6 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
     const handleWaitlist = (formData: any) => {
         if (!popover) return;
         
-        // Add signal details to form data
         const waitlistData = {
             ...formData,
             deviceId: popover.deviceId,
@@ -43,46 +39,30 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
         };
         
         addToWaitlist(waitlistData);
-        
-        // Open LiveReportSidebar and switch to waitlist tab
         setIsLiveReportOpen(true);
-        
-        // Close the rescue form
         setIsRescueFormOpen(false);
     };
 
-    const handleDispatch = (formData: any) => {
-        // Close the rescue form
+    const handleDispatch = () => {
         setIsRescueFormOpen(false);
-        
-        // Call the parent dispatch handler to show the toast
-        if (onDispatchRescue) {
-            onDispatchRescue();
-        }
+        onDispatchRescue?.();
     };
     
     if (!popover) return null;
 
-    // Calculate precise positioning to align popover with pin
-    // The popover should appear above the pin with the arrow pointing down to it
-    const popoverWidth = 390; // approximate popover width
-    const popoverHeight = 320; // fixed height for consistent positioning
-    
-    // Position the popover above the pin, centered horizontally
-    const offsetX = popoverWidth / 1.390; // center the popover horizontally on the pin
-    const offsetY = popoverHeight + 135; // position above the pin with some margin
-
-    // Check if rescue form button should be shown (not for ONLINE or OFFLINE status)
-    const showRescueForm = true; // Always show rescue form button
+    const popoverWidth = 390;
+    const popoverHeight = 320;
+    const offsetX = popoverWidth / 1.390;
+    const offsetY = popoverHeight + 150;
 
     return (
         <>
             <div id="signal-popover-wrapper" style={{ position: 'absolute', left: 0, top: 0, transform: `translate(${(popover.screen.x - offsetX)}px, ${(popover.screen.y - offsetY)}px)`, zIndex: 'var(--z-map-popover)', pointerEvents: 'none' }}>
                 <div style={{ position: 'relative', minWidth: 370, maxWidth: 420 }}>
                     <div style={{ backgroundColor: 'rgba(0,0,0,0.80)', color: '#fff', boxShadow: '0 8px 28px rgba(0,0,0,0.45)', padding: '20px 18px 20px 18px', fontFamily: 'inherit', borderRadius: 5 }}>
-                        {/* Header with community name and close button */}
+                        {/* Header with close button */}
                         <div className="flex items-center justify-between mb-4">
-                            <div className="font-bold uppercase text-base">{popover?.title || 'COMMUNITY NAME'}</div>
+                            <div className="font-bold uppercase text-base">ALERT DETAILS</div>
                             <button
                                 onClick={() => {
                                     setPopover(null);
@@ -99,35 +79,33 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
                         <div className={styles.popoverContainer}>
                             <PopoverRow 
                                 label="Device ID" 
-                                value={popover.deviceId || 'RSQW-001'} 
+                                value={popover.deviceId || 'N/A'} 
                             />
                             <PopoverRow 
                                 label="Alert Type" 
-                                value={popover.alertType || 'Emergency Alert'} 
+                                value={popover.alertType || 'N/A'} 
                             />
                             <PopoverRow 
                                 label="Status" 
-                                value={popover.status || 'Active'} 
+                                value={popover.status || 'N/A'} 
                             />
                             <PopoverRow 
                                 label="Time Sent" 
-                                value={popover.timeSent || '2:30 PM'} 
+                                value={popover.timeSent || 'N/A'} 
                             />
                             <PopoverRow 
                                 label="Focal Person" 
-                                value={popover.focalPerson || 'Gwyneth Uy'} 
+                                value={popover.focalPerson || 'N/A'} 
                             />
                             <PopoverRow 
                                 label="House Address" 
-                                value={popover.address || 'Block 1, Lot 17, Paraiso Rd, 1400'} 
+                                value={popover.address || 'N/A'} 
                             />
                             <PopoverRow 
                                 label="Contact Number" 
-                                value={popover.contactNumber || '+63 912 345 6789'} 
+                                value={popover.contactNumber || 'N/A'} 
                             />
                         </div>
-
-
                         {/* Action Buttons */}
                         <div className="flex gap-2 mt-4 pointer-events-auto">
                             <button
@@ -138,16 +116,14 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
                             >
                                 More Info
                             </button>
-                            {showRescueForm && (
-                                <button
-                                    onClick={() => {
-                                        setIsRescueFormOpen(true);
-                                    }}
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
-                                >
-                                    Rescue Form
-                                </button>
-                            )}
+                            <button
+                                onClick={() => {
+                                    setIsRescueFormOpen(true);
+                                }}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+                            >
+                                Rescue Form
+                            </button>
                         </div>
 
                         {/* Downward pointer/arrow */}
@@ -160,7 +136,7 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
             <RescueFormSheet 
                 isOpen={isRescueFormOpen}
                 onClose={() => setIsRescueFormOpen(false)}
-                focalPerson={popover.focalPerson || 'Gwyneth Uy'}
+                focalPerson={popover.focalPerson || 'N/A'}
                 onWaitlist={handleWaitlist}
                 onDispatch={handleDispatch}
             />

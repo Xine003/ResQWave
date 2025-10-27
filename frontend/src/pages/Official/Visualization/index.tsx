@@ -14,7 +14,7 @@ import { RescueWaitlistProvider, useRescueWaitlist, type WaitlistedRescueForm } 
 import useSignals from './hooks/useSignals';
 import type { VisualizationSignals } from './types/signals';
 import { cinematicMapEntrance, flyToSignal } from './utils/flyingEffects';
-import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
+import { addCustomLayers, getPinColor, makeTooltip } from './utils/mapHelpers';
 
 mapboxgl.accessToken = "pk.eyJ1Ijoicm9kZWxsbCIsImEiOiJjbWU0OXNvb2gwYnM0MnpvbXNueXo2dzhxIn0.Ep43_IxVhaPhEqWBaAuuyA";
 
@@ -50,15 +50,26 @@ function VisualizationContent() {
     const [infoSheetOpen, setInfoSheetOpen] = useState(false);
     const [selectedCommunityData, setSelectedCommunityData] = useState<CommunityGroupDetails | undefined>(undefined);
     
-    // signal & UI state provided by the useSignals hook (centralized)
+    // Signal & UI state from centralized hook
     const signals = useSignals();
-    const { otherSignals, ownCommunitySignal: OwnCommunitySignal, popover, setPopover, infoBubble, setInfoBubble, infoBubbleVisible, setInfoBubbleVisible, getDistressCoord } = signals as unknown as VisualizationSignals;
+    const { 
+        otherSignals, 
+        ownCommunitySignal: OwnCommunitySignal, 
+        popover, 
+        setPopover, 
+        infoBubble, 
+        setInfoBubble, 
+        infoBubbleVisible, 
+        setInfoBubbleVisible, 
+        getDistressCoord 
+    } = signals as unknown as VisualizationSignals;
+    
     const distressCoord: [number, number] = getDistressCoord();
-
-    // keep a ref to the latest popover so map event handlers inside the load callback
-    // (which are attached once) can see the current value and update its screen coords
     const popoverRef = useRef<typeof popover>(popover);
-    useEffect(() => { popoverRef.current = popover; }, [popover]);
+    
+    useEffect(() => { 
+        popoverRef.current = popover; 
+    }, [popover]);
 
     // Handle map resize when sidebar opens/closes
     useEffect(() => {
@@ -73,98 +84,236 @@ function VisualizationContent() {
 
 
 
-    // Helper to create a GeoJSON circle polygon from center and radius (meters) - copied exactly from mapHelpers
-    const createGeoJSONCircle = (center: [number, number], radiusInMeters: number, points = 64): GeoJSON.Feature<GeoJSON.Polygon> => {
-        const coords: [number, number][] = [];
-        const earthRadius = 6378137;
-        const lat = center[1] * Math.PI / 180;
-        const lon = center[0] * Math.PI / 180;
-        for (let i = 0; i < points; i++) {
-            const angle = (i * 360 / points) * Math.PI / 180;
-            const dx = Math.cos(angle) * radiusInMeters / earthRadius;
-            const dy = Math.sin(angle) * radiusInMeters / earthRadius;
-            const latOffset = lat + dy;
-            const lonOffset = lon + dx / Math.cos(lat);
-            coords.push([
-                lonOffset * 180 / Math.PI,
-                latOffset * 180 / Math.PI
-            ]);
-        }
-        coords.push(coords[0]); // close the polygon
-        return {
-            type: "Feature",
-            geometry: {
-                type: "Polygon",
-                coordinates: [coords]
-            },
-            properties: {}
-        };
-    };
-
-    // Helper function to display circle around signal (copied exactly from mapHelpers)
+    /**
+     * Displays a colored circle with pulsing animation around a signal on the map
+     */
     const displayBeatingCircle = (signal: any) => {
         const map = mapRef.current;
         if (!map) return;
 
-        // Remove previous circle layers/sources
-        try {
-            if (map.getLayer('signal-circle')) map.removeLayer('signal-circle');
-            if (map.getLayer('signal-circle-border')) map.removeLayer('signal-circle-border');
-            if (map.getSource('signal-circle')) map.removeSource('signal-circle');
-        } catch (e) { /* ignore */ }
-
-        // Get color based on alert type (same as pin color)
-        const getCircleColor = (alertType: string) => {
-            switch (alertType?.toLowerCase()) {
-                case 'critical':
-                    return '#ef4444'; // Red
-                case 'user-initiated':
-                    return '#eab308'; // Yellow
-                case 'online':
-                    return '#22c55e'; // Green
-                case 'offline':
-                    return '#6b7280'; // Gray
-                default:
-                    return '#6b7280'; // Default gray
-            }
-        };
-
+        const coord = signal.coordinates;
         const alertType = signal.properties.alertType || signal.properties.status || 'offline';
-        const circleColor = getCircleColor(alertType);
+        const color = getPinColor(alertType);
 
-        // Create smaller GeoJSON circle with radius
-        const circleFeature = createGeoJSONCircle(signal.coordinates, 50, 64); // 50 meter radius (smaller)
+        // Remove previous circle if exists
+        if (map.getLayer('signal-radius')) map.removeLayer('signal-radius');
+        if (map.getSource('signal-radius')) map.removeSource('signal-radius');
 
-        // Add circle source
-        map.addSource('signal-circle', {
-            type: 'geojson',
-            data: circleFeature
+        // Check if createGeoJSONCircle is available
+        if (typeof (map as any).createGeoJSONCircle === 'function') {
+            // Remove any previous animation frame
+            if ((map as any)._pulseFrame) {
+                cancelAnimationFrame((map as any)._pulseFrame);
+                (map as any)._pulseFrame = null;
+            }
+
+            // Animation config
+            interface PulseConfig {
+                minRadius: number;
+                maxRadius: number;
+                duration: number;
+                color: string;
+                opacity: number;
+            }
+            const pulseConfig: PulseConfig = {
+                minRadius: 0, // start at the signal point
+                maxRadius: 50, // expand outward (50m radius)
+                duration: 2000, // ms for one pulse
+                color,
+                opacity: 0.3
+            };
+
+            // Add source and layer for the pulse
+            map.addSource('signal-radius', {
+                type: 'geojson',
+                data: (map as any).createGeoJSONCircle(coord, pulseConfig.minRadius)
+            });
+
+            map.addLayer({
+                id: 'signal-radius',
+                type: 'fill',
+                source: 'signal-radius',
+                paint: {
+                    'fill-color': pulseConfig.color,
+                    'fill-opacity': pulseConfig.opacity
+                }
+            });
+
+            // Animation loop (play ONCE, then show static circle)
+            function animatePulse(startTime: number) {
+                if (!map) return;
+                const now = performance.now();
+                const elapsed = now - startTime;
+                const t = Math.min(elapsed / pulseConfig.duration, 1);
+                // Ease out for radius
+                const easeOut = 1 - Math.pow(1 - t, 3);
+                const currentRadius = pulseConfig.minRadius + (pulseConfig.maxRadius - pulseConfig.minRadius) * easeOut;
+                const source = map.getSource('signal-radius') as mapboxgl.GeoJSONSource;
+                if (source) {
+                    source.setData((map as any).createGeoJSONCircle(coord, currentRadius));
+                }
+                if (t < 1) {
+                    (map as any)._pulseFrame = requestAnimationFrame(() => animatePulse(startTime));
+                } else {
+                    // Animation done: show static circle at max radius
+                    if (source) {
+                        source.setData((map as any).createGeoJSONCircle(coord, pulseConfig.maxRadius));
+                    }
+                    map.setPaintProperty('signal-radius', 'fill-opacity', pulseConfig.opacity);
+                    (map as any)._pulseFrame = null;
+                }
+            }
+            (map as any)._pulseFrame = requestAnimationFrame(() => animatePulse(performance.now()));
+        }
+    };
+
+    /**
+     * Removes the signal circle from the map
+     */
+    const removeSignalCircle = (map: mapboxgl.Map) => {
+        try {
+            if (map.getLayer('signal-radius')) map.removeLayer('signal-radius');
+            if (map.getSource('signal-radius')) map.removeSource('signal-radius');
+        } catch (e) {
+            // Ignore errors
+        }
+    };
+
+    /**
+     * Initialize map canvas for interactions
+     */
+    const initializeMapCanvas = (map: mapboxgl.Map) => {
+        try {
+            const canvas = map.getCanvas() as HTMLCanvasElement | null;
+            if (canvas) {
+                canvas.tabIndex = 0;
+                canvas.style.touchAction = 'auto';
+            }
+        } catch (e) {
+            // Ignore errors
+        }
+    };
+
+    /**
+     * Setup info bubble positioning
+     */
+    const setupInfoBubble = (map: mapboxgl.Map) => {
+        try {
+            const pt = map.project(distressCoord);
+            setInfoBubble({ x: pt.x, y: pt.y });
+        } catch (e) {
+            // Ignore errors
+        }
+
+        map.on('move', () => {
+            try {
+                const pt = map.project(distressCoord);
+                setInfoBubble({ x: pt.x, y: pt.y });
+            } catch (e) {
+                // Ignore errors
+            }
+        });
+    };
+
+    /**
+     * Find community details for a signal
+     */
+    const findCommunityDetails = (deviceId: string) => {
+        if (OwnCommunitySignal && deviceId === OwnCommunitySignal.properties.deviceId) {
+            return OwnCommunitySignal.communityDetails;
+        }
+        const found = otherSignals.find(s => s.properties.deviceId === deviceId);
+        return found?.communityDetails;
+    };
+
+    /**
+     * Handle signal pin click
+     */
+    const handleSignalClick = (map: mapboxgl.Map, e: any) => {
+        const f = e.features?.[0];
+        const coord = (f?.geometry?.coordinates as [number, number]) || [e.lngLat.lng, e.lngLat.lat];
+        const deviceId = f?.properties?.deviceId;
+
+        // Find and display circle around clicked signal
+        const signalData = deviceId === OwnCommunitySignal?.properties.deviceId 
+            ? OwnCommunitySignal 
+            : otherSignals.find(s => s.properties.deviceId === deviceId);
+        
+        if (signalData) {
+            displayBeatingCircle(signalData);
+        } else {
+            // If not found in signals, create a signal object from the feature
+            const createdSignal = {
+                coordinates: coord,
+                properties: f?.properties || {}
+            };
+            displayBeatingCircle(createdSignal);
+        }
+
+        flyToSignal(map, coord);
+        
+        const pt = map.project(coord);
+        const rect = mapContainer.current?.getBoundingClientRect();
+        const absX = (rect?.left ?? 0) + pt.x;
+        const absY = (rect?.top ?? 0) + pt.y;
+        const props = f?.properties || {};
+        
+        setPopover({
+            lng: coord[0],
+            lat: coord[1],
+            screen: { x: absX, y: absY },
+            status: props.status || undefined,
+            title: props.name || (props.status === 'offline' ? 'Offline Signal' : 'Community'),
+            address: props.address || undefined,
+            date: props.date || undefined,
+            deviceId: props.deviceId || undefined,
+            focalPerson: props.focalPerson || undefined,
+            altFocalPerson: props.altFocalPerson || undefined,
+            alertType: props.alertType || undefined,
+            contactNumber: props.contactNumber || undefined,
+            timeSent: props.timeSent || undefined,
+            communityDetails: findCommunityDetails(deviceId)
+        });
+    };
+
+    /**
+     * Setup all map interactions (clicks, hovers, popover updates)
+     */
+    const setupMapInteractions = (map: mapboxgl.Map) => {
+        const signalLayers = ["signal-pins"];
+
+        // Signal pin interactions
+        signalLayers.forEach((layerId) => {
+            map.on('click', layerId, (e) => handleSignalClick(map, e));
+            map.on('click', layerId, () => setInfoBubbleVisible(false));
+            map.on('mouseenter', layerId, () => (map.getCanvas().style.cursor = 'pointer'));
+            map.on('mouseleave', layerId, () => (map.getCanvas().style.cursor = ''));
         });
 
-        // Add circle layer (fill style like mapHelpers would use for radius overlays)
-        map.addLayer({
-            id: 'signal-circle',
-            type: 'fill',
-            source: 'signal-circle',
-            paint: {
-                'fill-color': circleColor,
-                'fill-opacity': 0.2
+        // Click on empty map area
+        map.on('click', (e) => {
+            const features = map.queryRenderedFeatures(e.point, { layers: signalLayers });
+            if (features.length === 0 && sidebarOpenRef.current) {
+                removeSignalCircle(map);
+                setIsLiveReportOpen(false);
             }
         });
 
-        // Add circle border
-        map.addLayer({
-            id: 'signal-circle-border',
-            type: 'line',
-            source: 'signal-circle',
-            paint: {
-                'line-color': circleColor,
-                'line-width': 2,
-                'line-opacity': 0.8
+        // Keep popover anchored during map movement
+        map.on('move', () => {
+            const current = popoverRef.current;
+            if (!current) return;
+            
+            try {
+                const pt = map.project([current.lng, current.lat]);
+                const rect = mapContainer.current?.getBoundingClientRect();
+                const absX = (rect?.left ?? 0) + pt.x;
+                const absY = (rect?.top ?? 0) + pt.y;
+                setPopover({ ...current, screen: { x: absX, y: absY } });
+            } catch (e) {
+                // Ignore errors
             }
         });
-
-
     };
 
     // Clean up: close sidebar when component unmounts
@@ -174,8 +323,10 @@ function VisualizationContent() {
         };
     }, [setIsLiveReportOpen]);
 
+    // Initialize map
     useEffect(() => {
         if (!mapContainer.current) return;
+        
         const map = new mapboxgl.Map({
             container: mapContainer.current as HTMLElement,
             style: 'mapbox://styles/mapbox/streets-v12',
@@ -185,158 +336,19 @@ function VisualizationContent() {
             bearing: 0,
             antialias: true,
         });
+        
         mapRef.current = map;
 
         map.on("load", () => {
-            try {
-                // make the canvas focusable so keyboard interactions can work
-                const canvas = map.getCanvas() as HTMLCanvasElement | null;
-                if (canvas) {
-                    canvas.tabIndex = 0;
-                    canvas.style.touchAction = 'auto';
-                }
-            } catch (e) { }
-
+            initializeMapCanvas(map);
             addCustomLayers(map, otherSignals, OwnCommunitySignal);
+            setupInfoBubble(map);
+            setupMapInteractions(map);
             
-            // compute overlay position for the info bubble and keep it updated during moves
-            try {
-                const pt = map.project(distressCoord);
-                setInfoBubble({ x: pt.x, y: pt.y });
-            } catch (e) { }
-            map.on('move', () => {
-                try {
-                    const pt = map.project(distressCoord);
-                    setInfoBubble({ x: pt.x, y: pt.y });
-                } catch (e) { }
-            });
-
-            // Click interactions: open popover anchored to clicked signal
-            const signalLayers = ["signal-pins"];
-
-            const bindLayerClicks = (layerIds: string[]) => {
-                layerIds.forEach((layerId) => {
-                    map.on('click', layerId, (e: any) => {
-                        const f = e.features?.[0];
-                        const coord = (f?.geometry?.coordinates as [number, number]) || [e.lngLat.lng, e.lngLat.lat];
-                        const deviceId = f?.properties?.deviceId;
-
-                        // Find the signal data for the beating circle
-                        let signalData = null;
-                        if (deviceId === OwnCommunitySignal.properties.deviceId) {
-                            signalData = OwnCommunitySignal;
-                        } else {
-                            signalData = otherSignals.find(s => s.properties.deviceId === deviceId);
-                        }
-
-                        // Display beating circle around the clicked signal
-                        if (signalData) {
-                            displayBeatingCircle(signalData);
-                        }
-
-                        try {
-                            // Center the map on the clicked signal's coordinates using utility
-                            flyToSignal(map, coord);
-                            // Show popover immediately at current projected position
-                            const pt = map.project(coord);
-                            const rect = mapContainer.current?.getBoundingClientRect();
-                            const absX = (rect?.left ?? 0) + pt.x;
-                            const absY = (rect?.top ?? 0) + pt.y;
-                            const props = f?.properties || {};
-                            
-                            // Find the community details for this signal
-                            let communityDetails = undefined;
-                            if (deviceId === OwnCommunitySignal.properties.deviceId) {
-                                communityDetails = OwnCommunitySignal.communityDetails;
-                            } else {
-                                const found = otherSignals.find(s => s.properties.deviceId === deviceId);
-                                if (found) communityDetails = found.communityDetails;
-                            }
-                            
-                            setPopover({
-                                lng: coord[0],
-                                lat: coord[1],
-                                screen: { x: absX, y: absY },
-                                status: props.status || undefined,
-                                title: props.name || (props.status === 'offline' ? 'Offline Signal' : 'Community'),
-                                address: props.address || undefined,
-                                date: props.date || undefined,
-                                deviceId: props.deviceId || undefined,
-                                focalPerson: props.focalPerson || undefined,
-                                altFocalPerson: props.altFocalPerson || undefined,
-                                alertType: props.alertType || undefined,
-                                communityDetails: communityDetails
-                            });
-                        } catch (err) {
-                            // fallback: if anything goes wrong, keep previous behavior
-                            flyToSignal(map, coord);
-                            const pt = map.project(coord);
-                            const rect2 = mapContainer.current?.getBoundingClientRect();
-                            const absX2 = (rect2?.left ?? 0) + pt.x;
-                            const absY2 = (rect2?.top ?? 0) + pt.y;
-                            const props = f?.properties || {};
-                            setPopover({
-                                lng: coord[0],
-                                lat: coord[1],
-                                screen: { x: absX2, y: absY2 },
-                                status: props.status || undefined,
-                                title: props.name || (props.status === 'offline' ? 'Offline Signal' : 'Community'),
-                                address: props.address || undefined,
-                                date: props.date || undefined,
-                                alertType: props.alertType || undefined,
-                                communityDetails: undefined // fallback case - no community details
-                            });
-                        }
-                    });
-                    map.on('mouseenter', layerId, () => (map.getCanvas().style.cursor = 'pointer'));
-                    map.on('mouseleave', layerId, () => (map.getCanvas().style.cursor = ''));
-                });
-            };
-
-            // When any signal is clicked, hide the info bubble forever
-            const hideInfoBubbleOnClick = () => setInfoBubbleVisible(false);
-            signalLayers.forEach(layerId => {
-                map.on('click', layerId, hideInfoBubbleOnClick);
-            });
-            bindLayerClicks(signalLayers);
-
-            // Close sidebar when clicking on the map (but not on signal pins)
-            map.on('click', (e) => {
-                // Check if the click was on a signal layer
-                const features = map.queryRenderedFeatures(e.point, { layers: signalLayers });
-                if (features.length === 0 && sidebarOpenRef.current) {
-                    // Remove circle when clicking on empty map area
-                    try {
-                        if (map.getLayer('signal-circle')) map.removeLayer('signal-circle');
-                        if (map.getLayer('signal-circle-border')) map.removeLayer('signal-circle-border');
-                        if (map.getSource('signal-circle')) map.removeSource('signal-circle');
-                    } catch (e) { /* ignore */ }
-                    // Only close if clicking on empty map area and sidebar is open
-                    setIsLiveReportOpen(false);
-                }
-            });
-
-            // Keep popover anchored while moving
-            map.on('move', () => {
-                const current = popoverRef.current;
-                if (!current) return;
-                try {
-                    const pt = map.project([current.lng, current.lat]);
-                    const rect = mapContainer.current?.getBoundingClientRect();
-                    const absX = (rect?.left ?? 0) + pt.x;
-                    const absY = (rect?.top ?? 0) + pt.y;
-                    setPopover({ ...current, screen: { x: absX, y: absY } });
-                } catch (e) {
-                    // ignore
-                }
-            });
-            
-            // fly into the area
             setTimeout(() => {
                 cinematicMapEntrance(map, distressCoord);
             }, 600);
 
-            // Map loaded state
             setMapLoaded(true);
         });
 
@@ -346,12 +358,33 @@ function VisualizationContent() {
         };
     }, []);
 
-    // Handler for opening community info sheet from popover
+    // Update map layers when signals change
+    useEffect(() => {
+        const map = mapRef.current;
+        if (map && map.isStyleLoaded() && otherSignals.length > 0) {
+            addCustomLayers(map, otherSignals, OwnCommunitySignal);
+        }
+    }, [otherSignals, OwnCommunitySignal]);
+
+    /**
+     * Handler for opening community info sheet from popover
+     */
     const handleOpenCommunityInfo = () => {
         if (popover?.communityDetails) {
             setSelectedCommunityData(popover.communityDetails);
             setInfoSheetOpen(true);
         }
+    };
+
+    /**
+     * Handler for closing popover
+     */
+    const handleClosePopover = () => {
+        const map = mapRef.current;
+        if (map) {
+            removeSignalCircle(map);
+        }
+        setPopover(null);
     };
 
     return (
@@ -374,18 +407,7 @@ function VisualizationContent() {
                 infoBubbleVisible={infoBubbleVisible}
                 onOpenCommunityInfo={handleOpenCommunityInfo}
                 onDispatchRescue={handleDispatchRescue}
-                onClose={() => {
-                    // Remove circle when popover closes
-                    const map = mapRef.current;
-                    if (map) {
-                        try {
-                            if (map.getLayer('signal-circle')) map.removeLayer('signal-circle');
-                            if (map.getLayer('signal-circle-border')) map.removeLayer('signal-circle-border');
-                            if (map.getSource('signal-circle')) map.removeSource('signal-circle');
-                        } catch (e) { /* ignore */ }
-                    }
-                    setPopover(null);
-                }}
+                onClose={handleClosePopover}
             />
 
             <MapControls 
@@ -401,7 +423,7 @@ function VisualizationContent() {
             <LiveReportSidebar
                 isOpen={isLiveReportOpen}
                 onClose={() => setIsLiveReportOpen(false)}
-                signals={[...otherSignals, OwnCommunitySignal]}
+                signals={OwnCommunitySignal ? [...otherSignals, OwnCommunitySignal] : otherSignals}
                 onCardClick={(signal) => {
                     const map = mapRef.current;
                     if (!map) return;

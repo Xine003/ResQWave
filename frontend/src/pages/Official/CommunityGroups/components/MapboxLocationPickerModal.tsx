@@ -15,7 +15,7 @@ interface MapboxLocationPickerModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onLocationSelect: (address: string, coordinates: string) => void
-  initialCoordinates?: string // "lat, lng" format
+  initialCoordinates?: string // "lng, lat" format (Mapbox standard)
 }
 
 export function MapboxLocationPickerModal({
@@ -40,7 +40,8 @@ export function MapboxLocationPickerModal({
     if (initialCoordinates) {
       const parts = initialCoordinates.split(',').map(s => parseFloat(s.trim()))
       if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-        return [parts[1], parts[0]] // [lng, lat]
+        // Coordinates are already in lng,lat format (Mapbox standard)
+        return [parts[0], parts[1]] // [lng, lat]
       }
     }
     return [121.049366, 14.762601] // Default Manila
@@ -77,7 +78,9 @@ export function MapboxLocationPickerModal({
       
       reverseGeocode(lng, lat).then((address) => {
         setSelectedPoint({ lng, lat, address })
-      }).catch(() => {
+        console.log(`✅ Initial location geocoded: ${address}`)
+      }).catch((err) => {
+        console.error("❌ Failed to geocode initial location:", err)
         setSelectedPoint({ lng, lat, address: `${lat.toFixed(6)}, ${lng.toFixed(6)}` })
       })
     }
@@ -127,6 +130,8 @@ export function MapboxLocationPickerModal({
     function onMapClick(e: any) {
       const { lng, lat } = e.lngLat
       
+      console.log(`📍 Map clicked at: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`)
+      
       // Set/update marker
       if (markerRef.current) {
         markerRef.current.setLngLat([lng, lat])
@@ -141,12 +146,14 @@ export function MapboxLocationPickerModal({
       
       // Reverse geocode for address
       reverseGeocode(lng, lat).then((address) => {
+        console.log(`✅ Address found: ${address}`)
         setSelectedPoint({ lng, lat, address })
-        alertsRef.current?.showPinAlert(`${address}\n${lat.toFixed(6)}, ${lng.toFixed(6)}`)
-      }).catch(() => {
-        const fallback = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+        alertsRef.current?.showPinAlert(`${address}\n${lng.toFixed(6)}, ${lat.toFixed(6)}`)
+      }).catch((err) => {
+        console.error("❌ Geocoding failed:", err)
+        const fallback = `${lng.toFixed(6)}, ${lat.toFixed(6)}`
         setSelectedPoint({ lng, lat, address: fallback })
-        alertsRef.current?.showPinAlert(fallback)
+        alertsRef.current?.showPinAlert(`Coordinates: ${fallback}`)
       })
     }
 
@@ -205,8 +212,8 @@ export function MapboxLocationPickerModal({
     // Hide alerts
     alertsRef.current?.hideAll()
     
-    // Pass data back to parent
-    const coordinates = `${selectedPoint.lat.toFixed(6)}, ${selectedPoint.lng.toFixed(6)}`
+    // Pass data back to parent - MUST be lng,lat format for Mapbox
+    const coordinates = `${selectedPoint.lng.toFixed(6)}, ${selectedPoint.lat.toFixed(6)}`
     onLocationSelect(selectedPoint.address, coordinates)
     
     // Clean up and close
