@@ -207,7 +207,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     // Fetch alt focal photo from backend
     const fetchAltFocalPhoto = async (neighborhoodId: string) => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/neighborhood/${neighborhoodId}/alt-photo`, {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/neighborhood/${neighborhoodId}/alt-photo`, {
                 credentials: 'include',
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
@@ -601,7 +601,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                         if (altPhotoFile) {
                                             const formData = new FormData();
                                             formData.append('alternativeFPImage', altPhotoFile);
-                                            await fetch(`${import.meta.env.VITE_API_URL}/neighborhood/${data.groupName}/alt-photo`, {
+                                            await fetch(`${import.meta.env.VITE_BACKEND_URL}/neighborhood/${data.groupName}/alt-photo`, {
                                                 method: 'POST',
                                                 credentials: 'include',
                                                 headers: token ? { Authorization: `Bearer ${token}` } : {},

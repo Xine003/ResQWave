@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 
-import { Eye, ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
+import { exportToPdf } from '../utils/exportUtils';
+import type { ExportData } from '../utils/exportUtils';
 import { Input } from '@/components/ui/input';
 import {
     DropdownMenu,
@@ -22,30 +24,18 @@ type HistoryModalProps = {
 const { sampleReports } = useSampleReports();
 
 export default function HistoryModal({ open, onClose, center = null }: HistoryModalProps) {
-    const ANIM_MS = 220;
-    const [mounted, setMounted] = useState<boolean>(open);
-    const [visible, setVisible] = useState<boolean>(open);
-    useEffect(() => {
-        if (open) {
-            setMounted(true);
-            requestAnimationFrame(() => setVisible(true));
-        } else {
-            setVisible(false);
-            const t = setTimeout(() => setMounted(false), ANIM_MS);
-            return () => clearTimeout(t);
-        }
-    }, [open]);
+    // State for filters and UI
     const [query, setQuery] = useState('');
-    const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
-    const [selectedMonth, setSelectedMonth] = useState<string>('Month');
-    const [selectedYear, setSelectedYear] = useState<string>('Year');
-    const [selectedType, setSelectedType] = useState<string>('All Types');
+    const [selectedMonth, setSelectedMonth] = useState('Month');
+    const [selectedYear, setSelectedYear] = useState('Year');
+    const [selectedType, setSelectedType] = useState('All Types');
     const [monthOpen, setMonthOpen] = useState(false);
     const [yearOpen, setYearOpen] = useState(false);
-    // State to control PDF modal
-    const [pdfOpen, setPdfOpen] = useState(false);
-    // Optionally, you could store the PDF path or report id if needed for dynamic PDFs
     const [typeOpen, setTypeOpen] = useState(false);
+    const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
+    const [mounted, setMounted] = useState<boolean>(open);
+    const [visible, setVisible] = useState<boolean>(open);
+    const [pdfExporting, setPdfExporting] = useState(false);
     const monthRef = useRef<HTMLButtonElement | null>(null);
     const yearRef = useRef<HTMLButtonElement | null>(null);
     const typeRef = useRef<HTMLButtonElement | null>(null);
@@ -62,13 +52,9 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
     // Derive filtered groups based on search and filters
     const groupedReports = useMemo(() => {
         const q = query.trim().toLowerCase();
-
         return sampleReports.map((group: ReportGroup) => {
             const filteredItems = group.items.filter((item: ReportItem) => {
-                // search by id
                 if (q && !item.id.toLowerCase().includes(q)) return false;
-
-                // parse date to evaluate month/year
                 const parsed = new Date(item.date);
                 if (selectedMonth !== 'Month') {
                     const monthName = months[parsed.getMonth()];
@@ -78,15 +64,11 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
                     const yearStr = String(parsed.getFullYear());
                     if (yearStr !== selectedYear) return false;
                 }
-
-                // filter by type if selected
                 if (selectedType !== 'All Types') {
                     if ((item as any).type !== selectedType) return false;
                 }
-
                 return true;
             });
-
             return { ...group, items: filteredItems, count: filteredItems.length };
         }).filter(g => g.items.length > 0);
     }, [query, selectedMonth, selectedYear, selectedType]);
@@ -128,13 +110,16 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
     }
 
     // If parent changes `open` to false (modal closed), reset filters AFTER exit animation
+    const ANIM_MS = 220;
     useEffect(() => {
-        // when 'open' becomes false, schedule reset after exit animation
-        if (!open) {
-            const t = setTimeout(() => {
-                try { resetFilters(); } catch (e) { }
-            }, ANIM_MS + 10);
-            return () => clearTimeout(t);
+        if (open) {
+            setMounted(true);
+            requestAnimationFrame(() => setVisible(true));
+        } else {
+            setVisible(false);
+            const t = setTimeout(() => setMounted(false), ANIM_MS);
+            const t2 = setTimeout(() => { try { resetFilters(); } catch (e) { } }, ANIM_MS + 10);
+            return () => { clearTimeout(t); clearTimeout(t2); };
         }
         return;
     }, [open]);
@@ -182,6 +167,29 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
             ? `translate(-50%, -50%) translateY(${visible ? '0' : '-8px'})`
             : `${visible ? 'translateY(0)' : 'translateY(-8px)'}`,
         transition: `opacity ${ANIM_MS}ms ease, transform ${ANIM_MS}ms cubic-bezier(.2,.9,.2,1)`,
+    };
+
+    // PDF export handler and mock data
+    const mockExportData: ExportData = {
+        title: "Community Emergency History",
+        totalItems: 2,
+        summary: "Summary of recent emergency reports in your community.",
+        items: [
+            { term: "Flood", definition: "Heavy rainfall caused flooding in the area." },
+            { term: "Fire", definition: "A fire incident was reported in Block 3." }
+        ]
+    };
+
+    // PDF export: use exportToPdf utility for correct layout
+    const handleExportPdf = async () => {
+        setPdfExporting(true);
+        try {
+            await exportToPdf(mockExportData, ''); // headerImage param unused in new layout
+            console.log('PDF opened in new tab.');
+        } catch (err) {
+            console.error('PDF export failed:', err);
+        }
+        setPdfExporting(false);
     };
 
     return (
@@ -366,7 +374,7 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
                                                 }}
                                                 onMouseEnter={e => {
                                                     e.currentTarget.style.background = '#313131';
-                                                    e.currentTarget.style.borderColor = '#6b7280'; // lighter gray
+                                                    e.currentTarget.style.borderColor = '#6b7280';
                                                 }}
                                                 onMouseLeave={e => {
                                                     e.currentTarget.style.background = '#262626';
@@ -377,33 +385,18 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
                                                     <div style={{ fontWeight: 400, letterSpacing: 0.2 }}>{r.id}</div>
                                                     <div style={{ fontSize: 13, color: '#cfcfcf', marginTop: 6 }}>Accomplished on {r.date}</div>
                                                 </div>
-
                                                 <button
                                                     style={{
                                                         background: "rgba(59,130,246,0.10)", border: "none", width: 47, height: 47, borderRadius: 6, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                                                        cursor: "pointer", boxShadow: "inset 0 0 0 1px rgba(103,161,255,0.06)", transition: "all 0.2s ease-in-out", // smooth effect
+                                                        cursor: pdfExporting ? "not-allowed" : "pointer", boxShadow: "inset 0 0 0 1px rgba(103,161,255,0.06)", transition: "all 0.2s ease-in-out",
                                                     }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.background = "rgba(59,130,246,0.18)" // lighter
-                                                        e.currentTarget.style.boxShadow =
-                                                            "inset 0 0 0 1px rgba(59,130,246,0.3)" // stronger border
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.background = "rgba(59,130,246,0.10)" // reset
-                                                        e.currentTarget.style.boxShadow =
-                                                            "inset 0 0 0 1px rgba(103,161,255,0.06)" // reset
-                                                    }}
-                                                    aria-label="View report"
-                                                    onClick={() => setPdfOpen(true)}
+                                                    aria-label="View PDF"
+                                                    onClick={handleExportPdf}
+                                                    disabled={pdfExporting}
                                                 >
-                                                    <Eye
-                                                        size={21}
-                                                        color="#3B82F6"
-                                                        style={{
-                                                            transition: "transform 0.2s ease-in-out, color 0.2s ease-in-out",
-                                                        }}
-                                                        className="hover:scale-110"
-                                                    />
+                                                    {/* Eye icon SVG */}
+                                                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="12" r="3.5" stroke="#3B82F6" strokeWidth="2" /></svg>
+                                                    {pdfExporting ? '...' : ''}
                                                 </button>
                                             </div>
                                         ))}
@@ -414,46 +407,6 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
                     </div>
                 </div>
             </div>
-            {/* PDF Modal */}
-            {pdfOpen && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(0,0,0,0.85)',
-                    zIndex: 999999,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}>
-                    <div style={{
-                        background: '#171717',
-                        borderRadius: 10,
-                        boxShadow: '0 12px 48px rgba(0,0,0,0.35)',
-                        padding: 0,
-                        width: 'min(1200px, 99vw)',
-                        height: 'min(96vh, 900px)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        position: 'relative',
-                    }}>
-                        <button
-                            onClick={() => setPdfOpen(false)}
-                            aria-label="Close PDF"
-                            style={{
-                                position: 'absolute', right: 22, top: 16, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 28,
-                                cursor: 'pointer', zIndex: 2, fontWeight: 700,
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#fff'; }}
-                            onMouseLeave={e => { e.currentTarget.style.color = '#BABABA'; }}
-                        >✕</button>
-                        <iframe
-                            src="/sample_document_report.pdf"
-                            style={{ width: '100%', height: '100%', border: 'none', borderRadius: 10 }}
-                            title="Document Report PDF"
-                        />
-                    </div>
-                </div>
-            )}
         </>
     );
 }
