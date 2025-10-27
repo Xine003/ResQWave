@@ -77,6 +77,52 @@ const createUserInitiatedAlert = async (req, res) => {
 	}
 };
 
+  // Map View 
+const getMapAlert = async (req, res) => {
+  try {
+    const cacheKey = "mapAlerts:latestPerTerminal";
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
+
+    
+    const latestSQ = alertRepo
+      .createQueryBuilder("a")
+      .select("a.terminalID", "terminalID")
+      .addSelect("MAX(a.dateTimeSent)", "lastTime")
+      .groupBy("a.terminalID");
+
+    const rows = await alertRepo
+      .createQueryBuilder("alert")
+      .innerJoin(
+        "(" + latestSQ.getQuery() + ")",
+        "last",
+        "last.terminalID = alert.terminalID AND last.lastTime = alert.dateTimeSent"
+      )
+      .setParameters(latestSQ.getParameters())
+      .leftJoin("Terminal", "t", "t.id = alert.terminalID")
+      .leftJoin("Neighborhood", "n", "n.terminalID = alert.terminalID")
+      .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+      .select([
+        "t.name AS terminalName",
+        "alert.alertType AS alertType",
+        "t.status AS terminalStatus",
+        "alert.dateTimeSent AS timeSent",
+        "fp.firstName AS focalFirstName",
+        "fp.lastName AS focalLastName",
+        "fp.address AS focalAddress",
+        "fp.contactNumber AS focalContactNumber",
+      ])
+      .orderBy("alert.dateTimeSent", "DESC")
+      .getRawMany();
+
+    await setCache(cacheKey, rows, 10);
+    return res.json(rows);
+  } catch (err) {
+    console.error("Get Map Alert error:", err);
+    return res.status(500).json({ message: "Server Error - READ Map Alert" });
+  }
+};
+
 // Get All Alerts
 // Table View
 const getAlerts = async (req, res) => {
@@ -370,6 +416,7 @@ const updateAlertStatus = async (req, res) => {
 module.exports = {
 	createCriticalAlert,
 	createUserInitiatedAlert,
+  getMapAlert,
 	getAlerts,
 	getDispatchedAlerts,
 	getWaitlistedAlerts,
