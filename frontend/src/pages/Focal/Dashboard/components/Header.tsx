@@ -8,7 +8,7 @@ import { LogOut, User, BookOpen } from "lucide-react";
 import type { HeaderProps } from '../types/header';
 import { useFocalAuth } from '../../context/focalAuthContext';
 
-export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community', onAccountSettingsClick, accountSettingsOpen = false, onRequestCloseAccountSettings }: HeaderProps) {
+export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community', onAccountSettingsClick, onActivityLogClick, accountSettingsOpen = false, onRequestCloseAccountSettings }: HeaderProps) {
     const navigate = useNavigate();
     const [popoverOpen, setPopoverOpen] = React.useState(false);
     const { logout } = useFocalAuth();
@@ -192,7 +192,10 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                         <PopoverItem icon={<User size={16} />} onClick={() => { setPopoverOpen(false); onAccountSettingsClick?.(); }}>
                             Account Settings
                         </PopoverItem>
-                        <PopoverItem icon={<BookOpen size={16} />}>
+                        <PopoverItem
+                            icon={<BookOpen size={16} />}
+                            onClick={() => { setPopoverOpen(false); onActivityLogClick?.(); }}
+                        >
                             Logs
                         </PopoverItem>
                         <PopoverSeparator />

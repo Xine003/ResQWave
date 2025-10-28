@@ -12,6 +12,7 @@ export type HeaderProps = {
     onTabChange?: (value: string) => void;
     activeTab?: string;
     onAccountSettingsClick?: () => void;
+    onActivityLogClick?: () => void;
     // When the Account Settings (Change Password) modal is open
     accountSettingsOpen?: boolean;
     // Called when header navigation is attempted while account settings modal is open.

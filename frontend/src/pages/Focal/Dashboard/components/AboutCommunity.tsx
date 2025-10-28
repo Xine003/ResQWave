@@ -54,7 +54,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         let revoked = false;
         const fetchAltFocalPhoto = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/neighborhood/${data.groupName}/alt-photo`, {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/neighborhood/${data.groupName}/alt-photo`, {
                     credentials: 'include',
                     headers: token ? { Authorization: `Bearer ${token}` } : {},
                 });
