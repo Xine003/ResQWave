@@ -265,7 +265,7 @@ const adminDispatcherVerify = async (req, res) => {
     const token = jwt.sign(
       { id: decoded.id, role: decoded.role, name: userData.name, sessionID },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "8h" }
     );
 
     return res.json({ 
