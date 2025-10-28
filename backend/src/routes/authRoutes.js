@@ -1,13 +1,24 @@
 const express = require("express");
-const { register, adminDispatcherLogin, adminDispatcherVerify, focalLogin, logout, getCurrentUser } = require("../controllers/authController");
+const { 
+    register, 
+    getCurrentUser,
+    adminDispatcherLogin, 
+    adminDispatcherVerify, 
+    focalLogin,
+    resendFocalLoginCode,
+    resendAdminDispatcherCode, 
+    logout, 
+     } = require("../controllers/authController");
 
 
 const router = express.Router();
 
 router.post("/register", register);
 router.post("/login", adminDispatcherLogin);
+router.post("/resend", resendAdminDispatcherCode);
 router.post("/verify-login", adminDispatcherVerify);
 router.post("/focal/login", focalLogin);
+router.post("/focal/resend", resendFocalLoginCode);
 router.post("/logout", logout);
 router.get("/me", getCurrentUser);
 

@@ -362,6 +362,153 @@ const getCurrentUser = async (req, res) => {
     }
 };
 
+// Resend Focal Login OTP
+const resendFocalLoginCode = async (req, res) => {
+  try {
+    const { tempToken, emailOrNumber } = req.body || {};
+
+    let focal = null;
+
+    if (tempToken) {
+      try {
+        const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+        if (decoded.step !== "2fa" || decoded.role !== "focalPerson") {
+          return res.status(400).json({ message: "Invalid token context" });
+        }
+        focal = await focalRepo.findOne({ where: { id: decoded.id } });
+      } catch {
+        return res.status(401).json({ message: "Invalid or expired temp token" });
+      }
+    } else {
+      const identifier = String(emailOrNumber || "").trim();
+      if (!identifier) return res.status(400).json({ message: "emailOrNumber is required" });
+      focal = await focalRepo.findOne({
+        where: [{ email: identifier }, { contactNumber: identifier }],
+      });
+    }
+
+    if (!focal) return res.status(404).json({ message: "Focal Person Not Found" });
+
+    // Generate new code
+    const code = crypto.randomInt(100000, 999999).toString();
+    const expiry = new Date(Date.now() + 5 * 60 * 1000);
+
+    // Replace any pending OTP for this user
+    await loginVerificationRepo.delete({ userID: focal.id, userType: "focalPerson" });
+    await loginVerificationRepo.save({ userID: focal.id, userType: "focalPerson", code, expiry });
+
+    // Send email
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      tls: { rejectUnauthorized: false },
+    });
+    await transporter.sendMail({
+      from: `"ResQWave" <${process.env.EMAIL_USER}>`,
+      to: focal.email,
+      subject: "ResQWave 2FA Verification (Resend)",
+      text: `Your login verification code is ${code}. It expires in 5 minutes.`,
+    });
+
+    // Return a fresh temp token for the new code window
+    const newTempToken = jwt.sign(
+      { id: focal.id, role: "focalPerson", step: "2fa" },
+      process.env.JWT_SECRET,
+      { expiresIn: "5m" }
+    );
+
+    return res.json({ message: "Verification Resent", tempToken: newTempToken });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error - RESEND Focal 2FA" });
+  }
+};
+
+// Resend Admin/Dispatcher OTP 
+const resendAdminDispatcherCode = async (req, res) => {
+  try {
+    const { tempToken, emailOrNumber } = req.body || {};
+
+    let role = null;
+    let user = null;
+    let recipientEmail = null;
+
+    if (tempToken) {
+      let decoded;
+      try {
+        decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+      } catch {
+        return res.status(401).json({ message: "Invalid or expired temp token" });
+      }
+      if (decoded.step !== "2fa" || !["admin", "dispatcher"].includes(decoded.role)) {
+        return res.status(400).json({ message: "Invalid token context" });
+      }
+      role = decoded.role;
+
+      if (role === "admin") {
+        user = await adminRepo.findOne({ where: { id: decoded.id } });
+        recipientEmail = user?.email || null;
+      } else {
+        user = await dispatcherRepo.findOne({ where: { id: decoded.id } });
+        recipientEmail = user?.email || null;
+      }
+    } else {
+      const identifier = String(emailOrNumber || "").trim();
+      if (!identifier) return res.status(400).json({ message: "emailOrNumber is required" });
+
+      // Try Admin by name first (matches your login flow)
+      const admin = await adminRepo.findOne({ where: { name: identifier } });
+      if (admin) {
+        role = "admin";
+        user = admin;
+        recipientEmail = admin.email;
+      } else {
+        const dispatcher = await dispatcherRepo.findOne({
+          where: [{ email: identifier }, { contactNumber: identifier }],
+        });
+        if (dispatcher) {
+          role = "dispatcher";
+          user = dispatcher;
+          recipientEmail = dispatcher.email;
+        }
+      }
+    }
+
+    if (!user || !role) {
+      return res.status(404).json({ message: "User not found for resend" });
+    }
+
+    const code = crypto.randomInt(100000, 999999).toString();
+    const expiry = new Date(Date.now() + 5 * 60 * 1000);
+
+    await loginVerificationRepo.delete({ userID: user.id, userType: role });
+    await loginVerificationRepo.save({ userID: user.id, userType: role, code, expiry });
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      tls: { rejectUnauthorized: false },
+    });
+    await transporter.sendMail({
+      from: `"ResQWave" <${process.env.EMAIL_USER}>`,
+      to: recipientEmail,
+      subject: "ResQWave Login Verification Code (Resend)",
+      text: `Your verification code is ${code}. It expires in 5 minutes.`,
+    });
+
+    const newTempToken = jwt.sign(
+      { id: user.id, role, step: "2fa" },
+      process.env.JWT_SECRET,
+      { expiresIn: "5m" }
+    );
+
+    return res.json({ message: "Verification Resent", tempToken: newTempToken });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error - RESEND Admin/Dispatcher 2FA" });
+  }
+};
+
 // Logout
 const logout = async (req, res) => {
     try {
@@ -388,5 +535,7 @@ module.exports = {
     logout,
     adminDispatcherLogin,
     adminDispatcherVerify,
+    resendFocalLoginCode,
+    resendAdminDispatcherCode,
     getCurrentUser,
 };
