@@ -34,7 +34,7 @@ export interface MapSignal {
  * Parse coordinates from JSON address format
  * Format: {"address":"...","coordinates":"lng, lat"}
  */
-function parseCoordinates(addressJson: string): [number, number] | null {
+export function parseCoordinates(addressJson: string): [number, number] | null {
     if (!addressJson) return null;
     
     try {
@@ -62,7 +62,7 @@ function parseCoordinates(addressJson: string): [number, number] | null {
 /**
  * Extract readable address from JSON format
  */
-function extractAddress(addressJson: string): string {
+export function extractAddress(addressJson: string): string {
     if (!addressJson) return 'N/A';
     
     try {
@@ -81,7 +81,7 @@ function extractAddress(addressJson: string): string {
 /**
  * Format timestamp to readable time
  */
-function formatTime(timestamp: string): string {
+export function formatTime(timestamp: string): string {
     try {
         const date = new Date(timestamp);
         return date.toLocaleTimeString('en-US', {
@@ -97,7 +97,7 @@ function formatTime(timestamp: string): string {
 /**
  * Transform backend response to MapSignal format
  */
-function transformToMapSignal(alert: MapAlertResponse): MapSignal | null {
+export function transformToMapSignal(alert: MapAlertResponse): MapSignal | null {
     const coordinates = parseCoordinates(alert.focalAddress);
     
     if (!coordinates) return null;

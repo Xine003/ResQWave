@@ -1,13 +1,25 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import type { MapSignal } from '../api/mapAlerts';
 import type { InfoBubble, Signal, SignalPopover } from '../types/signals';
 import { useMapAlerts } from './useMapAlerts';
+import { useMapWebSocket } from './useMapWebSocket';
 
 export default function useSignals() {
-    const { signals: mapSignals, isLoading, error } = useMapAlerts();
+    const { signals: mapSignals, isLoading, error, addSignal } = useMapAlerts();
     
     const [popover, setPopover] = useState<SignalPopover | null>(null);
     const [infoBubble, setInfoBubble] = useState<InfoBubble | null>(null);
     const [infoBubbleVisible, setInfoBubbleVisible] = useState(true);
+    
+    // Handle new alerts from WebSocket
+    const handleNewAlert = useCallback((newSignal: MapSignal) => {
+        console.log('[useSignals] New alert from WebSocket:', newSignal);
+        // addSignal now handles both adding new and updating existing
+        addSignal(newSignal);
+    }, [addSignal]);
+    
+    // Set up WebSocket listener
+    const { isConnected } = useMapWebSocket({ onNewAlert: handleNewAlert });
     
     // Transform backend MapSignal[] to frontend Signal[] format
     const transformedSignals: Signal[] = mapSignals.map(signal => {
@@ -44,7 +56,8 @@ export default function useSignals() {
         setInfoBubbleVisible,
         getDistressCoord,
         isLoading,
-        error
+        error,
+        isConnected
     } as const;
 }
 

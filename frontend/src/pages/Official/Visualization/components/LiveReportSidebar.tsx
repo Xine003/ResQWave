@@ -50,7 +50,7 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
 
     const renderAlertCard = (signal: Signal, index: number) => (
         <div 
-            key={`${signal.properties.deviceId}-${index}`} 
+            key={signal.properties.deviceId} 
             className="border border-[#2a2a2a] rounded-[5px] p-4 mb-3 relative hover:bg-[#262626] transition-colors duration-200 cursor-pointer"
             onClick={() => onCardClick?.(signal)}
         >
@@ -128,9 +128,18 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
     );
 
     const renderAlerts = (alerts: Signal[]) => {
+        // Remove duplicates based on deviceId
+        const uniqueAlerts = alerts.reduce((acc, current) => {
+            const exists = acc.find(item => item.properties.deviceId === current.properties.deviceId);
+            if (!exists) {
+                acc.push(current);
+            }
+            return acc;
+        }, [] as Signal[]);
+
         const totalItems = activeTab === 'waitlisted' 
-            ? alerts.length + (waitlistedForms?.length || 0)
-            : alerts.length;
+            ? uniqueAlerts.length + (waitlistedForms?.length || 0)
+            : uniqueAlerts.length;
 
         if (totalItems === 0) {
             return (
@@ -140,7 +149,7 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
             );
         }
 
-        const alertCards = alerts.map((signal, index) => renderAlertCard(signal, index));
+        const alertCards = uniqueAlerts.map((signal, index) => renderAlertCard(signal, index));
         
         if (activeTab === 'waitlisted' && waitlistedForms) {
             const waitlistCards = waitlistedForms.map((form: WaitlistedRescueForm, index: number) => renderWaitlistCard(form, index));
@@ -152,9 +161,10 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
 
     return (
         <div 
-            className={`fixed top-0 right-0 h-full w-[400px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out z-40 ${
+            className={`fixed top-0 right-0 h-full w-[400px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out ${
                 isOpen ? 'translate-x-0' : 'translate-x-full'
             }`}
+            style={{ zIndex: 50 }}
         >
             {/* Header */}
             <div className="p-5.5 border-b border-[#2a2a2a]">

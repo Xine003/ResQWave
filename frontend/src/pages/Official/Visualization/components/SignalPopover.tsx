@@ -83,11 +83,21 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
                             />
                             <PopoverRow 
                                 label="Alert Type" 
-                                value={popover.alertType || 'N/A'} 
+                                value={
+                                    popover.alertType === 'CRITICAL' ? 'Critical' :
+                                    popover.alertType === 'USER-INITIATED' ? 'User-Initiated' :
+                                    popover.alertType === 'ONLINE' ? 'No Alert' :
+                                    popover.alertType === 'OFFLINE' ? 'No Alert' :
+                                    'N/A'
+                                } 
                             />
                             <PopoverRow 
-                                label="Status" 
-                                value={popover.status || 'N/A'} 
+                                label="Terminal Status" 
+                                value={
+                                    popover.status === 'ONLINE' ? 'Online' :
+                                    popover.status === 'OFFLINE' ? 'Offline' :
+                                    popover.status || 'N/A'
+                                } 
                             />
                             <PopoverRow 
                                 label="Time Sent" 

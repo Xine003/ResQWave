@@ -6,6 +6,8 @@ interface UseMapAlertsReturn {
     isLoading: boolean;
     error: Error | null;
     refetch: () => Promise<void>;
+    addSignal: (signal: MapSignal) => void;
+    updateSignal: (signal: MapSignal) => void;
 }
 
 /**
@@ -40,10 +42,47 @@ export function useMapAlerts(): UseMapAlertsReturn {
         return () => clearInterval(interval);
     }, [fetchSignals]);
 
+    // Add a new signal (from WebSocket)
+    const addSignal = useCallback((newSignal: MapSignal) => {
+        setSignals(prev => {
+            // Check if terminal already has a signal displayed
+            const existingIndex = prev.findIndex(s => s.deviceId === newSignal.deviceId);
+            
+            if (existingIndex !== -1) {
+                // Update the existing signal for this terminal
+                console.log('[useMapAlerts] Terminal already exists, updating signal');
+                const newSignals = [...prev];
+                newSignals[existingIndex] = newSignal;
+                return newSignals;
+            }
+            
+            // Add new signal if terminal doesn't exist
+            console.log('[useMapAlerts] Adding new signal for terminal');
+            return [...prev, newSignal];
+        });
+    }, []);
+
+    // Update an existing signal (from WebSocket)
+    const updateSignal = useCallback((updatedSignal: MapSignal) => {
+        setSignals(prev => {
+            const index = prev.findIndex(s => s.deviceId === updatedSignal.deviceId);
+            if (index === -1) {
+                console.log('[useMapAlerts] Signal not found, adding instead');
+                return [...prev, updatedSignal];
+            }
+            console.log('[useMapAlerts] Updating signal at index', index);
+            const newSignals = [...prev];
+            newSignals[index] = updatedSignal;
+            return newSignals;
+        });
+    }, []);
+
     return {
         signals,
         isLoading,
         error,
-        refetch: fetchSignals
+        refetch: fetchSignals,
+        addSignal,
+        updateSignal
     };
 }

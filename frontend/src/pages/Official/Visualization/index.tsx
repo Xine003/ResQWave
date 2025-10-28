@@ -1,4 +1,5 @@
 import { useLiveReport } from '@/components/Official/LiveReportContext';
+import { TestWebSocketButton } from '@/components/TestWebSocketButton';
 import { Button } from "@/components/ui/button";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -418,6 +419,11 @@ function VisualizationContent() {
                 onToggleLiveReport={() => setIsLiveReportOpen(!isLiveReportOpen)}
                 isLiveReportOpen={isLiveReportOpen}
             />
+
+            {/* Test WebSocket Button - Remove after testing */}
+            <div style={{ position: 'absolute', top: 20, right: 420, zIndex: 50 }}>
+                <TestWebSocketButton />
+            </div>
 
             {/* Live Report Sidebar */}
             <LiveReportSidebar
