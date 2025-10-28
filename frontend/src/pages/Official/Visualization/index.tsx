@@ -62,8 +62,9 @@ function VisualizationContent() {
         setInfoBubble, 
         infoBubbleVisible, 
         setInfoBubbleVisible, 
-        getDistressCoord 
-    } = signals as unknown as VisualizationSignals;
+        getDistressCoord,
+        removeSignal // Function to remove dispatched alerts from map
+    } = signals as unknown as VisualizationSignals & { removeSignal: (alertId: string) => void };
     
     const distressCoord: [number, number] = getDistressCoord();
     const popoverRef = useRef<typeof popover>(popover);
@@ -263,6 +264,7 @@ function VisualizationContent() {
             lng: coord[0],
             lat: coord[1],
             screen: { x: absX, y: absY },
+            alertId: props.alertId || undefined,
             status: props.status || undefined,
             title: props.name || (props.status === 'offline' ? 'Offline Signal' : 'Community'),
             address: props.address || undefined,
@@ -408,6 +410,7 @@ function VisualizationContent() {
                 infoBubbleVisible={infoBubbleVisible}
                 onOpenCommunityInfo={handleOpenCommunityInfo}
                 onDispatchRescue={handleDispatchRescue}
+                onRemoveSignal={removeSignal}
                 onClose={handleClosePopover}
             />
 
@@ -455,6 +458,7 @@ function VisualizationContent() {
                             lng: coord[0],
                             lat: coord[1],
                             screen: { x: absX, y: absY },
+                            alertId: signal.properties.alertId || undefined,
                             status: signal.properties.status || undefined,
                             title: signal.properties.name || 'Unknown Location',
                             address: signal.properties.address || undefined,

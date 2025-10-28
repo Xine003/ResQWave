@@ -8,6 +8,7 @@ interface UseMapAlertsReturn {
     refetch: () => Promise<void>;
     addSignal: (signal: MapSignal) => void;
     updateSignal: (signal: MapSignal) => void;
+    removeSignal: (alertId: string) => void;
 }
 
 /**
@@ -77,12 +78,21 @@ export function useMapAlerts(): UseMapAlertsReturn {
         });
     }, []);
 
+    // Remove a signal by alertId (used when dispatched)
+    const removeSignal = useCallback((alertId: string) => {
+        setSignals(prev => {
+            console.log('[useMapAlerts] Removing signal with alertId:', alertId);
+            return prev.filter(s => s.alertId !== alertId);
+        });
+    }, []);
+
     return {
         signals,
         isLoading,
         error,
         refetch: fetchSignals,
         addSignal,
-        updateSignal
+        updateSignal,
+        removeSignal
     };
 }

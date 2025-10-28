@@ -100,4 +100,12 @@ module.exports = new EntitySchema({
             updateDate: true 
         },
     },
+    
+    relations: {
+        rescueForms: {
+            type: "one-to-many",
+            target: "RescueForm",
+            inverseSide: "focalPerson"
+        }
+    }
 });

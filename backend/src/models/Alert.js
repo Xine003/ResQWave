@@ -16,7 +16,7 @@ module.exports = new EntitySchema ({
         alertType: {
             type: "enum",
             enum: ["Critical", "User-Initiated"],
-            nullable: false,
+            nullable: true, // Allow null when rescue is completed
         },
         sentThrough: {
             type: "varchar",

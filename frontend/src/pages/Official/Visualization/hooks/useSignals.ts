@@ -5,7 +5,7 @@ import { useMapAlerts } from './useMapAlerts';
 import { useMapWebSocket } from './useMapWebSocket';
 
 export default function useSignals() {
-    const { signals: mapSignals, isLoading, error, addSignal } = useMapAlerts();
+    const { signals: mapSignals, isLoading, error, addSignal, removeSignal } = useMapAlerts();
     
     const [popover, setPopover] = useState<SignalPopover | null>(null);
     const [infoBubble, setInfoBubble] = useState<InfoBubble | null>(null);
@@ -28,6 +28,7 @@ export default function useSignals() {
         return {
             coordinates: signal.coordinates || [0, 0],
             properties: {
+                alertId: signal.alertId, // Include alertId for rescue form submission
                 status: signal.terminalStatus.toUpperCase() as 'ONLINE' | 'OFFLINE',
                 deviceId: signal.deviceId,
                 focalPerson: signal.focalPerson,
@@ -57,7 +58,8 @@ export default function useSignals() {
         getDistressCoord,
         isLoading,
         error,
-        isConnected
+        isConnected,
+        removeSignal // Expose for removing dispatched alerts
     } as const;
 }
 

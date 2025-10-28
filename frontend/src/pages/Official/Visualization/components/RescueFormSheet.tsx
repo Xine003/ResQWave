@@ -7,11 +7,12 @@ interface RescueFormSheetProps {
     isOpen: boolean;
     onClose: () => void;
     focalPerson?: string;
+    alertId?: string; // Backend emergency/alert ID for rescue form submission
     onWaitlist?: (formData: any) => void;
     onDispatch?: (formData: any) => void;
 }
 
-export default function RescueFormSheet({ isOpen, onClose, focalPerson = "Gwyneth Uy", onWaitlist, onDispatch }: RescueFormSheetProps) {
+export default function RescueFormSheet({ isOpen, onClose, focalPerson = "Gwyneth Uy", alertId, onWaitlist, onDispatch }: RescueFormSheetProps) {
     const [showPreview, setShowPreview] = useState(false);
     const [focalUnreachable, setFocalUnreachable] = useState(false);
     const [waterLevel, setWaterLevel] = useState("");
@@ -90,7 +91,8 @@ export default function RescueFormSheet({ isOpen, onClose, focalPerson = "Gwynet
         accessibilityDetails,
         resources,
         resourceDetails,
-        otherInfo
+        otherInfo,
+        alertId // Include alertId for backend submission
     };
 
     return (

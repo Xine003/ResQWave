@@ -11,8 +11,8 @@ export function TestWebSocketButton() {
     }
 
     const testPayload = {
-      terminalId: 'RESQWAVE005', // Use a valid terminal ID from your database
-      alertType: 'null', // 'Critical' | 'User-Initiated' | null (for no alert)
+      terminalId: 'RESQWAVE003', // Use a valid terminal ID from your database
+      alertType: 'Critical', // 'Critical' | 'User-Initiated' | null (for no alert)
       terminalStatus: 'Online' // Terminal status (Online/Offline)
     };
 
@@ -33,7 +33,7 @@ export function TestWebSocketButton() {
       onClick={handleTestAlert}
       disabled={!isConnected}
       variant={isConnected ? 'default' : 'secondary'}
-      className='mt-20'
+      
     >
       {isConnected ? '🚨 Send Test Alert' : '⚠️ Socket Disconnected'}
     </Button>

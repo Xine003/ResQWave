@@ -22,7 +22,7 @@ const PopoverRow = ({ label, value, isWide = false }: { label: string; value: Re
     </div>
 );
 
-export default function SignalPopover({ popover, setPopover, onClose, onOpenCommunityInfo, onDispatchRescue }: SignalPopupProps) {
+export default function SignalPopover({ popover, setPopover, onClose, onOpenCommunityInfo, onDispatchRescue, onRemoveSignal }: SignalPopupProps) {
     const [isRescueFormOpen, setIsRescueFormOpen] = useState(false);
     const { setIsLiveReportOpen } = useLiveReport();
     const { addToWaitlist } = useRescueWaitlist();
@@ -41,11 +41,24 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
         addToWaitlist(waitlistData);
         setIsLiveReportOpen(true);
         setIsRescueFormOpen(false);
+        // Close the popover after adding to waitlist
+        setPopover(null);
     };
 
     const handleDispatch = () => {
+        if (!popover || !popover.alertId) {
+            console.error('[SignalPopover] Cannot dispatch: missing alertId');
+            return;
+        }
+        
+        // Remove the signal from the map
+        if (onRemoveSignal) {
+            onRemoveSignal(popover.alertId);
+        }
+        
         setIsRescueFormOpen(false);
-        onDispatchRescue?.();
+        setPopover(null); // Close the popover
+        onDispatchRescue?.(); // Show dispatch confirmation dialog
     };
     
     if (!popover) return null;
@@ -147,6 +160,7 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
                 isOpen={isRescueFormOpen}
                 onClose={() => setIsRescueFormOpen(false)}
                 focalPerson={popover.focalPerson || 'N/A'}
+                alertId={popover.alertId}
                 onWaitlist={handleWaitlist}
                 onDispatch={handleDispatch}
             />
