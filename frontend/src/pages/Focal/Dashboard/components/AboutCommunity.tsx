@@ -43,7 +43,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
 
     // Always use the latest community data from the context (ensures About tab updates live)
     const { data, loading, error } = useCommunityDataContext();
-    const { token } = useFocalAuth();
+    const { token, focalId } = useFocalAuth();
 
     // Fetch alt focal photo from backend when modal opens (must be after 'data' is declared)
     useEffect(() => {
@@ -75,6 +75,46 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, data?.groupName, token]);
+
+    // Fetch focal person photo as blob from backend
+    const [focalPhotoUrl, setFocalPhotoUrl] = useState<string | null>(null);
+    useEffect(() => {
+        const id = data?.focal?.id || focalId;
+        if (!open || !id) {
+            setFocalPhotoUrl(null);
+            return;
+        }
+        let revoked = false;
+        const fetchFocalPhoto = async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/focalperson/${id}/photo`, {
+                    credentials: 'include',
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                if (!res.ok) {
+                    setFocalPhotoUrl(null);
+                    return;
+                }
+                const blob = await res.blob();
+                if (revoked) return;
+                if (blob.size > 0) {
+                    setFocalPhotoUrl(URL.createObjectURL(blob));
+                } else {
+                    setFocalPhotoUrl(null);
+                }
+            } catch (e) {
+                setFocalPhotoUrl(null);
+            }
+        };
+        fetchFocalPhoto();
+        return () => {
+            revoked = true;
+            if (focalPhotoUrl && focalPhotoUrl.startsWith('blob:')) {
+                try { URL.revokeObjectURL(focalPhotoUrl); } catch (e) { }
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, data?.focal?.id, focalId, token]);
 
     if (!mounted) return null;
     if (loading) {
@@ -255,14 +295,14 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
 
 
                     {/* Focal person image-only cards (no text) - render only when photo exists */}
-                    {data?.focal?.photo ? (
+                    {focalPhotoUrl ? (
                         <div style={{ background: '#0b0b0b', borderRadius: 6, display: 'flex', justifyContent: 'center', marginTop: 6 }}>
                             <div style={{ width: '100%', maxWidth: '100%', height: 240, borderRadius: 8, overflow: 'hidden', position: 'relative', backgroundColor: '#111' }}>
-                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${data.focal.photo})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
-                                <img src={data.focal.photo || ''} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
+                                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${focalPhotoUrl})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', filter: 'blur(18px) brightness(0.55)', transform: 'scale(1.2)' }} />
+                                <img src={focalPhotoUrl} alt="Focal" style={{ position: 'relative', width: 'auto', height: '100%', maxWidth: '60%', margin: '0 auto', objectFit: 'contain', display: 'block' }} />
                                 <button
                                     aria-label="Expand"
-                                    onClick={() => openViewer(data.focal.photo!)}
+                                    onClick={() => openViewer(focalPhotoUrl)}
                                     style={{
                                         position: 'absolute',
                                         right: 15,

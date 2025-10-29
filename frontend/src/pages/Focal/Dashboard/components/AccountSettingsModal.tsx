@@ -1,19 +1,87 @@
-import { useState, useEffect } from 'react';
-import { Eye, EyeOff, Check, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useFocalAuth } from '../../context/focalAuthContext';
+import { apiFetch, API_BASE_URL } from '@/lib/api';
+import { Eye, EyeOff, Check, X, Camera, User } from 'lucide-react';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog-focal';
 import { Input } from '@/components/ui/input';
 import type { AccountSettingsModalProps } from '../types/accountSettings';
 import { validatePassword, isAccountFormDirty } from '../utils/passwordUtils';
 import { ArrowLeft } from "lucide-react";
 
 export default function AccountSettingsModal({ open, onClose, onSaved, center = null, isDirtyRef = null }: AccountSettingsModalProps) {
+    const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [isDragging, setIsDragging] = useState(false); // eslint-disable-line @typescript-eslint/no-unused-vars
+    const { focalId } = useFocalAuth();
+    const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+    const [confirmExitOpen, setConfirmExitOpen] = useState(false);
     // View state - 'profile' or 'password'
     const [view, setView] = useState<'profile' | 'password'>('profile');
 
     // Profile form state
-    const [firstName, setFirstName] = useState('Gwyneth');
-    const [lastName, setLastName] = useState('Uy');
-    const [phoneNumber, setPhoneNumber] = useState('968 734 2038');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [email, setEmail] = useState('');
+    const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+    // Track initial values for dirty check
+    const [initialProfile, setInitialProfile] = useState({
+        firstName: '',
+        lastName: '',
+        phoneNumber: '',
+        email: '',
+        photoUrl: null as string | null,
+    });
+
+    useEffect(() => {
+        if (open && focalId) {
+            apiFetch(`/focalperson/${focalId}`)
+                .then((data) => {
+                    setFirstName(data.firstName || '');
+                    setLastName(data.lastName || '');
+                    setPhoneNumber(data.contactNumber || '');
+                    setEmail(data.email || '');
+                    setLastUpdated(data.updatedAt || null);
+                    setInitialProfile((prev) => ({
+                        ...prev,
+                        firstName: data.firstName || '',
+                        lastName: data.lastName || '',
+                        phoneNumber: data.contactNumber || '',
+                        email: data.email || '',
+                        // photoUrl will be set after fetch below
+                    }));
+                })
+                .catch(() => {
+                    // fallback to empty or previous state
+                });
+            // Fetch photo as blob and create object URL using API_BASE_URL
+            fetch(`${API_BASE_URL}/focalperson/${focalId}/photo`, {
+                credentials: 'include',
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token') || ''}`
+                }
+            })
+                .then(async (res) => {
+                    if (!res.ok) throw new Error('No photo');
+                    const blob = await res.blob();
+                    if (blob.size > 0) {
+                        const url = URL.createObjectURL(blob);
+                        setPhotoUrl(url);
+                        setInitialProfile((prev) => ({ ...prev, photoUrl: url }));
+                    } else {
+                        setPhotoUrl(null);
+                        setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
+                    }
+                })
+                .catch(() => {
+                    setPhotoUrl(null);
+                    setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
+                });
+            setPhotoFile(null); // reset file input
+        }
+    }, [open, focalId]);
 
     // Change password form state
     const [currentPassword, setCurrentPassword] = useState('');
@@ -24,6 +92,60 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     const [showConfirm, setShowConfirm] = useState(false);
 
     // Validation flags (derived from helper)
+
+    // Error state for password change
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [samePasswordError, setSamePasswordError] = useState<string | null>(null);
+
+    // Change Password handler
+    const handleChangePassword = async () => {
+        if (!focalId) return;
+        setPasswordError(null);
+        setSamePasswordError(null);
+        if (currentPassword && newPassword && currentPassword === newPassword) {
+            setSamePasswordError('New password must be different from the current password.');
+            return;
+        }
+        try {
+            const token = localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token');
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            await fetch(`${API_BASE_URL}/focalperson/me/changePassword`, {
+                method: 'PUT',
+                credentials: 'include',
+                headers,
+                body: JSON.stringify({
+                    currentPassword,
+                    newPassword,
+                }),
+            }).then(async res => {
+                if (res.status === 401 || res.status === 403) {
+                    const error = await res.text();
+                    throw new Error(error || 'Session expired or forbidden.');
+                }
+                if (!res.ok) {
+                    const error = await res.text();
+                    throw new Error(error || res.statusText);
+                }
+                return res.json();
+            });
+            setConfirmSaveOpen(false);
+            setView('profile');
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+            if (onSaved) onSaved();
+        } catch (err: any) {
+            // Show error below password field if incorrect password
+            if (err.message && err.message.toLowerCase().includes('current password is incorrect')) {
+                setPasswordError('Current password is incorrect.');
+            } else {
+                alert(err.message || 'Failed to change password.');
+            }
+        }
+    };
     const [hasMinLength, setHasMinLength] = useState(false);
     const [hasUpper, setHasUpper] = useState(false);
     const [hasLower, setHasLower] = useState(false);
@@ -44,9 +166,9 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     // form reset helper (run when fully unmounted)
     const resetForm = () => {
         setView('profile');
-        setFirstName('Gwyneth');
-        setLastName('Uy');
-        setPhoneNumber('968 734 2038');
+        setFirstName('');
+        setLastName('');
+        setPhoneNumber('');
         setEmail('');
         setCurrentPassword('');
         setNewPassword('');
@@ -62,10 +184,27 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
         setPasswordsMatch(false);
     };
 
-    // When user clicks the close button inside the modal, tell parent to close.
-    // Parent's change to `open` drives the exit animation below.
+    // Helper to check if any field or photo is dirty
+    const isAnyDirty = () => {
+        // Profile fields
+        const profileDirty = firstName !== initialProfile.firstName ||
+            lastName !== initialProfile.lastName ||
+            phoneNumber !== initialProfile.phoneNumber ||
+            email !== initialProfile.email;
+        // Password fields
+        const passwordDirty = currentPassword !== '' || newPassword !== '' || confirmPassword !== '';
+        // Photo dirty: changed, added, or removed
+        const photoDirty = photoFile !== null || (photoUrl === null && initialProfile.photoUrl !== null);
+        return profileDirty || passwordDirty || photoDirty;
+    };
+
+    // When user clicks the close button inside the modal, only show confirm if dirty
     const handleClose = () => {
-        try { onClose && onClose(); } catch (e) { }
+        if (isAnyDirty()) {
+            setConfirmExitOpen(true);
+        } else {
+            if (onClose) onClose();
+        }
     };
 
     // Animation mount/show state
@@ -74,7 +213,6 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     const [visible, setVisible] = useState(open);
 
     useEffect(() => {
-        let t: any;
         if (open) {
             setMounted(true);
             // next frame to allow CSS transition
@@ -82,27 +220,30 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
         } else {
             // start exit animation
             setVisible(false);
-            t = setTimeout(() => {
+            const t = setTimeout(() => {
                 setMounted(false);
-                // only reset the form after we've finished animating out
                 resetForm();
             }, ANIM_MS + 20);
+            return () => { clearTimeout(t); };
         }
-        return () => { if (t) clearTimeout(t); };
     }, [open]);
 
-    // expose dirty-check to parent via optional ref
+    // Expose dirty-check to parent via optional ref
     useEffect(() => {
         if (!isDirtyRef) return;
         if (view === 'password') {
             isDirtyRef.current = () => isAccountFormDirty(currentPassword, newPassword, confirmPassword);
         } else {
-            // For profile view, check if any fields changed from initial values
             isDirtyRef.current = () => {
-                return firstName !== 'Gwyneth' || lastName !== 'Uy' || phoneNumber !== '968 734 2038' || email !== '';
+                return (
+                    firstName !== initialProfile.firstName ||
+                    lastName !== initialProfile.lastName ||
+                    phoneNumber !== initialProfile.phoneNumber ||
+                    email !== initialProfile.email
+                );
             };
         }
-    }, [view, currentPassword, newPassword, confirmPassword, firstName, lastName, phoneNumber, email, isDirtyRef]);
+    }, [view, currentPassword, newPassword, confirmPassword, firstName, lastName, phoneNumber, email, isDirtyRef, initialProfile]);
 
     if (!mounted) return null;
 
@@ -143,7 +284,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     const allRulesSatisfied = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial && passwordsMatch;
 
     const overlayStyle: any = {
-        position: 'fixed', inset: 0, zIndex: 'var(--z-popover)',
+        position: 'fixed', inset: 0, zIndex: 40,
         background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
         transition: `background ${ANIM_MS}ms ease`,
         display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -157,10 +298,52 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
         pointerEvents: visible ? 'auto' : 'none',
     };
 
+    // Helper to format "time ago" for last password change
+    function timeAgo(date: Date): string {
+        const now = new Date();
+        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+        const intervals = [
+            { label: 'year', seconds: 31536000 },
+            { label: 'month', seconds: 2592000 },
+            { label: 'day', seconds: 86400 },
+            { label: 'hour', seconds: 3600 },
+            { label: 'minute', seconds: 60 },
+            { label: 'second', seconds: 1 }
+        ];
+        for (const interval of intervals) {
+            const count = Math.floor(seconds / interval.seconds);
+            if (count >= 1) {
+                return `${count} ${interval.label}${count > 1 ? 's' : ''} ago`;
+            }
+        }
+        return 'just now';
+    }
+
     return (
         <div style={overlayStyle}>
             <div style={animatedModalStyle}>
                 <button onClick={handleClose} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer', transition: 'color 0.18s, transform 0.18s' }}>✕</button>
+
+                {/* Exit confirmation dialog */}
+                <AlertDialog open={confirmExitOpen} onOpenChange={setConfirmExitOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>This action cannot be undone. This will permanently discard your changes.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setConfirmExitOpen(false)} className="px-4 py-2 mt-3 bg-[#1b1b1b] text-white border border-[#3E3E3E] cursor-pointer transition duration-175 hover:bg-[#222222]" style={{ borderRadius: 8, fontSize: 15 }}>
+                                Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction onClick={() => {
+                                setConfirmExitOpen(false);
+                                try { onClose && onClose(); } catch (e) { }
+                            }} className="px-4 py-2 mt-3 bg-[#fff] text-black hover:bg-[#e2e2e2] rounded cursor-pointer transition duration-175" style={{ borderRadius: 8, fontSize: 15 }}>
+                                Continue
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 {view === 'profile' ? (
                     <>
@@ -170,30 +353,81 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
 
                         <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', paddingRight: 6 }}>
                             {/* Profile Image */}
-                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
-                                <div style={{
-                                    width: 129,
-                                    height: 129,
-                                    borderRadius: '50%',
-                                    overflow: 'hidden',
-                                    background: '#232323',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    position: 'relative',
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
-                                }}>
-                                    <img
-                                        src="https://avatars.githubusercontent.com/u/1?v=4"
-                                        alt="Profile"
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover',
-                                            borderRadius: '50%'
+                            <div className="flex flex-col items-center mb-8">
+                                <div className="relative flex flex-col items-center justify-center" style={{ width: 160, height: 160 }}>
+                                    <div
+                                        className={`w-[160px] h-[160px] rounded-full overflow-hidden cursor-pointer flex items-center justify-center bg-[#232323]`}
+                                        onDrop={e => {
+                                            e.preventDefault();
+                                            setIsDragging(false);
+                                            const file = e.dataTransfer.files[0];
+                                            if (file && file.type.startsWith('image/')) {
+                                                setPhotoFile(file);
+                                            }
                                         }}
-                                    />
+                                        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                        onDragLeave={e => { e.preventDefault(); setIsDragging(false); }}
+                                        onClick={() => document.getElementById('profile-photo-upload')?.click()}
+                                        style={{ width: 140, height: 140 }}
+                                    >
+                                        {photoFile === null && !photoUrl ? (
+                                            <div className="w-full h-full bg-[#262626] rounded-full flex items-center justify-center">
+                                                <User className="w-16 h-16 text-[#BABABA] opacity-60" />
+                                            </div>
+                                        ) : photoFile ? (
+                                            <img
+                                                src={URL.createObjectURL(photoFile)}
+                                                alt="Profile"
+                                                className="w-full h-full object-cover rounded-full"
+                                            />
+                                        ) : photoUrl ? (
+                                            <img
+                                                src={photoUrl || undefined}
+                                                alt="Profile"
+                                                className="w-full h-full object-cover rounded-full"
+                                            />
+                                        ) : null}
+                                    </div>
+                                    {/* Remove button if photoFile is set */}
+                                    {photoFile && (
+                                        <div
+                                            className="absolute bottom-[30px] right-4 w-9 h-9 bg-red-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors shadow-lg"
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                setPhotoFile(null);
+                                                setPhotoUrl(null);
+                                                if (fileInputRef.current) fileInputRef.current.value = "";
+                                            }}
+                                            style={{ transform: 'translateY(50%)' }}
+                                        >
+                                            <X className="w-4 h-4 text-white" />
+                                        </div>
+                                    )}
+                                    {/* Camera button if no photoFile */}
+                                    {!photoFile && (
+                                        <div
+                                            className="absolute -bottom-[-30px] right-4 w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg"
+                                            onClick={e => { e.stopPropagation(); document.getElementById('profile-photo-upload')?.click(); }}
+                                            style={{ transform: 'translateY(50%)' }}
+                                        >
+                                            <Camera className="w-4 h-4 text-white" />
+                                        </div>
+                                    )}
                                 </div>
+                                {/* Hidden File Input */}
+                                <input
+                                    ref={fileInputRef}
+                                    id="profile-photo-upload"
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp"
+                                    onChange={e => {
+                                        const file = e.target.files?.[0] || null;
+                                        if (file && file.type.startsWith('image/')) {
+                                            setPhotoFile(file);
+                                        }
+                                    }}
+                                    className="hidden"
+                                />
                             </div>
 
                             {/* Name Fields */}
@@ -298,36 +532,80 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
 
                             {/* Save Changes Button */}
                             <button
-                                onClick={() => {
-                                    console.log('Save profile changes', { firstName, lastName, phoneNumber, email });
-                                    handleClose();
-                                    try { onSaved && onSaved(); } catch (e) { }
-                                }}
-                                disabled={!isDirtyRef?.current?.()}
+                                onClick={() => setConfirmSaveOpen(true)}
+                                disabled={!isAnyDirty()}
                                 style={{
                                     padding: '8px 24px',
                                     borderRadius: 6,
-                                    background: isDirtyRef?.current?.() ? '#ffffff' : '#414141',
-                                    color: isDirtyRef?.current?.() ? '#000' : '#171717',
+                                    background: isAnyDirty() ? '#ffffff' : '#414141',
+                                    color: isAnyDirty() ? '#000' : '#171717',
                                     border: 'none',
                                     fontSize: 14,
                                     fontWeight: 600,
-                                    cursor: isDirtyRef?.current?.() ? 'pointer' : 'not-allowed',
+                                    cursor: isAnyDirty() ? 'pointer' : 'not-allowed',
                                     transition: 'background 0.15s',
                                     marginBottom: 24,
                                     width: 145,
                                     height: 40,
                                     alignSelf: 'flex-end'
                                 }}
-                                onMouseEnter={e => {
-                                    if (isDirtyRef?.current?.()) e.currentTarget.style.background = '#e5e5e5';
-                                }}
-                                onMouseLeave={e => {
-                                    if (isDirtyRef?.current?.()) e.currentTarget.style.background = '#ffffff';
-                                }}
+                                onMouseEnter={e => { if (isAnyDirty()) e.currentTarget.style.background = '#e5e5e5'; }}
+                                onMouseLeave={e => { if (isAnyDirty()) e.currentTarget.style.background = '#ffffff'; }}
                             >
                                 Save Changes
                             </button>
+
+                            {/* Save confirmation dialog */}
+                            <AlertDialog open={confirmSaveOpen} onOpenChange={setConfirmSaveOpen}>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Save changes?</AlertDialogTitle>
+                                        <AlertDialogDescription>Do you want to save your changes to your profile information? This will update your account data.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel onClick={() => setConfirmSaveOpen(false)} className="px-4 py-2 mt-3 bg-[#1b1b1b] text-white border border-[#3E3E3E] cursor-pointer transition duration-175 hover:bg-[#222222]" style={{ borderRadius: 8, fontSize: 15 }}>
+                                            Cancel
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={async () => {
+                                                try {
+                                                    await apiFetch(`/focalperson/${focalId}`, {
+                                                        method: 'PUT',
+                                                        body: JSON.stringify({
+                                                            firstName,
+                                                            lastName,
+                                                            contactNumber: phoneNumber,
+                                                            email
+                                                        })
+                                                    });
+                                                    // Save photo if changed
+                                                    if (photoFile) {
+                                                        const formData = new FormData();
+                                                        formData.append('photo', photoFile);
+                                                        await fetch(`${API_BASE_URL}/focalperson/${focalId}/photos`, {
+                                                            method: 'PUT',
+                                                            credentials: 'include',
+                                                            headers: {
+                                                                Authorization: `Bearer ${localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token') || ''}`
+                                                            },
+                                                            body: formData
+                                                        });
+                                                    }
+                                                    setConfirmSaveOpen(false);
+                                                    handleClose();
+                                                    try { onSaved && onSaved(); } catch (e) { }
+                                                } catch (err) {
+                                                    alert('Failed to save changes.');
+                                                }
+                                            }}
+                                            className="px-4 py-2 mt-3 bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] text-white hover:from-[#2563eb] hover:to-[#60a5fa] cursor-pointer transition duration-175"
+                                            style={{ borderRadius: 8, fontSize: 15 }}
+                                        >
+                                            Continue
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
 
                             {/* Password Section */}
                             <div style={{
@@ -339,7 +617,9 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                             }}>
                                 <div>
                                     <div style={{ fontSize: 14, color: '#FFFFFF', fontWeight: 600, marginBottom: 4 }}>Password</div>
-                                    <div style={{ fontSize: 13, color: '#9ca3af' }}>Last changed 3 months ago</div>
+                                    <div style={{ fontSize: 13, color: '#9ca3af' }}>
+                                        Last changed {lastUpdated ? timeAgo(new Date(lastUpdated)) : 'N/A'}
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => setView('password')}
@@ -387,18 +667,23 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                             </button>
                             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                                 <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: 0.6, lineHeight: '32px' }}>Change Password</h2>
-                                <div style={{ color: '#BABABA', fontSize: 14, fontWeight: 400, marginTop: 6, lineHeight: '22px' }}>Last Updated: October 10, 2025</div>
+                                <div style={{ color: '#BABABA', fontSize: 14, fontWeight: 400, marginTop: 6, lineHeight: '22px' }}>
+                                    Last Updated: {lastUpdated ? new Date(lastUpdated).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+                                </div>
                             </div>
                         </div>
 
                         <div style={{ marginTop: 28, display: 'grid', flex: 1, overflowY: 'auto', paddingRight: 6 }}>
                             <label style={{ fontSize: 14, color: '#FFFFFF' }}>Current Password</label>
                             <div style={{ position: 'relative' }}>
-                                <Input type={showCurrent ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword((e.target as HTMLInputElement).value)} placeholder="" style={{ padding: '24px 46px 24px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 15 }} className="bg-input/10 text-white" />
+                                <Input type={showCurrent ? 'text' : 'password'} value={currentPassword} onChange={(e) => { setCurrentPassword((e.target as HTMLInputElement).value); setPasswordError(null); }} placeholder="" style={{ padding: '24px 46px 24px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 15 }} className="bg-input/10 text-white" />
                                 <button onClick={() => setShowCurrent(s => !s)} aria-label={showCurrent ? 'Hide password' : 'Show password'} style={{ position: 'absolute', right: 15, top: 0, bottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: '#8b8b8b', cursor: 'pointer', padding: '0 6px' }}>
                                     {showCurrent ? <EyeOff size={19} /> : <Eye size={19} />}
                                 </button>
                             </div>
+                            {passwordError && (
+                                <div style={{ color: '#ef4444', fontSize: 13, marginTop: 4, marginBottom: 2 }}>{passwordError}</div>
+                            )}
 
                             <label style={{ fontSize: 14, color: '#FFFFFF', marginTop: 8 }}>New Password</label>
                             <div style={{ position: 'relative' }}>
@@ -407,6 +692,9 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                     {showNew ? <EyeOff size={19} /> : <Eye size={19} />}
                                 </button>
                             </div>
+                            {samePasswordError && (
+                                <div style={{ color: '#ef4444', fontSize: 13, marginTop: 4, marginBottom: 2 }}>{samePasswordError}</div>
+                            )}
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
                                 <div style={{ color: '#BABABA', fontSize: 13 }}>
@@ -435,19 +723,45 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                             </div>
 
                             <div style={{ marginTop: 12 }}>
-                                <button disabled={!allRulesSatisfied} onClick={() => {
-                                    console.log('update password', { currentPassword, newPassword });
-                                    setView('profile');
-                                    try { onSaved && onSaved(); } catch (e) { }
-                                }} className={
-                                    allRulesSatisfied
-                                        ? "w-full py-3 px-4 rounded-[6px] bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] transition-colors duration-150 hover:from-[#2563eb] hover:to-[#60a5fa] text-white font-semibold border border-[#2b2b2b]"
-                                        : "w-full py-3 px-4 rounded-[6px] bg-[#414141] text-[#9ca3af] font-semibold border border-[#2b2b2b] cursor-not-allowed"
-                                } style={{
-                                    width: '100%',
-                                }}>
+                                <button
+                                    disabled={!allRulesSatisfied || !currentPassword}
+                                    onClick={() => setConfirmSaveOpen(true)}
+                                    className={
+                                        allRulesSatisfied && currentPassword
+                                            ? "w-full py-3 px-4 rounded-[6px] bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] transition-colors duration-150 hover:from-[#2563eb] hover:to-[#60a5fa] text-white font-semibold border border-[#2b2b2b]"
+                                            : "w-full py-3 px-4 rounded-[6px] bg-[#414141] text-[#9ca3af] font-semibold border border-[#2b2b2b] cursor-not-allowed"
+                                    }
+                                    style={{ width: '100%' }}
+                                >
                                     Update Password
                                 </button>
+                                {/* Confirm dialog for password change */}
+                                <AlertDialog open={confirmSaveOpen} onOpenChange={setConfirmSaveOpen}>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Change Password?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Are you sure you want to change your password?
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel
+                                                onClick={() => setConfirmSaveOpen(false)}
+                                                className="px-4 py-2 mt-3 bg-[#1b1b1b] text-white border border-[#3E3E3E] cursor-pointer transition duration-175 hover:bg-[#222222]"
+                                                style={{ borderRadius: 8, fontSize: 15 }}
+                                            >
+                                                Cancel
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                                onClick={handleChangePassword}
+                                                className="px-4 py-2 mt-3 bg-[#fff] text-black hover:bg-[#e2e2e2] rounded cursor-pointer transition duration-175"
+                                                style={{ borderRadius: 8, fontSize: 15 }}
+                                            >
+                                                Confirm
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
                         </div>
                     </>

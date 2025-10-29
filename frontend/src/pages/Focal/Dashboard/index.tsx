@@ -238,24 +238,13 @@ export default function Dashboard() {
                     for (let i = drawLayerIds.length - 1; i >= 0; i--) {
                         if (map.getLayer(drawLayerIds[i])) {
                             beforeLayer = drawLayerIds[i];
-                            break;
                         }
                     }
-                    if (beforeLayer) {
-                        map.moveLayer(layerId);
+                    // Move the signal layer above the top-most draw layer
+                    if (beforeLayer && map.getLayer(layerId)) {
+                        map.moveLayer(layerId, beforeLayer);
                     }
                 }
-            });
-            // compute overlay position for the info bubble and keep it updated during moves
-            try {
-                const pt = map.project(distressCoord);
-                setInfoBubble({ x: pt.x, y: pt.y });
-            } catch (e) { }
-            map.on('move', () => {
-                try {
-                    const pt = map.project(distressCoord);
-                    setInfoBubble({ x: pt.x, y: pt.y });
-                } catch (e) { }
             });
 
             // Click interactions: open popover anchored to clicked signal (distress + offline)
@@ -703,8 +692,24 @@ export default function Dashboard() {
     const pendingAccountContinueRef = useRef<(() => void) | null>(null);
     const editAboutRef = useRef<any>(null);
     const [activeTab, setActiveTab] = useState('community');
-    const openAbout = () => {
-        // compute map container center in viewport coords so modal sits over the map
+    // Store a pending modal open action if confirmation is needed
+    const pendingModalContinueRef = useRef<(() => void) | null>(null);
+
+    const handleModalSwitchWithDirtyCheck = (openModalFn: () => void) => {
+        if (accountSettingsOpen && (accountSettingsIsDirtyRef.current?.() ?? false)) {
+            // If AccountSettingsModal is open and dirty, show confirmation and store the action
+            pendingModalContinueRef.current = () => {
+                setAccountSettingsOpen(false);
+                openModalFn();
+            };
+            setConfirmAccountOpen(true);
+        } else {
+            openModalFn();
+        }
+    };
+
+    const openAbout = () => handleModalSwitchWithDirtyCheck(() => {
+        setActivityLogOpen(false);
         try {
             const rect = mapContainer.current?.getBoundingClientRect();
             if (rect) {
@@ -718,8 +723,9 @@ export default function Dashboard() {
         }
         setAboutOpen(true);
         setActiveTab('about');
-    };
-    const openHistory = () => {
+    });
+    const openHistory = () => handleModalSwitchWithDirtyCheck(() => {
+        setActivityLogOpen(false);
         try {
             const rect = mapContainer.current?.getBoundingClientRect();
             if (rect) setHistoryCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
@@ -730,7 +736,7 @@ export default function Dashboard() {
         setAboutOpen(false);
         setHistoryOpen(true);
         setActiveTab('history');
-    };
+    });
     const closeAbout = () => { setAboutOpen(false); setActiveTab('community'); };
     const handleTabChange = (value: string) => {
         setActiveTab(value);
@@ -784,6 +790,10 @@ export default function Dashboard() {
                 onExit={handleExitEdit}
                 onAboutClick={openAbout}
                 onAccountSettingsClick={() => {
+                    // Close any other modal from header tab before opening AccountSettingsModal
+                    setAboutOpen(false);
+                    setHistoryOpen(false);
+                    setActivityLogOpen(false);
                     try {
                         const rect = mapContainer.current?.getBoundingClientRect();
                         if (rect) setAccountSettingsCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
@@ -817,14 +827,17 @@ export default function Dashboard() {
                 })}
                 onTabChange={handleTabChange}
                 activeTab={activeTab}
-                onActivityLogClick={() => {
+                onActivityLogClick={() => handleModalSwitchWithDirtyCheck(() => {
+                    setAboutOpen(false);
+                    setHistoryOpen(false);
+                    setAccountSettingsOpen(false);
                     try {
                         const rect = mapContainer.current?.getBoundingClientRect();
                         if (rect) setActivityLogCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
                         else setActivityLogCenter(null);
                     } catch (e) { setActivityLogCenter(null); }
                     setActivityLogOpen(true);
-                }}
+                })}
             />
 
             <div ref={mapContainer} style={{ position: "absolute", top: 80, left: 0, right: 0, bottom: 0, zIndex: 1 }} />
@@ -873,17 +886,22 @@ export default function Dashboard() {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Discard changes?</AlertDialogTitle>
-                        <AlertDialogDescription>You have unsaved changes in the Change Password form. Are you sure you want to discard them?</AlertDialogDescription>
+                        <AlertDialogDescription>You have unsaved changes in your account settings. Are you sure you want to discard them?</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setConfirmAccountOpen(false)} className="px-4 py-2 mt-3 bg-[#1b1b1b] text-white border border-[#3E3E3E] cursor-pointer transition duration-175 hover:bg-[#222222]" style={{ borderRadius: 8, fontSize: 15 }}>
+                        <AlertDialogCancel onClick={() => {
+                            setConfirmAccountOpen(false);
+                            pendingModalContinueRef.current = null;
+                        }} className="px-4 py-2 mt-3 bg-[#1b1b1b] text-white border border-[#3E3E3E] cursor-pointer transition duration-175 hover:bg-[#222222]" style={{ borderRadius: 8, fontSize: 15 }}>
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction onClick={() => {
                             setConfirmAccountOpen(false);
                             try {
-                                if (pendingAccountContinueRef.current) {
-                                    // close account settings modal first
+                                if (pendingModalContinueRef.current) {
+                                    pendingModalContinueRef.current();
+                                    pendingModalContinueRef.current = null;
+                                } else if (pendingAccountContinueRef.current) {
                                     setAccountSettingsOpen(false);
                                     try { pendingAccountContinueRef.current(); } catch (e) { }
                                     pendingAccountContinueRef.current = null;
