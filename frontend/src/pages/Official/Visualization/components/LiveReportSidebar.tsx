@@ -25,10 +25,15 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
     }, [waitlistedForms.length, isOpen]);
 
     // Filter signals - properly separate between unassigned and waitlisted
+    // Get device IDs that have been added to waitlist to exclude them from unassigned
+    const waitlistedDeviceIds = waitlistedForms.map(form => form.deviceId).filter(Boolean);
+    
     // Unassigned: CRITICAL and USER-INITIATED alerts that are currently ONLINE (active/unassigned)
+    // and NOT in the waitlist
     const unassignedAlerts = signals.filter(signal => 
         (signal.properties.alertType === 'CRITICAL' || signal.properties.alertType === 'USER-INITIATED') &&
-        signal.properties.status === 'ONLINE'
+        signal.properties.status === 'ONLINE' &&
+        !waitlistedDeviceIds.includes(signal.properties.deviceId)
     );
     
     // Waitlisted: CRITICAL and USER-INITIATED alerts that are OFFLINE (waiting/assigned)
@@ -36,6 +41,23 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
         (signal.properties.alertType === 'CRITICAL' || signal.properties.alertType === 'USER-INITIATED') &&
         signal.properties.status === 'OFFLINE'
     );
+
+    // Remove duplicates for accurate counts
+    const uniqueUnassignedAlerts = unassignedAlerts.reduce((acc, current) => {
+        const exists = acc.find(item => item.properties.deviceId === current.properties.deviceId);
+        if (!exists) {
+            acc.push(current);
+        }
+        return acc;
+    }, [] as Signal[]);
+
+    const uniqueWaitlistedAlerts = waitlistedAlerts.reduce((acc, current) => {
+        const exists = acc.find(item => item.properties.deviceId === current.properties.deviceId);
+        if (!exists) {
+            acc.push(current);
+        }
+        return acc;
+    }, [] as Signal[]);
 
     const formatTime = (dateString?: string) => {
         if (!dateString) return '12:00:00 PM';
@@ -100,22 +122,27 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
         >
             <div className="pr-10">
                 <h3 className="text-white font-medium text-sm mb-3">
-                    {form.address || 'Rescue Request'}
+                    {form.deviceId || 'TERMINAL ID'}
                 </h3>
                 
-                <div className="mb-3">
-                    <Badge 
-                        variant="outline" 
-                        className="border-yellow-500 text-yellow-500 bg-yellow-500/10 text-xs px-2 py-1 rounded-[3px]"
-                    >
-                        RESCUE WAITLIST
-                    </Badge>
-                </div>
+                {form.alertType && (
+                    <div className="mb-3">
+                        <Badge 
+                            variant="outline" 
+                            className={`text-xs px-2 py-1 rounded-[3px] ${
+                                form.alertType === 'CRITICAL' 
+                                    ? 'border-red-500 text-red-500 bg-red-500/10' 
+                                    : 'border-yellow-500 text-yellow-500 bg-yellow-500/10'
+                            }`}
+                        >
+                            {form.alertType === 'CRITICAL' ? 'Critical' : 'User-Initiated'}
+                        </Badge>
+                    </div>
+                )}
                 
                 <div className="space-y-1 text-xs text-gray-400">
-                    <p>Focal Person: {form.focalPerson}</p>
-                    <p>Water Level: {form.waterLevel}</p>
-                    <p>Urgency: {form.urgencyLevel}</p>
+                    <p>Time Sent: {formatTime(form.timestamp)}</p>
+                    <p>{form.address || 'No address provided'}</p>
                 </div>
             </div>
             
@@ -196,7 +223,7 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                     >
                         Unassigned
                         <span className="ml-2 bg-[#606060] text-white text-xs px-2 py-1 rounded-full">
-                            {unassignedAlerts.length}
+                            {uniqueUnassignedAlerts.length}
                         </span>
                     </button>
                     <button
@@ -209,7 +236,7 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                     >
                         Waitlisted
                         <span className="ml-2 bg-[#606060] text-white text-xs px-2 py-1 rounded-full">
-                            {waitlistedAlerts.length + (waitlistedForms?.length || 0)}
+                            {uniqueWaitlistedAlerts.length + (waitlistedForms?.length || 0)}
                         </span>
                     </button>
                 </div>

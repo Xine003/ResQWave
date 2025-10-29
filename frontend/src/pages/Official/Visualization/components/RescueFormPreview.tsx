@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useState } from "react";
 import { createRescueForm, updateRescueFormStatus } from "../api/rescueForm";
-import { useRescueWaitlist } from "../contexts/RescueWaitlistContext";
 
 interface RescueFormData {
     focalPerson: string;
@@ -36,7 +35,6 @@ interface RescueFormPreviewProps {
 }
 
 export default function RescueFormPreview({ isOpen, onClose, onBack, formData, onWaitlist, onDispatch }: RescueFormPreviewProps) {
-    const { removeFromWaitlist } = useRescueWaitlist();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -104,12 +102,10 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
                 // Update existing form status to Dispatched
                 console.log('[RescueFormPreview] Updating existing form to Dispatched');
                 
-                // Remove from waitlist if it was waitlisted
-                if (formData.id) {
-                    removeFromWaitlist(formData.id);
-                }
-                
                 response = await updateRescueFormStatus(formData.alertId, 'Dispatched');
+                
+                // Remove from waitlist if it was waitlisted (moved to parent callback)
+                console.log('[RescueFormPreview] Waitlisted form dispatch completed');
             } else {
                 // Create new form with status 'Dispatched'
                 console.log('[RescueFormPreview] Creating new form with Dispatched status');
@@ -182,9 +178,10 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
 
     return (
         <div 
-            className={`fixed top-0 right-0 h-full w-[540px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out z-[60] ${
+            className={`fixed top-0 right-0 h-full w-[400px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out ${
                 isOpen ? 'translate-x-0' : 'translate-x-full'
             }`}
+            style={{ zIndex: 70 }}
         >
             {/* Header */}
             <div className="p-6 border-b border-[#2a2a2a]">

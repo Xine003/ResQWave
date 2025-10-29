@@ -1,4 +1,5 @@
 import { LiveReportProvider, useLiveReport } from "@/components/Official/LiveReportContext"
+import { RescueFormProvider, useRescueForm } from "@/components/Official/RescueFormContext"
 import { useAuth } from "@/contexts/AuthContext"
 import type React from "react"
 import { Navigate, useLocation } from "react-router-dom"
@@ -12,6 +13,7 @@ interface officialLayoutProps {
 function OfficialLayoutContent({ children }: officialLayoutProps) {
   const location = useLocation();
   const { isLiveReportOpen } = useLiveReport();
+  const { isRescueFormOpen, isRescuePreviewOpen } = useRescueForm();
   
   // Get auth state
   let isLoading = false;
@@ -53,6 +55,15 @@ function OfficialLayoutContent({ children }: officialLayoutProps) {
   // Visualization nav is open if path starts with /visualization or /tabular
   const isVisualizationOpen = location.pathname.startsWith("/visualization") || location.pathname.startsWith("/tabular");
 
+  // Calculate margin based on which sidebars are open (only for visualization pages)
+  const getMarginRight = () => {
+    if (!isVisualizationOpen) return '0';
+    if (isRescuePreviewOpen) return '400px'; // Preview is wider
+    if (isRescueFormOpen) return '400px'; // Form width  
+    if (isLiveReportOpen) return '400px'; // Live report width
+    return '0';
+  };
+
   return (
     <div className="min-h-screen bg-background dark">
       <div className="flex">
@@ -60,7 +71,7 @@ function OfficialLayoutContent({ children }: officialLayoutProps) {
         <div
           className="flex-1 flex flex-col transition-all duration-300 ease-in-out"
           style={{
-            marginRight: isLiveReportOpen && isVisualizationOpen ? '400px' : '0'
+            marginRight: getMarginRight()
           }}
         >
           <Header isVisualizationOpen={isVisualizationOpen} isLiveReportOpen={isLiveReportOpen} />
@@ -74,7 +85,9 @@ function OfficialLayoutContent({ children }: officialLayoutProps) {
 export function OfficialLayout({ children }: officialLayoutProps) {
   return (
     <LiveReportProvider>
-      <OfficialLayoutContent>{children}</OfficialLayoutContent>
+      <RescueFormProvider>
+        <OfficialLayoutContent>{children}</OfficialLayoutContent>
+      </RescueFormProvider>
     </LiveReportProvider>
   );
 }

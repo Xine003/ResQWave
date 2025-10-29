@@ -1,14 +1,14 @@
-import { useLiveReport } from '@/components/Official/LiveReportContext';
+import { useLiveReport } from "@/components/Official/LiveReportContext";
+import { useRescueForm } from "@/components/Official/RescueFormContext";
 import { TestWebSocketButton } from '@/components/TestWebSocketButton';
-import { Button } from "@/components/ui/button";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { CommunityGroupInfoSheet } from '../CommunityGroups/components/CommunityGroupInfoSheet';
 import type { CommunityGroupDetails } from '../CommunityGroups/types';
 import LiveReportSidebar from './components/LiveReportSidebar';
 import MapControls from './components/MapControls';
+import RescueFormAlerts, { type RescueFormAlertsHandle } from './components/RescueFormAlerts';
 import RescueFormPreview from './components/RescueFormPreview';
 import SignalPopover from './components/SignalPopover';
 import { RescueWaitlistProvider, useRescueWaitlist, type WaitlistedRescueForm } from './contexts/RescueWaitlistContext';
@@ -24,23 +24,28 @@ function VisualizationContent() {
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const [mapLoaded, setMapLoaded] = useState(false);
     const { isLiveReportOpen, setIsLiveReportOpen } = useLiveReport();
-    const { selectedWaitlistForm, setSelectedWaitlistForm } = useRescueWaitlist();
+    const { isRescueFormOpen, isRescuePreviewOpen } = useRescueForm();
+    const { selectedWaitlistForm, setSelectedWaitlistForm, removeFromWaitlist } = useRescueWaitlist();
     const [showWaitlistPreview, setShowWaitlistPreview] = useState(false);
-    const [showDispatchDialog, setShowDispatchDialog] = useState(false);
-    const navigate = useNavigate();
-
-    const handleDispatchRescue = () => {
-        setShowDispatchDialog(true);
-        
-        // Auto-fade after 3 seconds
-        setTimeout(() => {
-            setShowDispatchDialog(false);
-        }, 2000);
+    
+    // Rescue Form Alerts ref
+    const rescueFormAlertsRef = useRef<RescueFormAlertsHandle>(null);
+    
+    // Rescue Form Alert Handlers
+    const handleShowWaitlistAlert = (focalPerson: string) => {
+        rescueFormAlertsRef.current?.showWaitlistSuccess(focalPerson);
     };
-
-    const handleOpenReportForm = () => {
-        navigate('/reports');
-        setShowDispatchDialog(false);
+    
+    const handleShowDispatchAlert = (focalPerson: string) => {
+        rescueFormAlertsRef.current?.showDispatchSuccess(focalPerson);
+    };
+    
+    const handleShowErrorAlert = (message: string) => {
+        rescueFormAlertsRef.current?.showError(message);
+    };
+    
+    const handleShowDispatchConfirmation = (formData: any, onConfirm: () => void) => {
+        rescueFormAlertsRef.current?.showDispatchConfirmation(formData, onConfirm);
     };
     
     // Keep a ref to the latest sidebar state so map event handlers can see the current value
@@ -82,7 +87,7 @@ function VisualizationContent() {
                 map.resize();
             }, 300);
         }
-    }, [isLiveReportOpen]);
+    }, [isLiveReportOpen, isRescueFormOpen, isRescuePreviewOpen]);
 
 
 
@@ -409,9 +414,12 @@ function VisualizationContent() {
                 infoBubble={infoBubble}
                 infoBubbleVisible={infoBubbleVisible}
                 onOpenCommunityInfo={handleOpenCommunityInfo}
-                onDispatchRescue={handleDispatchRescue}
                 onRemoveSignal={removeSignal}
                 onClose={handleClosePopover}
+                onShowWaitlistAlert={handleShowWaitlistAlert}
+                onShowDispatchAlert={handleShowDispatchAlert}
+                onShowErrorAlert={handleShowErrorAlert}
+                onShowDispatchConfirmation={handleShowDispatchConfirmation}
             />
 
             <MapControls 
@@ -424,7 +432,7 @@ function VisualizationContent() {
             />
 
             {/* Test WebSocket Button - Remove after testing */}
-            <div style={{ position: 'absolute', top: 20, right: 420, zIndex: 50 }}>
+            <div style={{ position: 'absolute', top: 20, right: 280, zIndex: 50 }}>
                 <TestWebSocketButton />
             </div>
 
@@ -496,41 +504,38 @@ function VisualizationContent() {
                         setShowWaitlistPreview(false);
                     }}
                     formData={selectedWaitlistForm}
-                    onDispatch={handleDispatchRescue}
+                    onWaitlist={(formData) => {
+                        // Show waitlist success alert
+                        handleShowWaitlistAlert(formData.focalPerson || 'Unknown');
+                    }}
+                    onDispatch={(formData) => {
+                        // Show dispatch confirmation and handle map updates
+                        handleShowDispatchConfirmation(formData, () => {
+                            // Remove the signal from the map if alertId exists
+                            if (formData.alertId && removeSignal) {
+                                console.log('[Visualization] Removing signal from map:', formData.alertId);
+                                removeSignal(formData.alertId);
+                            }
+                            
+                            // Remove from waitlist if it was a waitlisted form
+                            if (formData.id) {
+                                console.log('[Visualization] Removing form from waitlist:', formData.id);
+                                removeFromWaitlist(formData.id);
+                            }
+                            
+                            // Show dispatch success alert
+                            handleShowDispatchAlert(formData.focalPerson || 'Unknown');
+                            
+                            // Close the preview
+                            setShowWaitlistPreview(false);
+                            setSelectedWaitlistForm(null);
+                        });
+                    }}
                 />
             )}
 
-            {/* Dispatch Success Toast - positioned in bottom left */}
-            {showDispatchDialog && (
-                <div className="fixed bottom-6 left-21 z-50 animate-in slide-in-from-left-5 duration-300">
-                    <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-lg p-4 max-w-sm">
-                        <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h3 className="text-white text-sm font-medium">
-                                    PAMAKAI rescue team has been dispatched!
-                                </h3>
-                                <Button
-                                    onClick={handleOpenReportForm}
-                                    className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-8"
-                                >
-                                    Open report page
-                                </Button>
-                            </div>
-                            <button
-                                onClick={() => setShowDispatchDialog(false)}
-                                className="text-gray-400 hover:text-white text-lg leading-none"
-                            >
-                                ×
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Rescue Form Alerts */}
+            <RescueFormAlerts ref={rescueFormAlertsRef} />
         </div>
     );
 }

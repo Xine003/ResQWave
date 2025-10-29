@@ -14,7 +14,8 @@ interface RescueFormData {
     resources: string[];
     resourceDetails: string;
     otherInfo: string;
-    // Additional fields for waitlist display
+    // Additional fields for waitlist display and backend operations
+    alertId?: string; // Required for backend operations and map updates
     deviceId?: string;
     address?: string;
     date?: string;

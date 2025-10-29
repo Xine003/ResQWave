@@ -16,4 +16,9 @@ export type SignalPopupProps = {
     // small 'YOUR COMMUNITY' bubble when no popover is visible.
     infoBubble: InfoBubble | null;
     infoBubbleVisible: boolean;
+    // Rescue Form Alert handlers
+    onShowWaitlistAlert?: (focalPerson: string) => void;
+    onShowDispatchAlert?: (focalPerson: string) => void;
+    onShowErrorAlert?: (message: string) => void;
+    onShowDispatchConfirmation?: (formData: any, onConfirm: () => void) => void;
 };
