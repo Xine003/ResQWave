@@ -15,9 +15,6 @@ import {
   VerificationOfficial,
   Visualization
 } from '../pages/Official';
-
-import InfoDetailsRegister from '../pages/Focal/LoginFocal/pages/RegisterAccount/InfoDetailsRegister';
-import AccountReview from '../pages/Focal/LoginFocal/pages/RegisterAccount/AccountReview';
 // TypeScript declaration for window property
 declare global {
   interface Window {
@@ -85,54 +82,54 @@ export const router = createBrowserRouter([
         path: '/verify-account-focal',
         element: <VerifyAccount />,
       },
-      {
-        path: '/register/personal-info',
-        element: <InfoDetailsRegister step={1} />,
-      },
-      {
-        path: '/register/profile-picture',
-        element: <InfoDetailsRegister step={2} />,
-      },
-      {
-        path: '/register/create-password',
-        element: <InfoDetailsRegister step={3} />,
-      },
-      {
-        path: '/register/location-details',
-        element: <InfoDetailsRegister step={4} />,
-      },
-      {
-        path: '/register/alternative-focal-person',
-        element: <InfoDetailsRegister step={5} />,
-      },
-      {
-        path: '/register/alternative-profile-picture',
-        element: <InfoDetailsRegister step={6} />,
-      },
-      {
-        path: '/register/about-neighborhood',
-        element: <InfoDetailsRegister step={7} />,
-      },
-      {
-        path: '/register/about-residents',
-        element: <InfoDetailsRegister step={8} />,
-      },
-      {
-        path: '/register/floodwater-duration',
-        element: <InfoDetailsRegister step={9} />,
-      },
-      {
-        path: '/register/flood-hazards',
-        element: <InfoDetailsRegister step={10} />,
-      },
-      {
-        path: '/register/other-info',
-        element: <InfoDetailsRegister step={11} />,
-      },
-      {
-        path: '/register/account-review',
-        element: <AccountReview />,
-      },
+      // {
+      //   path: '/register/personal-info',
+      //   element: <InfoDetailsRegister step={1} />,
+      // },
+      // {
+      //   path: '/register/profile-picture',
+      //   element: <InfoDetailsRegister step={2} />,
+      // },
+      // {
+      //   path: '/register/create-password',
+      //   element: <InfoDetailsRegister step={3} />,
+      // },
+      // {
+      //   path: '/register/location-details',
+      //   element: <InfoDetailsRegister step={4} />,
+      // },
+      // {
+      //   path: '/register/alternative-focal-person',
+      //   element: <InfoDetailsRegister step={5} />,
+      // },
+      // {
+      //   path: '/register/alternative-profile-picture',
+      //   element: <InfoDetailsRegister step={6} />,
+      // },
+      // {
+      //   path: '/register/about-neighborhood',
+      //   element: <InfoDetailsRegister step={7} />,
+      // },
+      // {
+      //   path: '/register/about-residents',
+      //   element: <InfoDetailsRegister step={8} />,
+      // },
+      // {
+      //   path: '/register/floodwater-duration',
+      //   element: <InfoDetailsRegister step={9} />,
+      // },
+      // {
+      //   path: '/register/flood-hazards',
+      //   element: <InfoDetailsRegister step={10} />,
+      // },
+      // {
+      //   path: '/register/other-info',
+      //   element: <InfoDetailsRegister step={11} />,
+      // },
+      // {
+      //   path: '/register/account-review',
+      //   element: <AccountReview />,
+      // },
       {
         path: '/focal-dashboard',
         element: (

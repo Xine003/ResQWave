@@ -13,6 +13,8 @@ export default function VerificationSignin() {
     // Retrieve tempToken from navigation state (preferred), fallback to sessionStorage
     const location = useLocation();
     const tempToken = (location.state && location.state.tempToken) || sessionStorage.getItem('focalTempToken') || '';
+    // Try to get emailOrNumber from navigation state or sessionStorage (if you store it)
+    const emailOrNumber = (location.state && location.state.emailOrNumber) || sessionStorage.getItem('focalEmailOrNumber') || '';
 
     async function handleVerify(e: React.FormEvent) {
         e.preventDefault();
@@ -64,6 +66,8 @@ export default function VerificationSignin() {
                 if (error) setError("");
             }}
             onVerify={handleVerify}
+            tempToken={tempToken}
+            emailOrNumber={emailOrNumber}
         />
     );
 }
