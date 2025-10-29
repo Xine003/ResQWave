@@ -284,7 +284,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     const allRulesSatisfied = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial && passwordsMatch;
 
     const overlayStyle: any = {
-        position: 'fixed', inset: 0, zIndex: 40,
+        position: 'fixed', inset: 0, zIndex: 99,
         background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
         transition: `background ${ANIM_MS}ms ease`,
         display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -292,6 +292,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
 
     const animatedModalStyle = {
         ...modalStyle,
+        zIndex: 99,
         transition: `transform ${ANIM_MS}ms cubic-bezier(.2,.9,.3,1), opacity ${ANIM_MS}ms ease`,
         transform: visible ? modalStyle.transform + ' scale(1)' : (modalStyle.transform + ' translateY(-8px) scale(0.98)'),
         opacity: visible ? 1 : 0,

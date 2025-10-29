@@ -41,7 +41,7 @@ export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, 
     const offsetY = popover?.status === 'online' ? 345 : 185;
 
     return (
-        <div id="signal-popover-wrapper" style={{ position: 'absolute', left: 0, top: 0, transform: `translate(${(popover.screen.x - 200)}px, ${(popover.screen.y - offsetY)}px)`, zIndex: 'var(--z-map-popover)', pointerEvents: 'none' }}>
+        <div id="signal-popover-wrapper" style={{ position: 'absolute', left: 0, top: 0, transform: `translate(${(popover.screen.x - 200)}px, ${(popover.screen.y - offsetY)}px)`, zIndex: 40, pointerEvents: 'none' }}>
             <div style={{ position: 'relative', minWidth: 370, maxWidth: 420 }}>
                 <div style={{ backgroundColor: 'rgba(0,0,0,0.80)', color: '#fff', boxShadow: '0 8px 28px rgba(0,0,0,0.45)', padding: '20px 18px 20px 18px', fontFamily: 'inherit', borderRadius: 5 }}>
                     {/* Header with title and close button aligned horizontally */}
