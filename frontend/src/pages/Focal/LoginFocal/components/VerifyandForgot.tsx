@@ -21,6 +21,7 @@ export function ForgotPasswordVerification({
     onVerify,
     tempToken,
     emailOrNumber,
+    hideTimer
 }: {
     code: string;
     error: string;
@@ -29,31 +30,65 @@ export function ForgotPasswordVerification({
     onVerify: (e: React.FormEvent) => void;
     tempToken?: string;
     emailOrNumber?: string;
+    hideTimer?: boolean;
 }) {
     const [resendLoading, setResendLoading] = useState(false);
     const [resendMsg, setResendMsg] = useState<string | null>(null);
     const [showResendAlert, setShowResendAlert] = useState(false);
     const [resendAlertTimer, setResendAlertTimer] = useState<NodeJS.Timeout | null>(null);
-    // Timer state for token expiration
-    const [expiresIn, setExpiresIn] = useState<number>(300); // 5 minutes in seconds
+    // Timer state for token expiration (persist expiry timestamp in sessionStorage)
+    const [expiresIn, setExpiresIn] = useState<number>(0);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Start or reset timer on mount and when resend is successful
+    // Helper to get expiry timestamp from localStorage
+    function getStoredExpiry() {
+        const stored = localStorage.getItem('focalOtpExpiry');
+        if (stored) {
+            const ts = parseInt(stored, 10);
+            if (!isNaN(ts)) return ts;
+        }
+        return null;
+    }
+
+    // Timer logic: always use latest expiry from localStorage
     useEffect(() => {
-        setExpiresIn(300);
+        function getAndSetExpiry() {
+            const expiry = getStoredExpiry();
+            if (!expiry) return;
+            const now = Date.now();
+            const diff = Math.max(0, Math.floor((expiry - now) / 1000));
+            setExpiresIn(diff);
+            if (diff === 0) {
+                localStorage.removeItem('focalOtpExpiry');
+            }
+        }
+        getAndSetExpiry();
         if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = setInterval(() => {
-            setExpiresIn(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current!);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
+        timerRef.current = setInterval(getAndSetExpiry, 1000);
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
+    }, []);
+
+    // When resend is successful, reset expiry to 5 minutes from now and update timer immediately
+    useEffect(() => {
+        if (showResendAlert) {
+            const newExpiry = Date.now() + 5 * 60 * 1000;
+            localStorage.setItem('focalOtpExpiry', newExpiry.toString());
+            // Immediately update timer state and restart interval
+            setExpiresIn(300);
+            if (timerRef.current) clearInterval(timerRef.current);
+            timerRef.current = setInterval(() => {
+                const expiry = getStoredExpiry();
+                if (!expiry) return;
+                const now = Date.now();
+                const diff = Math.max(0, Math.floor((expiry - now) / 1000));
+                setExpiresIn(diff);
+                if (diff === 0) {
+                    localStorage.removeItem('focalOtpExpiry');
+                }
+            }, 1000);
+        }
     }, [showResendAlert]);
 
     async function handleResend() {
@@ -80,6 +115,9 @@ export function ForgotPasswordVerification({
             if (res.tempToken) {
                 sessionStorage.setItem('focalTempToken', res.tempToken);
             }
+            // Set new expiry timestamp for OTP (5 minutes from now)
+            const newExpiry = Date.now() + 5 * 60 * 1000;
+            localStorage.setItem('focalOtpExpiry', newExpiry.toString());
         } catch (err: any) {
             let msg = err?.message || 'Failed to resend code';
             try {
@@ -122,11 +160,13 @@ export function ForgotPasswordVerification({
                 style={{ marginTop: '120px', zIndex: 20, position: 'relative' }}
             >
                 <div className="flex flex-col items-center gap-4 mb-8 px-4 w-full">
-                    <div className="mb-2">
-                        <span className="text-[#BABABA] text-sm sm:text-base">
-                            Code expires in: <span className="font-semibold text-white">{formatTime(expiresIn)}</span>
-                        </span>
-                    </div>
+                    {!hideTimer && (
+                        <div className="mb-2">
+                            <span className="text-[#BABABA] text-sm sm:text-base">
+                                Code expires in: <span className="font-semibold text-white">{formatTime(expiresIn)}</span>
+                            </span>
+                        </div>
+                    )}
                     <h1 className="text-3xl sm:text-[43px] font-semibold text-white mb-1 text-center">
                         Enter verification code
                     </h1>

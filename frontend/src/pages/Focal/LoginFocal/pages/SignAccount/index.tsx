@@ -34,6 +34,8 @@ export function LoginFocal() {
       );
       // Success: store tempToken for verification step
       let tempToken = res.tempToken || '';
+      // Reset OTP expiry timer to 5 minutes from now on login
+      localStorage.setItem('focalOtpExpiry', (Date.now() + 5 * 60 * 1000).toString());
       setIsLoading(false);
       navigate('/verification-signin-focal', { state: { tempToken } });
     } catch (err: any) {
