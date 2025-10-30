@@ -344,7 +344,11 @@ export function CreateDispatcherSheet({
       name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
       contactNumber: formData.contactNumber.trim(),
       email: formData.email.trim(),
-      createdAt: isEditing && editData ? editData.createdAt : new Date().toLocaleDateString(),
+      createdAt: isEditing && editData ? editData.createdAt : new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long', 
+        day: 'numeric'
+      }),
       createdBy: isEditing && editData ? editData.createdBy : "Franxine Orias",
       // For editing, if photo was removed, set to null; otherwise use preview or existing photo
       photo: photoWasRemoved ? null : (photoPreview || (isEditing && editData ? editData.photo : undefined)),

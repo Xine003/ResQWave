@@ -124,10 +124,25 @@ export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<Communit
     },
     cell: ({ row }) => <div className="text-[#a1a1a1]">{row.getValue("registeredAt")}</div>,
     sortingFn: (rowA, rowB, columnId) => {
-      // Sort by date ascending (oldest to newest)
-      const a = new Date(rowA.getValue(columnId))
-      const b = new Date(rowB.getValue(columnId))
-      return a.getTime() - b.getTime()
+      // Parse the formatted date strings back to Date objects for comparison
+      try {
+        const dateA = new Date(rowA.getValue(columnId))
+        const dateB = new Date(rowB.getValue(columnId))
+        
+        // Handle invalid dates
+        if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0
+        if (isNaN(dateA.getTime())) return 1
+        if (isNaN(dateB.getTime())) return -1
+        
+        // Sort by date ascending (oldest to newest)
+        return dateA.getTime() - dateB.getTime()
+      } catch (error) {
+        console.error('Error sorting dates:', error)
+        // Fallback to string comparison
+        const a = String(rowA.getValue(columnId))
+        const b = String(rowB.getValue(columnId))
+        return a.localeCompare(b)
+      }
     },
   sortDescFirst: false, 
   },

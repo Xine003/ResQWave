@@ -199,6 +199,35 @@ const archiveDispatcher = async (req, res) => {
     }
 };
 
+// UNARCHIVE/RESTORE Dispatcher
+const unarchiveDispatcher = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const dispatcher = await dispatcherRepo.findOne({ where: {id} });
+        if (!dispatcher) {
+            return res.status(404).json({message: "Dispatcher Not Found"});
+        }
+
+        // Check if dispatcher is actually archived
+        if (!dispatcher.archived) {
+            return res.status(400).json({message: "Dispatcher is not archived"});
+        }
+
+        dispatcher.archived = false;
+        await dispatcherRepo.save(dispatcher);
+
+        // Invalidate
+        await deleteCache("dispatchers:active");
+        await deleteCache("dispatchers:archived");
+        await deleteCache(`dispatcher:${id}`);
+
+        res.json({message: "Dispatcher Restored"});
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({message: "Server Error - RESTORE Dispatcher"});
+    }
+};
+
 // READ ARCHIVE Dispatcher
 const archiveDispatchers = async (req, res) => {
     try {
@@ -257,6 +286,7 @@ module.exports = {
     getDispatcher,
     updateDispatcher,
     archiveDispatcher,
+    unarchiveDispatcher,
     archiveDispatchers,
     deleteDispatcherPermanently
 };

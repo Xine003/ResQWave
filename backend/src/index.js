@@ -56,7 +56,7 @@ AppDataSource.initialize()
         // Protected Routes
         // Only Admin can access Dispatcher Management
         app.use("/dispatcher", requireRole("admin"), dispatcherRoutes);
-        app.use("/terminal", requireRole("admin"), terminalRoutes);
+        app.use("/terminal", requireRole(["admin", "dispatcher"]), terminalRoutes);
         app.use("/focalperson", focalPersonRoutes);
         app.use("/neighborhood", neighborhoodRoutes);
         app.use("/logs", logsRoute);

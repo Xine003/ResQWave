@@ -84,7 +84,7 @@ const getOnlineTerminals = async (req, res) => {
         // Fetch only the selected columns
         const terminals = await terminalRepo.find({
             where: { status: "Online" },
-            select: ["id", "createdAt", "status", "availability", "name"],
+            select: ["id", "dateCreated", "status", "availability", "name"],
         });
 
         await setCache(cacheKey, terminals, 300);
@@ -100,12 +100,12 @@ const getOnlineTerminals = async (req, res) => {
 const getOfflineTerminals = async(req, res) => {
     try {
         const cacheKey = "offlineTerminals";
-        const cached = await getCache(cached);
+        const cached = await getCache(cacheKey);
         if (cached) return res.json(cached);
 
         const terminals = await terminalRepo.find({
             where: { status: "Offline" },
-            select: ["id", "createdAt", "status", "availability", "name"],
+            select: ["id", "dateCreated", "status", "availability", "name"],
         });
 
         await setCache(cacheKey, terminals, 300);

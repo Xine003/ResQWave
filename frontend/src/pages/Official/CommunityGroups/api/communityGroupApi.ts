@@ -400,17 +400,23 @@ export function transformNeighborhoodToCommunityGroup(neighborhood: Neighborhood
     return "N/A"
   }
 
-  // Format date
+  // Format date with better error handling
   const formatDate = (dateStr: string | null): string => {
     if (!dateStr) return "Unknown"
     try {
       const date = new Date(dateStr)
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date received:', dateStr)
+        return 'Invalid Date'
+      }
       return date.toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric' 
       })
-    } catch {
+    } catch (error) {
+      console.error('Error formatting date:', dateStr, error)
       return "Unknown"
     }
   }
