@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { useFocalAuth } from '../../context/focalAuthContext';
-import { apiFetch, API_BASE_URL } from '@/lib/api';
-import { Eye, EyeOff, Check, X, Camera, User } from 'lucide-react';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog-focal';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog-focal';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Check, Eye, EyeOff, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { API_BASE_URL, apiFetch } from '@/lib/api';
+import { ArrowLeft, Camera, Check, Eye, EyeOff, User, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useFocalAuth } from '../../context/focalAuthContext';
 import type { AccountSettingsModalProps } from '../types/accountSettings';
 import { isAccountFormDirty, validatePassword } from '../utils/passwordUtils';
 
