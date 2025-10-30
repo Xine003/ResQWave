@@ -45,8 +45,8 @@ const createPostRescueForm = async (req, res) => {
 
         await postRescueRepo.save(newForm);
 
-        // Update Rescue Form Status -> Completed
-        rescueForm.status = "Completed";
+        // Update Rescue Form Status -> Dispatched
+        rescueForm.status = "Dispatched";
         await rescueFormRepo.save(rescueForm);
 
         // Cache
@@ -136,11 +136,113 @@ const getPendingReports = async (req, res) => {
   }
 };
 
+// Aggregated
+// All of the Data in Document
+const getAggregatedRescueReports = async (req, res) => {
+  try {
+    const { alertID } = req.query || {};
+    const cacheKey = alertID ? `aggregatedReports:${alertID}` : `aggregatedReports:all`;
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
 
+    let qb = alertRepo
+      .createQueryBuilder("alert")
+      .leftJoin("alert.terminal", "terminal")
+      .leftJoin("Neighborhood", "n", "n.terminalID = terminal.id")
+      .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+      .leftJoin("RescueForm", "rf", "rf.emergencyID = alert.id")
+      .leftJoin("PostRescueForm", "prf", "prf.alertID = alert.id");
 
-module.exports = { 
-    createPostRescueForm,
-    getCompletedReports,
-    getPendingReports
+    if (alertID) {
+      qb = qb.where("alert.id = :alertID", { alertID })
+             .andWhere("rf.status = :rfStatus", { rfStatus: "Dispatched" });
+    } else {
+      // Only include those with a RescueForm that is Dispatched
+      qb = qb.where("rf.status = :rfStatus", { rfStatus: "Dispatched" });
+    }
+
+    const rows = await qb
+      .select([
+        "n.id AS neighborhoodId",
+        "fp.firstName AS fpFirstName",
+        "fp.lastName AS fpLastName",
+        "fp.address AS fpAddress",
+        "fp.contactNumber AS fpContactNumber",
+        "alert.id AS alertId",
+        "rf.emergencyID AS emergencyId",
+        "rf.waterLevel AS waterLevel",
+        "rf.urgencyOfEvacuation AS urgencyOfEvacuation",
+        "rf.hazardPresent AS hazardPresent",
+        "rf.accessibility AS accessibility",
+        "rf.resourceNeeds AS resourceNeeds",
+        "rf.otherInformation AS otherInformation",
+        "alert.alertType AS alertType",
+        "prf.createdAt AS prfCreatedAt",
+        "prf.completedAt AS prfCompletedAt",
+        "prf.noOfPersonnelDeployed AS noOfPersonnel",
+        "prf.resourcesUsed AS resourcesUsed",
+        "prf.actionTaken AS actionsTaken",
+      ])
+      .orderBy("alert.dateTimeSent", "DESC")
+      .getRawMany();
+
+    const data = rows.map(r => {
+      const timeOfRescue = r.prfCreatedAt || null;
+      const completedAt = r.prfCompletedAt || null;
+      const rescueCompleted = !!completedAt;
+
+      let rescueCompletionTime = null;
+      if (timeOfRescue && completedAt) {
+        const start = new Date(timeOfRescue).getTime();
+        const end = new Date(completedAt).getTime();
+        const diffMs = Math.max(0, end - start);
+        // Format as HH:MM:SS
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        const hh = String(hours).padStart(2, "0");
+        const mm = String(minutes).padStart(2, "0");
+        const ss = String(seconds).padStart(2, "0");
+        rescueCompletionTime = `${hh}:${mm}:${ss}`;
+      }
+
+      return {
+        neighborhoodId: r.neighborhoodId || null,
+        focalPersonName: [r.fpFirstName, r.fpLastName].filter(Boolean).join(" ") || null,
+        focalPersonAddress: r.fpAddress || null,
+        focalPersonContactNumber: r.fpContactNumber || null,
+
+        emergencyId: r.emergencyId || r.alertId || null,
+        waterLevel: r.waterLevel || null,
+        urgencyOfEvacuation: r.urgencyOfEvacuation || null,
+        hazardPresent: r.hazardPresent || null,
+        accessibility: r.accessibility || null,
+        resourceNeeds: r.resourceNeeds || null,
+        otherInformation: r.otherInformation || null,
+        timeOfRescue, // PostRescueForm.createdAt
+        alertType: r.alertType || null,
+
+        rescueCompleted,
+        rescueCompletionTime, // human (e.g., "1h 12m")
+        noOfPersonnel: r.noOfPersonnel || null,
+        resourcesUsed: r.resourcesUsed || null,
+        actionsTaken: r.actionsTaken || null,
+      };
+    });
+
+    await setCache(cacheKey, data, 300);
+    return res.json(data);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+module.exports = {
+  createPostRescueForm,
+  getCompletedReports,
+  getPendingReports,
+  getAggregatedRescueReports,
 };
 
