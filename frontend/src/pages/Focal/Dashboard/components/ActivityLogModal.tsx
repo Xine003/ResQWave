@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { apiFetch } from '@/lib/api';
 
-import { ChevronDown, Search } from 'lucide-react';
+import { Eye, ChevronDown, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
     DropdownMenu,
@@ -16,52 +15,79 @@ type ActivityLogModalProps = {
     center?: { x: number; y: number } | null;
 };
 
-
-// Helper to group days by month for frontend rendering
-interface LogField {
-    field: string;
-    oldValue: string;
-    newValue: string;
-}
-interface LogAction {
-    time: string;
-    actorName: string;
-    entityType: string;
-    message: string;
-    createdAt: string;
-    fields: LogField[];
-}
-interface LogDay {
-    date: string;
-    count: number;
-    actions: LogAction[];
-}
-interface MonthGroup {
-    monthLabel: string;
-    days: { dayLabel: string; actions: LogAction[]; count: number }[];
-}
-function groupDaysByMonth(days: LogDay[]): MonthGroup[] {
-    const months: { [monthLabel: string]: LogDay[] } = {};
-    days.forEach((day: LogDay) => {
-        const d = new Date(day.date);
-        const monthLabel = d.toLocaleString(undefined, { month: 'long', year: 'numeric' });
-        if (!months[monthLabel]) months[monthLabel] = [];
-        months[monthLabel].push(day);
-    });
-    return Object.entries(months).map(([monthLabel, days]) => ({
-        monthLabel, days: (days as LogDay[]).map((day: LogDay) => ({
-            dayLabel: new Date(day.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }),
-            actions: day.actions,
-            count: day.count,
-        }))
-    }));
-}
+// Hardcoded activity log data for demonstration (grouped by action, each with a list of edited fields)
+const activityLogs = [
+    {
+        monthLabel: 'October 2025',
+        days: [
+            {
+                dayLabel: 'October 8, 2025',
+                actions: [
+                    {
+                        user: 'Gwyneth',
+                        action: 'updated their neighborhood information.',
+                        time: '06:23',
+                        fields: [
+                            { field: 'No. of Households', oldValue: '1-5', newValue: '5-10' },
+                            { field: 'Barangay Captain', oldValue: 'Juan Dela Cruz', newValue: 'Maria Santos' },
+                            { field: 'Contact Number', oldValue: '09123456789', newValue: '09998887777' },
+                        ],
+                    },
+                    {
+                        user: 'Gwyneth',
+                        action: 'updated their address.',
+                        time: '08:10',
+                        fields: [
+                            { field: 'Street', oldValue: 'Main St.', newValue: '2nd Ave.' },
+                            { field: 'City', oldValue: 'Quezon City', newValue: 'Makati' },
+                        ],
+                    },
+                ],
+            },
+            {
+                dayLabel: 'October 5, 2025',
+                actions: [
+                    {
+                        user: 'Gwyneth',
+                        action: 'updated their neighborhood information.',
+                        time: '06:23',
+                        fields: [
+                            { field: 'No. of Households', oldValue: '10-20', newValue: '20-30' },
+                        ],
+                    },
+                ],
+            },
+            {
+                dayLabel: 'October 2, 2025',
+                actions: [
+                    {
+                        user: 'Gwyneth',
+                        action: 'updated their contact information.',
+                        time: '06:23',
+                        fields: [
+                            { field: 'Contact Number', oldValue: '09998887777', newValue: '09112223333' },
+                        ],
+                    },
+                ],
+            },
+            {
+                dayLabel: 'October 1, 2025',
+                actions: [
+                    {
+                        user: 'Gwyneth',
+                        action: 'updated their neighborhood information.',
+                        time: '06:23',
+                        fields: [
+                            { field: 'No. of Households', oldValue: '5-10', newValue: '10-20' },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+];
 
 export default function ActivityLogModal({ open, onClose, center = null }: ActivityLogModalProps) {
-    const [activityLogs, setActivityLogs] = useState<any[]>([]);
-    const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const ANIM_MS = 220;
     const [mounted, setMounted] = useState<boolean>(open);
     const [visible, setVisible] = useState<boolean>(open);
@@ -82,8 +108,10 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
     const [yearOpen, setYearOpen] = useState(false);
     // State to control PDF modal
     // Optionally, you could store the PDF path or report id if needed for dynamic PDFs
+    const [typeOpen, setTypeOpen] = useState(false);
     const monthRef = useRef<HTMLButtonElement | null>(null);
     const yearRef = useRef<HTMLButtonElement | null>(null);
+    const typeRef = useRef<HTMLButtonElement | null>(null);
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
     ];
@@ -93,11 +121,11 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
         return Array.from({ length: range }, (_, i) => String(y - i));
     })();
 
-    // State for expand/collapse of months and days (allow multiple open)
-    const [expandedMonth, setExpandedMonth] = useState<string[]>([]);
-    const [expandedDay, setExpandedDay] = useState<string[]>([]);
-    // Track expanded actions per day (keyed by dayLabel, value is array of open indices)
-    const [expandedAction, setExpandedAction] = useState<{ [dayLabel: string]: number[] }>({});
+    // State for expand/collapse of months and days
+    const [expandedMonth, setExpandedMonth] = useState<string | null>(activityLogs[0]?.monthLabel || null);
+    const [expandedDay, setExpandedDay] = useState<string | null>(activityLogs[0]?.days[0]?.dayLabel || null);
+    // Track expanded action per day (keyed by dayLabel)
+    const [expandedAction, setExpandedAction] = useState<{ [dayLabel: string]: number | null }>({});
     const [query, setQuery] = useState('');
 
 
@@ -123,47 +151,22 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
             }, 180);
         }
     }
-
-    // Fetch logs from backend
-    useEffect(() => {
-        if (!open) return;
-        setLoading(true);
-        setError(null);
-        apiFetch('/logs/own')
-            .then((data) => {
-                setLastUpdated(data.lastUpdated || null);
-                const grouped = groupDaysByMonth(data.days || []);
-                setActivityLogs(grouped);
-                // Set default expanded month/day
-                if (grouped.length > 0) setExpandedMonth([grouped[0].monthLabel]);
-                if (grouped[0]?.days?.length > 0) setExpandedDay([grouped[0].days[0].dayLabel]);
-            })
-            .catch((err) => setError(err.message || 'Failed to load logs'))
-            .finally(() => setLoading(false));
-    }, [open]);
-
     // Filtered logs by search (date string)
     const filteredLogs = useMemo(() => {
         if (!query.trim()) return activityLogs;
         const q = query.trim().toLowerCase();
-        return activityLogs.map((month: MonthGroup) => ({
+        return activityLogs.map(month => ({
             ...month,
             days: month.days
-                .map((day) => ({
+                .map(day => ({
                     ...day,
                     actions: day.actions,
                 }))
-                .filter((day) => day.dayLabel.toLowerCase().includes(q))
-        })).filter((month) => month.days.length > 0);
-    }, [query, activityLogs]);
+                .filter(day => day.dayLabel.toLowerCase().includes(q))
+        })).filter(month => month.days.length > 0);
+    }, [query]);
 
     if (!mounted) return null;
-    if (loading) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: '#bababa', fontSize: 18 }}>Loading activity logs...</div>
-    );
-    if (error) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: '#ff6b6b', fontSize: 18 }}>{error}</div>
-    );
 
 
     const baseStyle: any = {
@@ -228,9 +231,7 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
                     {/* Header */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, zIndex: 2 }}>
                         <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: 0.6 }}>Activity Logs</h2>
-                        <div style={{ color: '#BABABA', fontSize: 14, fontWeight: 400 }}>
-                            Last Updated: {lastUpdated ? new Date(lastUpdated).toLocaleString(undefined, { month: '2-digit', day: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }) : '—'}
-                        </div>
+                        <div style={{ color: '#BABABA', fontSize: 14, fontWeight: 400 }}>Last Updated: October 10, 2025</div>
                     </div>
 
                     {/* Controls: search + filters */}
@@ -305,13 +306,11 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
                                 <div style={{ fontSize: 13, maxWidth: 420, textAlign: 'center', color: '#cfcfcf' }}>There are no activity logs for your community. Try widening the date range or clearing filters.</div>
                             </div>
                         ) : filteredLogs.map(month => {
-                            const monthExpanded = expandedMonth.includes(month.monthLabel);
+                            const monthExpanded = expandedMonth === month.monthLabel;
                             return (
                                 <div key={month.monthLabel} style={{ display: 'grid', gap: 10 }}>
                                     <button
-                                        onClick={() => setExpandedMonth(prev => prev.includes(month.monthLabel)
-                                            ? prev.filter(m => m !== month.monthLabel)
-                                            : [...prev, month.monthLabel])}
+                                        onClick={() => setExpandedMonth(monthExpanded ? null : month.monthLabel)}
                                         aria-expanded={monthExpanded}
                                         aria-label={monthExpanded ? 'Collapse month' : 'Expand month'}
                                         style={{
@@ -334,14 +333,12 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
                                         </div>
                                         <svg width="30" height="30" style={{ transform: monthExpanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 160ms', color: '#111' }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
                                     </button>
-                                    {monthExpanded && month.days.map((day: { dayLabel: string; actions: LogAction[]; count: number }) => {
-                                        const dayExpanded = expandedDay.includes(day.dayLabel);
+                                    {monthExpanded && month.days.map(day => {
+                                        const dayExpanded = expandedDay === day.dayLabel;
                                         return (
                                             <div key={day.dayLabel} style={{ display: 'grid', gap: 10 }}>
                                                 <button
-                                                    onClick={() => setExpandedDay(prev => prev.includes(day.dayLabel)
-                                                        ? prev.filter(d => d !== day.dayLabel)
-                                                        : [...prev, day.dayLabel])}
+                                                    onClick={() => setExpandedDay(dayExpanded ? null : day.dayLabel)}
                                                     aria-expanded={dayExpanded}
                                                     aria-label={dayExpanded ? 'Collapse day' : 'Expand day'}
                                                     style={{
@@ -366,8 +363,8 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
                                                 </button>
                                                 {dayExpanded && (
                                                     <div style={{ background: '#171717', border: '1px solid #333', padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                                        {day.actions.map((action: LogAction, idx: number) => {
-                                                            const isExpanded = Array.isArray(expandedAction[day.dayLabel]) && expandedAction[day.dayLabel].includes(idx);
+                                                        {day.actions.map((action, idx) => {
+                                                            const isExpanded = expandedAction[day.dayLabel] === idx;
                                                             return (
                                                                 <div key={idx} style={{ paddingBottom: '5px', marginTop: 5, borderBottom: idx !== day.actions.length - 1 ? '1px solid #232323' : 'none' }}>
                                                                     <div
@@ -384,23 +381,14 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
                                                                             marginBottom: 4,
                                                                             padding: '0px 8px',
                                                                         }}
-                                                                        onClick={() => setExpandedAction(prev => {
-                                                                            const arr = Array.isArray(prev[day.dayLabel]) ? [...prev[day.dayLabel]] : [];
-                                                                            if (arr.includes(idx)) {
-                                                                                // Remove idx
-                                                                                return { ...prev, [day.dayLabel]: arr.filter(i => i !== idx) };
-                                                                            } else {
-                                                                                // Add idx
-                                                                                return { ...prev, [day.dayLabel]: [...arr, idx] };
-                                                                            }
-                                                                        })}
+                                                                        onClick={() => setExpandedAction(prev => ({ ...prev, [day.dayLabel]: isExpanded ? null : idx }))}
                                                                         aria-expanded={isExpanded}
                                                                         aria-label={isExpanded ? 'Collapse action' : 'Expand action'}
                                                                     >
                                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, overflow: 'hidden', marginBottom: 4 }}>
                                                                             <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', border: '2px solid #BABABA', marginRight: 10, flexShrink: 0 }}></span>
                                                                             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%', overflow: 'hidden' }}>
-                                                                                <span style={{ fontWeight: 400, fontSize: 15 }}>{action.actorName || 'User'} {action.message || ''}</span>
+                                                                                <span style={{ fontWeight: 400, fontSize: 15 }}>{action.user} {action.action}</span>
                                                                                 <span style={{ fontSize: 13, color: '#BABABA', marginTop: 3, background: '#232323', borderRadius: 8, padding: '2px 10px', fontWeight: 500, whiteSpace: 'nowrap', alignSelf: 'flex-start', marginLeft: 0 }}>{action.fields.length} change{action.fields.length > 1 ? 's' : ''} made</span>
                                                                             </div>
                                                                         </div>
@@ -412,46 +400,33 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
                                                                     {isExpanded && (
                                                                         <div
                                                                             style={{
-                                                                                marginTop: 10,
-                                                                                marginBottom: 10,
+                                                                                marginTop: 8,
                                                                                 marginLeft: 32,
                                                                                 background: 'transparent',
                                                                                 borderRadius: 6,
+                                                                                padding: '6px 0 6px 0',
                                                                                 display: 'flex',
                                                                                 flexDirection: 'column',
-                                                                                gap: 0,
+                                                                                gap: 6,
+                                                                                borderLeft: '2.5px solid #404040',
                                                                             }}
                                                                         >
-                                                                            {action.fields.map((field: LogField, fidx: number) => (
+                                                                            {action.fields.map((field, fidx) => (
                                                                                 <div
                                                                                     key={fidx}
                                                                                     style={{
                                                                                         display: 'flex',
                                                                                         alignItems: 'center',
-                                                                                        borderRadius: 6,
-                                                                                        padding: '4px 0',
+                                                                                        gap: 10,
+                                                                                        fontSize: 14,
+                                                                                        color: '#fff',
+                                                                                        background: 'transparent',
+                                                                                        padding: '2px 0 2px 10px',
                                                                                     }}
                                                                                 >
-                                                                                    <div style={{ minWidth: 140, fontWeight: 400, color: '#BABABA', fontSize: 14 }}>
-                                                                                        {field.field}:
-                                                                                    </div>
-                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                                                        <span style={{
-                                                                                            textDecoration: 'line-through',
-                                                                                            color: '#888',
-                                                                                            fontSize: 13,
-                                                                                            fontWeight: 400,
-                                                                                            marginRight: 6,
-                                                                                        }}>
-                                                                                            {field.oldValue}
-                                                                                        </span>
-                                                                                        <span style={{
-                                                                                            fontWeight: 500,
-                                                                                            fontSize: 14,
-                                                                                        }}>
-                                                                                            {field.newValue}
-                                                                                        </span>
-                                                                                    </div>
+                                                                                    <span style={{ fontWeight: 500 }}>{field.field}:</span>
+                                                                                    <span style={{ color: '#BABABA', textDecoration: 'line-through', marginRight: 6 }}>{field.oldValue}</span>
+                                                                                    <span style={{ color: '#4ade80', fontWeight: 600 }}>{field.newValue}</span>
                                                                                 </div>
                                                                             ))}
                                                                         </div>
