@@ -63,8 +63,19 @@ export async function updateNeighborhood(
   })
   
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(error || response.statusText)
+    let errorMessage = response.statusText
+    try {
+      const errorData = await response.json()
+      errorMessage = errorData.message || errorData.error || errorMessage
+    } catch {
+      // If JSON parsing fails, try text
+      try {
+        errorMessage = await response.text() || errorMessage
+      } catch {
+        // Keep the original statusText if both fail
+      }
+    }
+    throw new Error(errorMessage)
   }
   
   return response.json()
@@ -323,8 +334,19 @@ export async function createCommunityGroup(
   })
   
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(error || response.statusText)
+    let errorMessage = response.statusText
+    try {
+      const errorData = await response.json()
+      errorMessage = errorData.message || errorData.error || errorMessage
+    } catch {
+      // If JSON parsing fails, try text
+      try {
+        errorMessage = await response.text() || errorMessage
+      } catch {
+        // Keep the original statusText if both fail
+      }
+    }
+    throw new Error(errorMessage)
   }
   
   return response.json()

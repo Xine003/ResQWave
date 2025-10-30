@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { ArrowLeft, Check, Eye, EyeOff, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { AccountSettingsModalProps } from '../types/accountSettings';
-import { validatePassword, isAccountFormDirty } from '../utils/passwordUtils';
-import { ArrowLeft } from "lucide-react";
+import { isAccountFormDirty, validatePassword } from '../utils/passwordUtils';
 
 export default function AccountSettingsModal({ open, onClose, onSaved, center = null, isDirtyRef = null }: AccountSettingsModalProps) {
     // View state - 'profile' or 'password'
@@ -421,7 +420,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                     <div style={{ height: 24 }} />
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: hasNumber ? '#fff' : '#A8A8A8' }}><span style={{ width: 18 }}>{hasNumber ? <Check size={14} color="#22c55e" /> : <X size={14} color="#9ca3af" />}</span> Atleast one number</div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: hasSpecial ? '#fff' : '#A8A8A8' }}><span style={{ width: 18 }}>{hasSpecial ? <Check size={14} color="#22c55e" /> : <X size={14} color="#9ca3af" />}</span> Atleast one special character eg. !@#$%^*</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: hasSpecial ? '#fff' : '#A8A8A8' }}><span style={{ width: 18 }}>{hasSpecial ? <Check size={14} color="#22c55e" /> : <X size={14} color="#9ca3af" />}</span> Atleast one special character eg. !@#$%^*_</div>
                                     </div>
                                 </div>
                             </div>

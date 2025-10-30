@@ -70,6 +70,11 @@ export async function getTerminal(id: string): Promise<TerminalApiResponse> {
   return apiRequest<TerminalApiResponse>(`/terminal/${id}`)
 }
 
+// Get next terminal ID (for frontend preview)
+export async function getNextTerminalId(): Promise<{ nextId: string }> {
+  return apiRequest<{ nextId: string }>('/terminal/next-id')
+}
+
 // Create new terminal
 export async function createTerminal(terminalData: {
   name: string

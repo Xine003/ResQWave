@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Archive, Edit, Info } from "lucide-react"
+import { Archive, Edit } from "lucide-react"
 import type { Terminal, TerminalColumnsOptions } from "../types"
 
 export const createColumns = (opts: TerminalColumnsOptions): ColumnDef<Terminal>[] => [
@@ -141,15 +141,8 @@ export const createColumns = (opts: TerminalColumnsOptions): ColumnDef<Terminal>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="start" side="left" sideOffset={2}
-            className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-35 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
+            className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-26 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
           >
-            <DropdownMenuItem
-              onClick={(e) => { e.stopPropagation(); opts.onMoreInfo(row.original) }}
-              className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
-            >
-              <Info className="mr-2 h-4 w-4 text-white" />
-              <span className="text-sm">More Info</span>
-            </DropdownMenuItem>
             {opts.onEdit && (
               <DropdownMenuItem
                 onClick={(e) => { e.stopPropagation(); opts.onEdit!(row.original) }}

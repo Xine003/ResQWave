@@ -8,6 +8,30 @@ const {
     deleteCache
 } = require("../config/cache");
 
+// Get next terminal ID (for frontend preview)
+const getNextTerminalId = async (req, res) => {
+    try {
+        // Generate next terminal ID (same logic as create)
+        const lastTerminal = await terminalRepo
+            .createQueryBuilder("terminal")
+            .orderBy("terminal.id", "DESC")
+            .getOne();
+
+        let newNumber = 1;
+        if (lastTerminal) {
+            const lastNumber = parseInt(lastTerminal.id.replace("RESQWAVE", ""), 10);
+            newNumber = lastNumber + 1; 
+        }
+
+        const nextID = "RESQWAVE" + String(newNumber).padStart(3, "0");
+
+        res.json({ nextId: nextID });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error - GET Next Terminal ID" });
+    }
+};
+
 // CREATE Terminal
 const createTerminal = async (req, res) => {
     try {
@@ -305,6 +329,7 @@ const permanentDeleteTerminal = async (req, res) => {
 
 module.exports = {
     createTerminal,
+    getNextTerminalId,
     getOnlineTerminals,
     getOfflineTerminals,
     getTerminals,

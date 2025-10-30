@@ -82,12 +82,12 @@ export function CreateDispatcherSheet({
       const hasUppercase = /[A-Z]/.test(password)
       const hasLowercase = /[a-z]/.test(password)
       const hasNumber = /\d/.test(password)
-      const hasSpecialChar = /[@$!%*?&]/.test(password)
+      const hasSpecialChar = /[@$!%*?&_]/.test(password)
       
       if (!hasUppercase) return "Password must include at least one uppercase letter"
       if (!hasLowercase) return "Password must include at least one lowercase letter"
       if (!hasNumber) return "Password must include at least one number"
-      if (!hasSpecialChar) return "Password must include at least one special character (@, $, !, %, *, ?, &)"
+      if (!hasSpecialChar) return "Password must include at least one special character (@, $, !, %, *, ?, &, _)"
     }
     
     return undefined

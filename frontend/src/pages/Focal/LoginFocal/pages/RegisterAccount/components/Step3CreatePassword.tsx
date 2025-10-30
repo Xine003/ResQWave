@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Check, X, Info } from "lucide-react";
+import { Check, Eye, EyeOff, Info, X } from "lucide-react";
+import { useState } from "react";
 
 interface Step3CreatePasswordProps {
   onNext: (data: { password: string; confirmPassword: string }) => void;
@@ -39,7 +38,7 @@ export function Step3CreatePassword({ onNext, onBack, isLoading = false }: Step3
       met: /\d/.test(password)
     },
     {
-      label: "At least one special character (ex. !@#$%*)",
+      label: "At least one special character (ex. !@#$%*_)",
       regex: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
       met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
     },

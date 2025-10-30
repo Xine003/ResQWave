@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
     createTerminal,
+    getNextTerminalId,
     getOnlineTerminals,
     getOfflineTerminals,
     getTerminals,
@@ -14,6 +15,7 @@ const {
 } = require("../controllers/terminalController");
 
 // CRUD + Archived
+router.get("/next-id", getNextTerminalId);
 router.post("/", createTerminal);
 router.get("/", getTerminals);
 router.get("/archived", getArchivedTerminals);
