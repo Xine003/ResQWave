@@ -14,7 +14,7 @@ const terminalRepo = AppDataSource.getRepository("Terminal");
 // Helper to strip sensitive fields before caching
 function sanitizeFP(fp) {
     if (!fp) return fp;
-    const {password, photo, alternativeFPImage, ...rest} = fp;
+    const { password, photo, alternativeFPImage, ...rest } = fp;
     return rest;
 }
 
@@ -52,7 +52,7 @@ const createFocalPerson = async (req, res) => {
             return res.status(400).json({ message: "Terminal already occupied" });
         }
         if (terminal.archived) {
-            return res.status(400).json({message: "Terminal is Archived and cannot be used"});
+            return res.status(400).json({ message: "Terminal is Archived and cannot be used" });
         }
 
         // Uniqueness checks (email/contact must not exist anywhere in focal persons)
@@ -348,21 +348,21 @@ const getFocalPersons = async (req, res) => {
         res.json(sanitized);
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - READ All FP"});
+        res.status(500).json({ message: "Server Error - READ All FP" });
     }
 };
 
 // READ One Focal Person
 const getFocalPerson = async (req, res) => {
     try {
-        const {id} = req.params;
+        const { id } = req.params;
         const cacheKey = `focalPerson:${id}`;
         const cached = await getCache(cacheKey);
         if (cached) return res.json(cached);
 
-        const focalPerson = await focalPersonRepo.findOne({where: {id} });
+        const focalPerson = await focalPersonRepo.findOne({ where: { id } });
         if (!focalPerson) {
-            return res.status(404).json({message: "Focal Person Not Found"});
+            return res.status(404).json({ message: "Focal Person Not Found" });
         }
 
         const sanitized = sanitizeFP(focalPerson);
@@ -370,15 +370,15 @@ const getFocalPerson = async (req, res) => {
         res.json(sanitized);
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - READ One FP"});
+        res.status(500).json({ message: "Server Error - READ One FP" });
     }
 };
 
 const updateFocalPhotos = async (req, res) => {
     try {
-        const {id} = req.params;
-        const fp = await focalPersonRepo.findOne({where: {id} });
-        if (!fp) return res.status(404).json({message: "Focal Person Not Found"});
+        const { id } = req.params;
+        const fp = await focalPersonRepo.findOne({ where: { id } });
+        if (!fp) return res.status(404).json({ message: "Focal Person Not Found" });
 
         const files = req.files || {};
         const main = files.photo?.[0];
@@ -388,7 +388,7 @@ const updateFocalPhotos = async (req, res) => {
         console.log("Body:", req.body);
 
         if (!main && !alt) {
-            return res.status(400).json({message: "No Files Uploaded"});
+            return res.status(400).json({ message: "No Files Uploaded" });
         }
 
         // Save Buffers into BLOB 
@@ -396,7 +396,7 @@ const updateFocalPhotos = async (req, res) => {
         if (alt?.buffer) fp.alternativeFPImage = alt.buffer
 
         await focalPersonRepo.save(fp);
-        
+
         // Invalidate 
         await deleteCache(`focalPerson:${id}`);
         await deleteCache("focalPersons:all");
@@ -404,10 +404,10 @@ const updateFocalPhotos = async (req, res) => {
         await deleteCache(`focalAltPhoto:${id}`);
 
         // Do not include raw blobs in JSON response
-        return res.json({message: "Focal Person Photos Updated", id: fp.id});
+        return res.json({ message: "Focal Person Photos Updated", id: fp.id });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({message: "Server Error"})
+        return res.status(500).json({ message: "Server Error" })
     }
 };
 
@@ -415,7 +415,7 @@ const updateFocalPhotos = async (req, res) => {
 // Stream Main Photo (Blob) to Client
 const getFocalPhoto = async (req, res) => {
     try {
-        const {id} = req.params;
+        const { id } = req.params;
         const cacheKey = `focalPhoto:${id}`;
         const cached = await getCache(cacheKey);
         if (cached) {
@@ -423,7 +423,7 @@ const getFocalPhoto = async (req, res) => {
             return res.send(Buffer.from(cached, "base64"));
         }
 
-        const fp = await focalPersonRepo.findOne({where: {id} });
+        const fp = await focalPersonRepo.findOne({ where: { id } });
         if (!fp || !fp.photo) return res.status(404).send("Photo Not Found");
 
         // Without a mime column, fallback to a generic type
@@ -440,14 +440,14 @@ const getFocalPhoto = async (req, res) => {
 // Stream Alt Photo
 const getAlternativeFocalPhoto = async (req, res) => {
     try {
-        const {id} = req.params;
+        const { id } = req.params;
         const cacheKey = `focalAltPhoto:${id}`;
         const cached = await getCache(cacheKey);
         if (cached) {
             res.setHeader("Content-Type", "application/octet-stream");
             return res.send(Buffer.from(cached, "base64"));
         }
-        const fp = await focalPersonRepo.findOne({where: {id} });
+        const fp = await focalPersonRepo.findOne({ where: { id } });
         if (!fp || !fp.alternativeFPImage) return res.status(404).send("Alternative Photo Not Found");
 
         await setCache(cacheKey, Buffer.from(fp.alternativeFPImage).toString("base64"), 86400);
@@ -463,17 +463,20 @@ const getAlternativeFocalPhoto = async (req, res) => {
 const updateFocalPerson = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, contactNumber, alternativeFP, alternativeFPContactNumber} = req.body;
+        const { name, contactNumber, alternativeFP, alternativeFPContactNumber, firstName, lastName, email } = req.body;
 
-        const focalPerson = await focalPersonRepo.findOne({ where: {id} });
+        const focalPerson = await focalPersonRepo.findOne({ where: { id } });
         if (!focalPerson) {
-            return res.status(404).json({message: "Focal Person Not Found"});
+            return res.status(404).json({ message: "Focal Person Not Found" });
         }
 
         if (name) focalPerson.name = name;
         if (contactNumber) focalPerson.contactNumber = contactNumber;
         if (alternativeFP) focalPerson.alternativeFP = alternativeFP;
         if (alternativeFPContactNumber) focalPerson.alternativeFPContactNumber = alternativeFPContactNumber;
+        if (firstName !== undefined) focalPerson.firstName = firstName;
+        if (lastName !== undefined) focalPerson.lastName = lastName;
+        if (email !== undefined) focalPerson.email = email;
 
         await focalPersonRepo.save(focalPerson);
 
@@ -481,50 +484,50 @@ const updateFocalPerson = async (req, res) => {
         await deleteCache(`focalPerson:${id}`);
         await deleteCache("focalPersons:all");
 
-        res.json({message: "Focal Person Updated", focalPerson});
+        res.json({ message: "Focal Person Updated", focalPerson });
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - UPDATE FP"});
+        res.status(500).json({ message: "Server Error - UPDATE FP" });
     }
 };
 
 // UPDATE Password
 const changePassword = async (req, res) => {
-  try {
-    const isSelfRoute = req.path.includes("/me/");
-    const actorId = req.user?.id;
-    if (!actorId) return res.status(401).json({ message: "Unauthorized" });
+    try {
+        const isSelfRoute = req.path.includes("/me/");
+        const actorId = req.user?.id;
+        if (!actorId) return res.status(401).json({ message: "Unauthorized" });
 
-    const { currentPassword, newPassword } = req.body || {};
-    if (!newPassword) return res.status(400).json({ message: "New password is required" });
+        const { currentPassword, newPassword } = req.body || {};
+        if (!newPassword) return res.status(400).json({ message: "New password is required" });
 
-    let targetId = actorId;
+        let targetId = actorId;
 
-    if (!isSelfRoute && req.params?.id) {
-      const role = req.user?.role || "";
-      const isPrivileged = ["admin", "dispatcher"].includes(role.toLowerCase());
-      if (!isPrivileged) return res.status(403).json({ message: "Forbidden" });
-      targetId = req.params.id;
-    } else {
-      if (!currentPassword) return res.status(400).json({ message: "Current password is required" });
+        if (!isSelfRoute && req.params?.id) {
+            const role = req.user?.role || "";
+            const isPrivileged = ["admin", "dispatcher"].includes(role.toLowerCase());
+            if (!isPrivileged) return res.status(403).json({ message: "Forbidden" });
+            targetId = req.params.id;
+        } else {
+            if (!currentPassword) return res.status(400).json({ message: "Current password is required" });
+        }
+
+        const focal = await focalPersonRepo.findOne({ where: { id: targetId } });
+        if (!focal) return res.status(404).json({ message: "Focal person not found" });
+
+        if (isSelfRoute) {
+            const ok = await bcrypt.compare(String(currentPassword || ""), focal.password || "");
+            if (!ok) return res.status(400).json({ message: "Current password is incorrect" });
+        }
+
+        const hashed = await bcrypt.hash(String(newPassword), 10);
+        await focalPersonRepo.update({ id: targetId }, { password: hashed });
+
+        return res.json({ message: "Password updated" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server Error - CHANGE PASSWORD" });
     }
-
-    const focal = await focalPersonRepo.findOne({ where: { id: targetId } });
-    if (!focal) return res.status(404).json({ message: "Focal person not found" });
-
-    if (isSelfRoute) {
-      const ok = await bcrypt.compare(String(currentPassword || ""), focal.password || "");
-      if (!ok) return res.status(400).json({ message: "Current password is incorrect" });
-    }
-
-    const hashed = await bcrypt.hash(String(newPassword), 10);
-    await focalPersonRepo.update({ id: targetId }, { password: hashed });
-
-    return res.json({ message: "Password updated" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server Error - CHANGE PASSWORD" });
-  }
 }
 
 module.exports = {
