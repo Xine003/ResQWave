@@ -99,7 +99,7 @@ export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(
 	return (
 		<>
 			{/* Waitlist Success Alert - Bottom Left */}
-			<div className={`fixed left-[85px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showWaitlist ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showWaitlist ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
 				<Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-yellow-600/25">
 						<div className="relative">
@@ -107,14 +107,14 @@ export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(
 							<Clock className="absolute -top-1 -right-1 size-3 text-[#eab308]" />
 						</div>
 					</div>
-					<AlertDescription className="text-[13px] leading-tight">
+						<AlertDescription className="text-[13px] leading-tight">
 						{waitlistMessage}
 					</AlertDescription>
 				</Alert>
 			</div>
 
 			{/* Dispatch Success Alert - Bottom Left */}
-			<div className={`fixed left-[85px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showDispatch ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showDispatch ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
 				<Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-600/25">
 						<div className="relative">
@@ -129,7 +129,8 @@ export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(
 			</div>
 
 			{/* Error Alert - Bottom Left */}
-			<div className={`fixed left-[85px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showError ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
+						{/* Error Alert - Bottom Left */}
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showError ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
 				<Alert className="min-w-[280px] max-w-[600px] bg-[#171717] border border-red-600/50 text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-red-600/25">
 						<div className="relative">
@@ -144,8 +145,23 @@ export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(
 			</div>
 
 			{/* Dispatch Confirmation Dialog - Center */}
+				<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showError ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
+					<Alert className="min-w-[280px] max-w-[600px] bg-[#171717] border border-red-600/50 text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+						<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-red-600/25">
+							<div className="relative">
+								<FileText className="size-5 text-[#ef4444]" />
+								<X className="absolute -top-1 -right-1 size-3 text-[#ef4444]" />
+							</div>
+						</div>
+						<AlertDescription className="text-[13px] leading-tight text-red-200">
+							<span className="font-medium">Error:</span> {errorMessage}
+						</AlertDescription>
+					</Alert>
+				</div>
+
+			{/* Dispatch Confirmation Dialog - Center */}
 			{showDispatchConfirm && dispatchConfirmData && (
-				<div className="fixed inset-0 z-[100001] flex items-center justify-center bg-black/50">
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 					<div className="bg-[#171717] border border-[#2a2a2a] rounded-[5px] p-6 max-w-md w-full mx-4 shadow-xl">
 						<div className="flex items-start gap-4">
 							<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-600/25 flex-shrink-0">

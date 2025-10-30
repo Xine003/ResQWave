@@ -66,7 +66,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className={`hidden md:inline-flex h-screen px-[15px] py-5 flex-col justify-between items-center flex-shrink-0 border-r-[1.5px] border-[#404040] bg-[#171717]`}>
+      <aside className={`hidden md:inline-flex h-screen px-[15px] py-5 flex-col justify-between items-center flex-shrink-0 border-r-[1.5px] border-[#404040] bg-[#171717] z-40`}>
         <div className="flex items-center justify-center">
           <img src={resqwave_logo} alt="" className="h-10" />
         </div>

@@ -87,7 +87,7 @@ export default forwardRef<SettingLocationAlertsHandle, {}>(function SettingLocat
 
 		return (
 			<>
-				<div className={`absolute left-1/2 min-h-5 bottom-[30px] p-3 -translate-x-1/2 z-[100000] transition-all duration-200 ease-out ${showPin ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}`}>
+				<div className={`absolute left-1/2 min-h-5 bottom-[30px] p-3 -translate-x-1/2 z-50 transition-all duration-200 ease-out ${showPin ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}`}>
 					<Alert className="min-w-[220px] max-w-[560px] bg-[#171717]  border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 						<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-600/25">
 							<MapPin className="size-5 text-[#3B82F6]" />
@@ -98,7 +98,7 @@ export default forwardRef<SettingLocationAlertsHandle, {}>(function SettingLocat
 					</Alert>
 				</div>
 
-				<div className={`absolute left-1/2 bottom-[30px] -translate-x-1/2 z-[100000] transition-transform duration-300 ease-out ${showHint ? "translate-y-0" : "translate-y-28"}`}>
+				<div className={`absolute left-1/2 bottom-[30px] -translate-x-1/2 z-50 transition-transform duration-300 ease-out ${showHint ? "translate-y-0" : "translate-y-28"}`}>
 					<Alert className="min-w-[420px] max-w-[600px] bg-[#171717]  border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 						<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-600/25">
 							<Info className="size-5 text-[#3B82F6]" />
@@ -109,7 +109,7 @@ export default forwardRef<SettingLocationAlertsHandle, {}>(function SettingLocat
 					</Alert>
 				</div>
 
-				<div className={`absolute left-1/2 bottom-[30px] -translate-x-1/2 z-[100000] transition-all duration-200 ease-out ${showValid ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}`}>
+				<div className={`absolute left-1/2 bottom-[30px] -translate-x-1/2 z-50 transition-all duration-200 ease-out ${showValid ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}`}>
 					<Alert className="min-w-[220px] max-w-[360px] bg-[#171717]  border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 						<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-green-600/25">
 							<CheckCircle2Icon className="size-5 text-[#22c55e]" />
@@ -120,7 +120,7 @@ export default forwardRef<SettingLocationAlertsHandle, {}>(function SettingLocat
 					</Alert>
 				</div>
 
-				<div className={`absolute left-[30px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showSaved ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
+				<div className={`absolute left-[30px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showSaved ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
 					<Alert className="min-w-[260px] max-w-[520px] bg-[#171717]  border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 						<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-green-600/25">
 							<CheckCircle2Icon className="size-5 text-[#22c55e]" />

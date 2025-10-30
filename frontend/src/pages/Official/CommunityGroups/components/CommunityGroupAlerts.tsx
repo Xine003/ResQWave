@@ -170,7 +170,7 @@ export default forwardRef<CommunityGroupAlertsHandle, {}>(function CommunityGrou
 	return (
 		<>
 			{/* Create Success Alert - Bottom Left */}
-			<div className={`fixed left-[85px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showCreate ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showCreate ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
 				<Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-green-600/25">
 						<Home className="size-5 text-[#22c55e]" />
@@ -189,7 +189,7 @@ export default forwardRef<CommunityGroupAlertsHandle, {}>(function CommunityGrou
 			</div>
 
 			{/* Update Success Alert - Bottom Left */}
-			<div className={`fixed left-[85px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showUpdate ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showUpdate ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
 				<Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-600/25">
 						<HomeIcon className="size-5 text-[#3B82F6]" />
@@ -201,7 +201,7 @@ export default forwardRef<CommunityGroupAlertsHandle, {}>(function CommunityGrou
 			</div>
 
 			{/* Archive Success Alert - Bottom Left */}
-			<div className={`fixed left-[85px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showArchive ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showArchive ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
 				<Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-orange-600/25">
 						<HomeIcon className="size-5 text-[#f97316]" />
@@ -213,7 +213,7 @@ export default forwardRef<CommunityGroupAlertsHandle, {}>(function CommunityGrou
 			</div>
 
 			{/* Delete Success Alert - Bottom Left */}
-			<div className={`fixed left-[85px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showDelete ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showDelete ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
 				<Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-red-600/25">
 						<Trash2 className="size-5 text-[#ef4444]" />
@@ -225,7 +225,7 @@ export default forwardRef<CommunityGroupAlertsHandle, {}>(function CommunityGrou
 			</div>
 
 			{/* Restore Success Alert - Bottom Left */}
-			<div className={`fixed left-[85px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showRestore ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showRestore ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
 				<Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-green-600/25">
 						<HomeIcon className="size-5 text-[#22c55e]" />
@@ -237,7 +237,7 @@ export default forwardRef<CommunityGroupAlertsHandle, {}>(function CommunityGrou
 			</div>
 
 			{/* Error Alert - Bottom Left */}
-			<div className={`fixed left-[85px] bottom-[30px] z-[100000] transition-all duration-300 ease-out ${showError ? "translate-x-0 opacity-100" : "-translate-x-40 opacity-0"}`}>
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showError ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
 				<Alert className="min-w-[280px] max-w-[600px] bg-[#171717] border border-red-600/50 text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-red-600/25">
 						<Trash2 className="size-5 text-[#ef4444]" />
@@ -250,7 +250,7 @@ export default forwardRef<CommunityGroupAlertsHandle, {}>(function CommunityGrou
 
 			{/* Delete Confirmation Dialog - Center */}
 			{showDeleteConfirm && (
-				<div className="fixed inset-0 z-[100001] flex items-center justify-center bg-black/50">
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 					<div className="bg-[#171717] border border-[#2a2a2a] rounded-[5px] p-6 max-w-md w-full mx-4 shadow-xl">
 						<div className="flex items-start gap-4">
 							<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-red-600/25 flex-shrink-0">
