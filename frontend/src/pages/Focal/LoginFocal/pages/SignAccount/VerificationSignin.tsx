@@ -210,19 +210,4 @@ export default function VerificationSignin() {
         </>
     );
 
-    return (
-        <ForgotPasswordVerification
-            code={code}
-            error={error}
-            isVerifying={isVerifying}
-            onCodeChange={val => {
-                setCode(val);
-                if (error) setError("");
-            }}
-            onVerify={handleVerify}
-            tempToken={tempToken}
-            emailOrNumber={emailOrNumber}
-        />
-    );
-
 }
