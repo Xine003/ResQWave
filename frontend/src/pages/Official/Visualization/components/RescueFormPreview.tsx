@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import { useRescueWaitlist } from "../contexts/RescueWaitlistContext";
+import { useState } from "react";
+import { createRescueForm, updateRescueFormStatus } from "../api/rescueForm";
 
 interface RescueFormData {
     focalPerson: string;
@@ -16,6 +17,8 @@ interface RescueFormData {
     resources: string[];
     resourceDetails: string;
     otherInfo: string;
+    // Required for backend submission
+    alertId?: string;
     // Optional fields for waitlisted items
     id?: string;
     timestamp?: string;
@@ -32,27 +35,111 @@ interface RescueFormPreviewProps {
 }
 
 export default function RescueFormPreview({ isOpen, onClose, onBack, formData, onWaitlist, onDispatch }: RescueFormPreviewProps) {
-    const { removeFromWaitlist } = useRescueWaitlist();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleWaitlist = () => {
-        if (onWaitlist) {
-            onWaitlist(formData);
+    const handleWaitlist = async () => {
+        if (!formData.alertId) {
+            setError('Alert ID is required');
+            return;
         }
-        onClose();
+
+        setIsSubmitting(true);
+        setError(null);
+
+        try {
+            // Submit to backend with status 'Waitlisted'
+            const response = await createRescueForm(formData.alertId, {
+                focalUnreachable: formData.focalUnreachable,
+                waterLevel: formData.waterLevel,
+                waterLevelDetails: formData.waterLevelDetails,
+                urgencyOfEvacuation: formData.urgencyLevel,
+                urgencyDetails: formData.urgencyDetails,
+                hazardPresent: formData.hazards.join(', '),
+                hazardDetails: formData.hazardDetails,
+                accessibility: formData.accessibility,
+                accessibilityDetails: formData.accessibilityDetails,
+                resourceNeeds: formData.resources.join(', '),
+                resourceDetails: formData.resourceDetails,
+                otherInformation: formData.otherInfo,
+                status: 'Waitlisted'
+            });
+
+            console.log('[RescueFormPreview] Rescue form created (Waitlisted):', response);
+
+            // Call parent callback
+            if (onWaitlist) {
+                onWaitlist({ ...formData, id: response.id });
+            }
+
+            onClose();
+        } catch (err: any) {
+            console.error('[RescueFormPreview] Error creating rescue form:', err);
+            setError(err.message || 'Failed to create rescue form');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
-    const handleDispatchRescue = () => {
-        // Remove from waitlist if it has an id (meaning it was waitlisted)
-        if ('id' in formData && typeof formData.id === 'string') {
-            removeFromWaitlist(formData.id);
+    const handleDispatchRescue = async () => {
+        if (!formData.alertId) {
+            setError('Alert ID is required');
+            return;
         }
-        
-        // Close the preview immediately
-        onClose();
-        
-        // Call the dispatch callback to show the dialog in the parent component
-        if (onDispatch) {
-            onDispatch(formData);
+
+        setIsSubmitting(true);
+        setError(null);
+
+        try {
+            console.log('[RescueFormPreview] Form data:', formData);
+            console.log('[RescueFormPreview] Has id?', 'id' in formData, formData.id);
+            console.log('[RescueFormPreview] Status:', formData.status);
+
+            let response;
+
+            // Check if form already exists (has an id OR status is Waitlisted)
+            if (formData.id || formData.status === 'Waitlisted') {
+                // Update existing form status to Dispatched
+                console.log('[RescueFormPreview] Updating existing form to Dispatched');
+                
+                response = await updateRescueFormStatus(formData.alertId, 'Dispatched');
+                
+                // Remove from waitlist if it was waitlisted (moved to parent callback)
+                console.log('[RescueFormPreview] Waitlisted form dispatch completed');
+            } else {
+                // Create new form with status 'Dispatched'
+                console.log('[RescueFormPreview] Creating new form with Dispatched status');
+                response = await createRescueForm(formData.alertId, {
+                    focalUnreachable: formData.focalUnreachable,
+                    waterLevel: formData.waterLevel,
+                    waterLevelDetails: formData.waterLevelDetails,
+                    urgencyOfEvacuation: formData.urgencyLevel,
+                    urgencyDetails: formData.urgencyDetails,
+                    hazardPresent: formData.hazards.join(', '),
+                    hazardDetails: formData.hazardDetails,
+                    accessibility: formData.accessibility,
+                    accessibilityDetails: formData.accessibilityDetails,
+                    resourceNeeds: formData.resources.join(', '),
+                    resourceDetails: formData.resourceDetails,
+                    otherInformation: formData.otherInfo,
+                    status: 'Dispatched'
+                });
+            }
+
+            console.log('[RescueFormPreview] Rescue form dispatched:', response);
+
+            // Close the preview immediately
+            onClose();
+
+            // Call the dispatch callback to show the dialog in the parent component
+            if (onDispatch) {
+                onDispatch({ ...formData, id: response.id });
+            }
+        } catch (err: any) {
+            console.error('[RescueFormPreview] Error dispatching rescue form:', err);
+            setError(err.message || 'Failed to dispatch rescue form');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -91,9 +178,10 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
 
     return (
         <div 
-            className={`fixed top-0 right-0 h-full w-[540px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out z-[60] ${
+            className={`fixed top-0 right-0 h-full w-[400px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out ${
                 isOpen ? 'translate-x-0' : 'translate-x-full'
             }`}
+            style={{ zIndex: 70 }}
         >
             {/* Header */}
             <div className="p-6 border-b border-[#2a2a2a]">
@@ -114,6 +202,13 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
 
             {/* Content Area - Scrollable */}
             <div className="flex-1 overflow-y-auto px-6 pb-24 h-[calc(100vh-160px)]">
+                {/* Error Message */}
+                {error && (
+                    <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-md">
+                        <p className="text-red-400 text-sm">{error}</p>
+                    </div>
+                )}
+
                 {/* Focal Person */}
                 <div className="mb-6 pt-6">
                     <input
@@ -200,21 +295,24 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
                     <Button
                         onClick={onBack}
                         variant="outline"
+                        disabled={isSubmitting}
                         className="flex-1 bg-transparent border-[#2a2a2a] text-white hover:bg-[#2a2a2a] hover:text-white h-12"
                     >
                         Back
                     </Button>
                     <Button
                         onClick={handleWaitlist}
-                        className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white h-12"
+                        disabled={isSubmitting}
+                        className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white h-12 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Waitlist
+                        {isSubmitting ? 'Submitting...' : 'Waitlist'}
                     </Button>
                     <Button
                         onClick={handleDispatchRescue}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12"
+                        disabled={isSubmitting}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Dispatch Rescue
+                        {isSubmitting ? 'Submitting...' : 'Dispatch Rescue'}
                     </Button>
                 </div>
             </div>

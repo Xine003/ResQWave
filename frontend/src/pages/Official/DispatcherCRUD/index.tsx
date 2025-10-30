@@ -87,13 +87,12 @@ export function Dispatchers() {
     loading,
     error,
     archiveDispatcherById,
+    restoreDispatcherById,
     createNewDispatcher,
     updateDispatcherById,
     deleteDispatcherPermanentlyById,
     refreshData,
     fetchDispatcherDetails,
-    setActiveDispatchers,
-    setArchivedDispatchers,
   } = useDispatchers()
 
   // Local UI state
@@ -154,10 +153,8 @@ export function Dispatchers() {
 
   const handleRestore = useCallback(async (dispatcher: Dispatcher) => {
     try {
-      // TODO: Implement API call to restore dispatcher (update archived status)
-      // For now, do optimistic update
-      setArchivedDispatchers((prev) => prev.filter((d) => d.id !== dispatcher.id))
-      setActiveDispatchers((prev) => [dispatcher, ...prev])
+      // Call the backend API to restore the dispatcher
+      await restoreDispatcherById(dispatcher.id)
       
       // Show success alert
       alertsRef.current?.showRestoreSuccess(dispatcher.name)
@@ -169,7 +166,7 @@ export function Dispatchers() {
       const errorMessage = error instanceof Error ? error.message : 'Failed to restore dispatcher'
       alertsRef.current?.showError(errorMessage)
     }
-  }, [setArchivedDispatchers, setActiveDispatchers])
+  }, [restoreDispatcherById])
 
   const handleDeletePermanent = useCallback((dispatcher: Dispatcher) => {
     // Show confirmation dialog using the alert component

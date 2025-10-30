@@ -3,6 +3,7 @@ import type { CommunityGroupDetails, TerminalStatus } from "../../CommunityGroup
 export type Signal = {
     coordinates: [number, number];
     properties: {
+        alertId?: string; // Backend emergency/alert ID for rescue form submission
         status: TerminalStatus;
         deviceId: string;
         focalPerson: string;
@@ -23,6 +24,7 @@ export type SignalPopover = {
     lng: number;
     lat: number;
     screen: { x: number; y: number };
+    alertId?: string; // Backend emergency/alert ID for rescue form submission
     status?: string;
     title?: string;
     address?: string;

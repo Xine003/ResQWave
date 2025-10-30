@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useCallback, useEffect, useState } from "react"
+import { getNextTerminalId } from "../api/terminalApi"
 import type { TerminalDrawerProps, TerminalFormData } from "../types"
 
 interface FormData {
@@ -26,18 +27,28 @@ export function CreateTerminalSheet({
   })
   
   const [errors, setErrors] = useState<FormErrors>({})
+  const [displayId, setDisplayId] = useState<string>("")
+  const [isLoadingId, setIsLoadingId] = useState<boolean>(false)
 
-  // Generate next terminal ID
-  const getNextTerminalId = (): string => {
-    // In a real app, this would come from the backend
-    const nextNumber = String(Math.floor(Math.random() * 900) + 100).padStart(3, '0')
-    return `RSQW-${nextNumber}`
-  }
+  // Fetch next terminal ID from backend
+  const fetchNextTerminalId = useCallback(async (): Promise<void> => {
+    try {
+      setIsLoadingId(true)
+      const response = await getNextTerminalId()
+      setDisplayId(response.nextId)
+    } catch (error) {
+      console.error('Error fetching next terminal ID:', error)
+      setDisplayId("Error loading ID")
+    } finally {
+      setIsLoadingId(false)
+    }
+  }, [])
 
   // Validation functions
   const validateName = (name: string): string | undefined => {
     if (!name.trim()) return "Terminal name is required"
     if (name.trim().length < 2) return "Terminal name must be at least 2 characters long"
+    if (name.length > 50) return "Terminal name cannot exceed 50 characters"
     return undefined
   }
 
@@ -54,16 +65,24 @@ export function CreateTerminalSheet({
         name: editData.name,
       })
       setErrors({})
+      setDisplayId(editData.id)
     } else if (open && !isEditing) {
-      // Reset for new terminal
+      // Reset for new terminal and fetch the next ID from backend
       setFormData({
         name: "",
       })
       setErrors({})
+      setDisplayId("Loading...")
+      fetchNextTerminalId()
     }
-  }, [open, isEditing, editData])
+  }, [open, isEditing, editData, fetchNextTerminalId])
 
   const handleInputChange = useCallback((field: keyof FormData, value: string) => {
+    // Prevent input beyond 50 characters for name field
+    if (field === 'name' && value.length > 50) {
+      return // Don't update state if exceeding limit
+    }
+    
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -123,8 +142,6 @@ export function CreateTerminalSheet({
     })
   }, [formData, onSave])
 
-  const displayId = isEditing && editData ? editData.id : getNextTerminalId()
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[#171717] border-[#2a2a2a] text-white max-w-md">
@@ -139,17 +156,25 @@ export function CreateTerminalSheet({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <Label className="text-white font-medium">Terminal ID</Label>
-              <span className="text-[#a1a1a1] text-sm">{displayId}</span>
+              <span className={`text-sm ${isLoadingId ? 'text-[#4285f4]' : 'text-[#a1a1a1]'}`}>
+                {displayId}
+              </span>
             </div>
           </div>
 
           {/* Terminal Name Field */}
           <div className="space-y-3">
-            <Label className="text-white font-medium">Terminal Name</Label>
+            <div className="flex justify-between items-center">
+              <Label className="text-white font-medium">Terminal Name</Label>
+              <span className="text-[#a1a1a1] text-xs">
+                {formData.name.length}/50
+              </span>
+            </div>
             <Input
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               className="bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4]"
+              placeholder="Enter terminal name"
             />
             {errors.name && (
               <p className="text-red-400 text-xs">{errors.name}</p>

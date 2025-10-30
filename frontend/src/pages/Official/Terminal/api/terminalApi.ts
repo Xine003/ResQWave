@@ -50,8 +50,8 @@ export interface TerminalApiResponse {
   name: string
   status: "Online" | "Offline"
   availability?: "Available" | "Occupied"
-  createdAt: string
-  updatedAt?: string
+  dateCreated: string
+  dateUpdated?: string
   archived?: boolean
 }
 
@@ -68,6 +68,11 @@ export async function getArchivedTerminals(): Promise<TerminalApiResponse[]> {
 // Get single terminal by ID
 export async function getTerminal(id: string): Promise<TerminalApiResponse> {
   return apiRequest<TerminalApiResponse>(`/terminal/${id}`)
+}
+
+// Get next terminal ID (for frontend preview)
+export async function getNextTerminalId(): Promise<{ nextId: string }> {
+  return apiRequest<{ nextId: string }>('/terminal/next-id')
 }
 
 // Create new terminal
@@ -112,6 +117,26 @@ export async function permanentDeleteTerminal(id: string): Promise<{ message: st
   })
 }
 
+// Helper function to safely format dates
+function formatDateSafe(dateString: string): string {
+  try {
+    const date = new Date(dateString)
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date received:', dateString)
+      return 'Invalid Date'
+    }
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric'
+    })
+  } catch (error) {
+    console.error('Error formatting date:', dateString, error)
+    return 'Invalid Date'
+  }
+}
+
 // Helper function to convert backend response to frontend Terminal type
 export function transformTerminalResponse(apiData: TerminalApiResponse) {
   return {
@@ -119,20 +144,8 @@ export function transformTerminalResponse(apiData: TerminalApiResponse) {
     name: apiData.name,
     status: apiData.status,
     availability: apiData.availability || "Available",
-    dateCreated: new Date(apiData.createdAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    }),
-    dateUpdated: apiData.updatedAt ? new Date(apiData.updatedAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    }) : new Date(apiData.createdAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    }),
+    dateCreated: formatDateSafe(apiData.dateCreated),
+    dateUpdated: apiData.dateUpdated ? formatDateSafe(apiData.dateUpdated) : formatDateSafe(apiData.dateCreated),
   }
 }
 
@@ -143,19 +156,7 @@ export function transformTerminalDetailsResponse(apiData: TerminalApiResponse) {
     name: apiData.name,
     status: apiData.status,
     availability: apiData.availability || "Available",
-    dateCreated: new Date(apiData.createdAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    }),
-    dateUpdated: apiData.updatedAt ? new Date(apiData.updatedAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    }) : new Date(apiData.createdAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    }),
+    dateCreated: formatDateSafe(apiData.dateCreated),
+    dateUpdated: apiData.dateUpdated ? formatDateSafe(apiData.dateUpdated) : formatDateSafe(apiData.dateCreated),
   }
 }

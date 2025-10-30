@@ -6,6 +6,7 @@ const {
     getDispatcher, 
     updateDispatcher, 
     archiveDispatcher ,
+    unarchiveDispatcher,
     archiveDispatchers,
     deleteDispatcherPermanently
 } = require("../controllers/dispatcherController");
@@ -20,6 +21,7 @@ router.get ("/archived", archiveDispatchers);
 router.get ("/:id", getDispatcher);
 router.put ("/:id", uploadSinglePhoto, updateDispatcher);
 router.delete ("/:id", archiveDispatcher);
+router.patch ("/:id/restore", unarchiveDispatcher);
 router.delete ("/:id/permanent", deleteDispatcherPermanently);
 
 

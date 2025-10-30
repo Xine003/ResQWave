@@ -153,11 +153,38 @@ export async function archiveDispatcher(id: string): Promise<{ message: string }
   })
 }
 
+// Restore dispatcher from archive
+export async function restoreDispatcher(id: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/dispatcher/${id}/restore`, {
+    method: 'PATCH',
+  })
+}
+
 // Permanently delete dispatcher (hard delete)
 export async function deleteDispatcherPermanently(id: string): Promise<{ message: string }> {
   return apiRequest<{ message: string }>(`/dispatcher/${id}/permanent`, {
     method: 'DELETE',
   })
+}
+
+// Helper function to safely format dates
+function formatDateSafe(dateString: string): string {
+  try {
+    const date = new Date(dateString)
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date received:', dateString)
+      return 'Invalid Date'
+    }
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric'
+    })
+  } catch (error) {
+    console.error('Error formatting date:', dateString, error)
+    return 'Invalid Date'
+  }
 }
 
 // Helper function to convert backend response to frontend Dispatcher type
@@ -167,11 +194,7 @@ export function transformDispatcherResponse(apiData: DispatcherApiResponse) {
     name: apiData.name,
     contactNumber: apiData.contactNumber,
     email: apiData.email,
-    createdAt: new Date(apiData.createdAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
-    }),
+    createdAt: formatDateSafe(apiData.createdAt),
   }
 }
 
@@ -257,11 +280,7 @@ export function transformDispatcherDetailsResponse(apiData: DispatcherApiRespons
     name: apiData.name,
     contactNumber: apiData.contactNumber,
     email: apiData.email,
-    createdAt: new Date(apiData.createdAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }),
+    createdAt: formatDateSafe(apiData.createdAt),
     createdBy: apiData.createdBy,
     photo: processPhoto(apiData.photo),
   }

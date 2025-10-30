@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  archiveDispatcher,
-  createDispatcher,
-  deleteDispatcherPermanently,
-  getActiveDispatchers,
-  getArchivedDispatchers,
-  getDispatcher,
-  transformDispatcherDetailsResponse,
-  transformDispatcherResponse,
-  updateDispatcher
+    archiveDispatcher,
+    createDispatcher,
+    deleteDispatcherPermanently,
+    getActiveDispatchers,
+    getArchivedDispatchers,
+    getDispatcher,
+    restoreDispatcher,
+    transformDispatcherDetailsResponse,
+    transformDispatcherResponse,
+    updateDispatcher
 } from '../api/dispatcherApi'
 import type { Dispatcher, DispatcherDetails } from '../types'
 
@@ -197,6 +198,42 @@ export function useDispatchers() {
     }
   }, [activeDispatchers, archivedDispatchers])
 
+  // Restore dispatcher with optimistic updates
+  const restoreDispatcherById = useCallback(async (id: string): Promise<void> => {
+    try {
+      setError(null)
+      
+      // Find the dispatcher to restore
+      const dispatcherToRestore = archivedDispatchers.find(d => d.id === id)
+      if (!dispatcherToRestore) {
+        throw new Error('Dispatcher not found')
+      }
+      
+      // Store original state for rollback
+      const originalActiveDispatchers = [...activeDispatchers]
+      const originalArchivedDispatchers = [...archivedDispatchers]
+      
+      // Optimistic update: move from archived to active
+      setArchivedDispatchers(prev => prev.filter(d => d.id !== id))
+      setActiveDispatchers(prev => [dispatcherToRestore, ...prev])
+      
+      try {
+        await restoreDispatcher(id)
+        // Success - optimistic update was correct, no need to refresh
+      } catch (apiError) {
+        // Rollback optimistic update on failure
+        setActiveDispatchers(originalActiveDispatchers)
+        setArchivedDispatchers(originalArchivedDispatchers)
+        throw apiError
+      }
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to restore dispatcher')
+      console.error('Error restoring dispatcher:', err)
+      throw err
+    }
+  }, [activeDispatchers, archivedDispatchers])
+
   // Update dispatcher with optimistic updates
   const updateDispatcherById = useCallback(async (id: string, dispatcherData: {
     name?: string
@@ -331,6 +368,7 @@ export function useDispatchers() {
     
     // Actions
     archiveDispatcherById,
+    restoreDispatcherById,
     createNewDispatcher,
     updateDispatcherById,
     deleteDispatcherPermanentlyById,

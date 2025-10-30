@@ -1,3 +1,4 @@
+import { useRescueForm } from "@/components/Official/RescueFormContext";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useState } from "react";
@@ -7,12 +8,13 @@ interface RescueFormSheetProps {
     isOpen: boolean;
     onClose: () => void;
     focalPerson?: string;
+    alertId?: string; // Backend emergency/alert ID for rescue form submission
     onWaitlist?: (formData: any) => void;
     onDispatch?: (formData: any) => void;
 }
 
-export default function RescueFormSheet({ isOpen, onClose, focalPerson = "Gwyneth Uy", onWaitlist, onDispatch }: RescueFormSheetProps) {
-    const [showPreview, setShowPreview] = useState(false);
+export default function RescueFormSheet({ isOpen, onClose, focalPerson = "Gwyneth Uy", alertId, onWaitlist, onDispatch }: RescueFormSheetProps) {
+    const { isRescuePreviewOpen, setIsRescuePreviewOpen } = useRescueForm();
     const [focalUnreachable, setFocalUnreachable] = useState(false);
     const [waterLevel, setWaterLevel] = useState("");
     const [waterLevelDetails, setWaterLevelDetails] = useState("");
@@ -65,16 +67,16 @@ export default function RescueFormSheet({ isOpen, onClose, focalPerson = "Gwynet
     };
 
     const handleSubmit = () => {
-        setShowPreview(true);
+        setIsRescuePreviewOpen(true);
     };
 
     const handleClosePreview = () => {
-        setShowPreview(false);
+        setIsRescuePreviewOpen(false);
         onClose();
     };
 
     const handleBackToForm = () => {
-        setShowPreview(false);
+        setIsRescuePreviewOpen(false);
     };
 
     const formData = {
@@ -90,15 +92,17 @@ export default function RescueFormSheet({ isOpen, onClose, focalPerson = "Gwynet
         accessibilityDetails,
         resources,
         resourceDetails,
-        otherInfo
+        otherInfo,
+        alertId // Include alertId for backend submission
     };
 
     return (
         <>
             <div 
-                className={`fixed top-0 right-0 h-full w-[540px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out z-50 ${
-                    (isOpen && !showPreview) ? 'translate-x-0' : 'translate-x-full'
+                className={`fixed top-0 right-0 h-full w-[400px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out ${
+                    (isOpen && !isRescuePreviewOpen) ? 'translate-x-0' : 'translate-x-full'
                 }`}
+                style={{ zIndex: 60 }}
             >
             {/* Header */}
             <div className="p-6 border-b border-[#2a2a2a]">
@@ -329,7 +333,7 @@ export default function RescueFormSheet({ isOpen, onClose, focalPerson = "Gwynet
 
             {/* Rescue Form Preview - Rendered separately */}
             <RescueFormPreview 
-                isOpen={showPreview}
+                isOpen={isRescuePreviewOpen}
                 onClose={handleClosePreview}
                 onBack={handleBackToForm}
                 formData={formData}

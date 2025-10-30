@@ -10,8 +10,15 @@ export type SignalPopupProps = {
     onOpenCommunityInfo?: () => void;
     // Handler for dispatch rescue action
     onDispatchRescue?: () => void;
+    // Handler for removing signal from map when dispatched
+    onRemoveSignal?: (alertId: string) => void;
     // Info bubble props moved here so the popup component can also render the
     // small 'YOUR COMMUNITY' bubble when no popover is visible.
     infoBubble: InfoBubble | null;
     infoBubbleVisible: boolean;
+    // Rescue Form Alert handlers
+    onShowWaitlistAlert?: (focalPerson: string) => void;
+    onShowDispatchAlert?: (focalPerson: string) => void;
+    onShowErrorAlert?: (message: string) => void;
+    onShowDispatchConfirmation?: (formData: any, onConfirm: () => void) => void;
 };

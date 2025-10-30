@@ -3,7 +3,8 @@ const { Server } = require("socket.io");
 const { AppDataSource } = require("../config/dataSource");
 const alertRepo = AppDataSource.getRepository("Alert");
 const terminalRepo = AppDataSource.getRepository("Terminal");
-const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
+const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
+const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 
 let io;
 
@@ -60,11 +61,18 @@ function setupSocket(server, options = {}) {
     const handleTrigger = async (payload, ack) => {
       try {
         console.log("[socket] alert trigger payload:", payload);
-        const { terminalId, alertType, status = alertType } = payload || {};
+        const { terminalId, alertType, status = alertType, terminalStatus } = payload || {};
         if (!terminalId || !alertType) throw new Error("terminalId and alertType are required");
 
         const terminal = await terminalRepo.findOne({ where: { id: terminalId } });
         if (!terminal) throw new Error(`Terminal ${terminalId} not found`);
+        
+        // ✅ Update terminal status in database if provided
+        if (terminalStatus && (terminalStatus === 'Online' || terminalStatus === 'Offline')) {
+          terminal.status = terminalStatus;
+          await terminalRepo.save(terminal);
+          console.log(`[socket] Updated terminal ${terminalId} status to ${terminalStatus} in database`);
+        }
 
         const id = await generateAlertId();
         const entity = alertRepo.create({
@@ -75,32 +83,47 @@ function setupSocket(server, options = {}) {
         });
         const saved = await alertRepo.save(entity);
 
-        // Minimal, safe enrichment
-        const group = await communityGroupRepo
-          .createQueryBuilder("cg")
-          .select(["cg.id", "cg.communityGroupName", "cg.terminalID", "cg.address"])
-          .where("cg.terminalID = :terminalId", { terminalId })
-          .getOne();
+        // Get neighborhood and focal person separately (no relation defined in model)
+        const neighborhood = await neighborhoodRepo.findOne({ 
+          where: { terminalID: terminalId } 
+        });
+
+        let focalPerson = null;
+        if (neighborhood?.focalPersonID) {
+          focalPerson = await focalPersonRepo.findOne({
+            where: { id: neighborhood.focalPersonID }
+          });
+        }
 
         const livePayload = {
           alertId: saved.id,
           terminalId,
-          communityGroupName: group?.communityGroupName || null,
+          communityGroupName: null, // Neighborhood doesn't have a name field
           alertType,
           status,
           lastSignalTime: saved.dateTimeSent || saved.createdAt || new Date(),
-          address: group?.address || null,
+          address: focalPerson?.address || null,
         };
 
+        // Map payload matching frontend MapAlertResponse structure
         const mapPayload = {
-          communityGroupName: group?.communityGroupName || null,
+          alertId: saved.id,
           alertType,
           timeSent: saved.dateTimeSent || saved.createdAt || new Date(),
-          address: group?.address || null,
-          status,
+          alertStatus: status,
+          terminalId: terminal.id,
+          terminalName: terminal.name || `Terminal ${terminalId}`,
+          terminalStatus: terminal.status || 'Offline', // ✅ Now reflects the updated database value
+          focalPersonId: focalPerson?.id || null,
+          focalFirstName: focalPerson?.firstName || 'N/A',
+          focalLastName: focalPerson?.lastName || '',
+          focalAddress: focalPerson?.address || null,
+          focalContactNumber: focalPerson?.contactNumber || 'N/A',
         };
 
-        console.log("[socket] broadcasting liveReport:new", livePayload);
+        console.log("[socket] mapPayload being sent:", JSON.stringify(mapPayload, null, 2));
+
+        console.log("[socket] broadcasting alerts", { livePayload, mapPayload });
 
         // Emit to dashboards
         io.to("alerts:all").emit("liveReport:new", livePayload);
@@ -108,6 +131,7 @@ function setupSocket(server, options = {}) {
 
         // Emit to terminal-specific room
         io.to(`terminal:${terminalId}`).emit("liveReport:new", livePayload);
+        io.to(`terminal:${terminalId}`).emit("mapReport:new", mapPayload);
 
         ack?.({ ok: true, alertId: saved.id });
       } catch (err) {

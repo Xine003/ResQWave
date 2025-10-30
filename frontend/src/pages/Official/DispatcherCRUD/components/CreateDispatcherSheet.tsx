@@ -82,12 +82,12 @@ export function CreateDispatcherSheet({
       const hasUppercase = /[A-Z]/.test(password)
       const hasLowercase = /[a-z]/.test(password)
       const hasNumber = /\d/.test(password)
-      const hasSpecialChar = /[@$!%*?&]/.test(password)
+      const hasSpecialChar = /[@$!%*?&_]/.test(password)
       
       if (!hasUppercase) return "Password must include at least one uppercase letter"
       if (!hasLowercase) return "Password must include at least one lowercase letter"
       if (!hasNumber) return "Password must include at least one number"
-      if (!hasSpecialChar) return "Password must include at least one special character (@, $, !, %, *, ?, &)"
+      if (!hasSpecialChar) return "Password must include at least one special character (@, $, !, %, *, ?, &, _)"
     }
     
     return undefined
@@ -344,7 +344,11 @@ export function CreateDispatcherSheet({
       name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
       contactNumber: formData.contactNumber.trim(),
       email: formData.email.trim(),
-      createdAt: isEditing && editData ? editData.createdAt : new Date().toLocaleDateString(),
+      createdAt: isEditing && editData ? editData.createdAt : new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long', 
+        day: 'numeric'
+      }),
       createdBy: isEditing && editData ? editData.createdBy : "Franxine Orias",
       // For editing, if photo was removed, set to null; otherwise use preview or existing photo
       photo: photoWasRemoved ? null : (photoPreview || (isEditing && editData ? editData.photo : undefined)),

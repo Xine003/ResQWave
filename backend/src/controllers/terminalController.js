@@ -8,6 +8,30 @@ const {
     deleteCache
 } = require("../config/cache");
 
+// Get next terminal ID (for frontend preview)
+const getNextTerminalId = async (req, res) => {
+    try {
+        // Generate next terminal ID (same logic as create)
+        const lastTerminal = await terminalRepo
+            .createQueryBuilder("terminal")
+            .orderBy("terminal.id", "DESC")
+            .getOne();
+
+        let newNumber = 1;
+        if (lastTerminal) {
+            const lastNumber = parseInt(lastTerminal.id.replace("RESQWAVE", ""), 10);
+            newNumber = lastNumber + 1; 
+        }
+
+        const nextID = "RESQWAVE" + String(newNumber).padStart(3, "0");
+
+        res.json({ nextId: nextID });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error - GET Next Terminal ID" });
+    }
+};
+
 // CREATE Terminal
 const createTerminal = async (req, res) => {
     try {
@@ -84,7 +108,7 @@ const getOnlineTerminals = async (req, res) => {
         // Fetch only the selected columns
         const terminals = await terminalRepo.find({
             where: { status: "Online" },
-            select: ["id", "createdAt", "status", "availability", "name"],
+            select: ["id", "dateCreated", "status", "availability", "name"],
         });
 
         await setCache(cacheKey, terminals, 300);
@@ -100,12 +124,12 @@ const getOnlineTerminals = async (req, res) => {
 const getOfflineTerminals = async(req, res) => {
     try {
         const cacheKey = "offlineTerminals";
-        const cached = await getCache(cached);
+        const cached = await getCache(cacheKey);
         if (cached) return res.json(cached);
 
         const terminals = await terminalRepo.find({
             where: { status: "Offline" },
-            select: ["id", "createdAt", "status", "availability", "name"],
+            select: ["id", "dateCreated", "status", "availability", "name"],
         });
 
         await setCache(cacheKey, terminals, 300);
@@ -305,6 +329,7 @@ const permanentDeleteTerminal = async (req, res) => {
 
 module.exports = {
     createTerminal,
+    getNextTerminalId,
     getOnlineTerminals,
     getOfflineTerminals,
     getTerminals,

@@ -89,12 +89,20 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
   const updateFormData = useCallback((data: Partial<CommunityFormData>) => {
     setFormData(prev => ({ ...prev, ...data }))
     setIsDirty(true)
-  }, [])
+    // Clear errors when user makes changes
+    if (errors.general) {
+      setErrors({})
+    }
+  }, [errors.general])
   
   // Simple photo upload handler
   const handleFileUpload = useCallback((field: "focalPersonPhoto" | "altFocalPersonPhoto", file: File | null) => {
     setFormData(prev => ({ ...prev, [field]: file }))
     setIsDirty(true)
+    // Clear errors when user makes changes
+    if (errors.general) {
+      setErrors({})
+    }
     
     // Update photo URLs for display
     if (file) {
@@ -109,7 +117,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
         return { ...prev, [field]: null }
       })
     }
-  }, [])
+  }, [errors.general])
 
   // Form validation
   const isFormValid = useMemo(() => {
@@ -318,7 +326,11 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
       focalPersonAddress: address,
       focalPersonCoordinates: coordinates
     })
-  }, [updateFormData])
+    // Clear errors when user makes changes
+    if (errors.general) {
+      setErrors({})
+    }
+  }, [updateFormData, errors.general])
 
   // Centralized handler when an attempt is made to close the sheet
   const requestClose = useCallback(() => {
@@ -394,7 +406,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
         })
       }
       
-      // Reset form
+      // Only reset form and close sheet on successful save
       setFormData(createEmptyFormData())
       setPhotoUrls({ focalPersonPhoto: null, altFocalPersonPhoto: null })
       setIsDirty(false)
@@ -402,7 +414,13 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
       onOpenChange(false)
     } catch (error) {
       console.error(`Error ${isEditing ? 'updating' : 'creating'} community group:`, error)
+      // Set error but DO NOT reset form data or close sheet
       setErrors({ general: error instanceof Error ? error.message : `Failed to ${isEditing ? 'update' : 'create'} community group` })
+      // Scroll to top to show error message
+      const sheetContent = document.querySelector('[data-radix-scroll-area-viewport]')
+      if (sheetContent) {
+        sheetContent.scrollTop = 0
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -431,15 +449,25 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
               {isEditing ? "Edit Neighborhood Group" : "New Neighborhood Group"}
             </SheetTitle>
           </div>
+          
+          {/* Error Display - Moved to header for better visibility */}
+          {errors.general && (
+            <div className="mt-4 bg-red-500/10 border border-red-500/20 rounded-[5px] p-3">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <p className="text-red-400 text-sm font-medium">Error</p>
+                  <p className="text-red-300 text-sm mt-1">{errors.general}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </SheetHeader>
 
         <div className="px-6 py-6 space-y-6">
-          {/* Error Display */}
-          {errors.general && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-[5px] p-3">
-              <p className="text-red-400 text-sm">{errors.general}</p>
-            </div>
-          )}
+          {/* Removed error display from here since it's now in header */}
           
           {/* Assigned Terminal */}
           <div className="space-y-2">

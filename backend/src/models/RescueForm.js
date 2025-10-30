@@ -16,7 +16,12 @@ module.exports = new EntitySchema ({
         dispatcherID: {
             type: "varchar",
             length: 255,
-            nullable: false,
+            nullable: true, // Allow nulls so admins can create forms
+        },
+        focalPersonID: {
+            type: "varchar",
+            length: 255,
+            nullable: true,
         },
         focalUnreachable: {
             type: "boolean",
@@ -54,8 +59,8 @@ module.exports = new EntitySchema ({
         },
         status: {
             type: "enum",
-            enum: ["Completed", "Pending"],
-            default: "Pending"
+            enum: ["Waitlisted", "Dispatched"],
+            default: "Waitlisted"
         }
     },
 
@@ -73,6 +78,14 @@ module.exports = new EntitySchema ({
             target: "Dispatcher",
             joinColumn: {
                 name: "dispatcherID"
+            },
+            inverseSide: "rescueForms"
+        },
+        focalPerson: {
+            type: "many-to-one",
+            target: "FocalPerson",
+            joinColumn: {
+                name: "focalPersonID"
             },
             inverseSide: "rescueForms"
         }

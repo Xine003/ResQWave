@@ -1,0 +1,41 @@
+import { Button } from '@/components/ui/button';
+import { useSocket } from '@/contexts/SocketContext';
+
+export function TestWebSocketButton() {
+  const { socket, isConnected } = useSocket();
+
+  const handleTestAlert = () => {
+    if (!socket || !isConnected) {
+      alert('Socket not connected!');
+      return;
+    }
+
+    const testPayload = {
+      terminalId: 'RESQWAVE006', // Use a valid terminal ID from your database
+      alertType: 'User-Initiated', // 'Critical' | 'User-Initiated' | null (for no alert)
+      terminalStatus: 'Online' // Terminal status (Online/Offline)
+    };
+
+    console.log('[TEST] Sending test alert:', testPayload);
+
+    socket.emit('alert:simulate', testPayload, (ack: any) => {
+      console.log('[TEST] Server response:', ack);
+      if (ack?.ok) {
+        alert(`Test alert sent! Alert ID: ${ack.alertId}`);
+      } else {
+        alert(`Error: ${ack?.error || 'Unknown error'}`);
+      }
+    });
+  };
+
+  return (
+    <Button 
+      onClick={handleTestAlert}
+      disabled={!isConnected}
+      variant={isConnected ? 'default' : 'secondary'}
+      
+    >
+      {isConnected ? '🚨 Send Test Alert' : '⚠️ Socket Disconnected'}
+    </Button>
+  );
+}

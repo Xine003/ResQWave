@@ -1,6 +1,6 @@
 import { useLiveReport } from '@/components/Official/LiveReportContext';
+import { useRescueForm } from '@/components/Official/RescueFormContext';
 import { X } from 'lucide-react';
-import { useState } from 'react';
 import { useRescueWaitlist } from '../contexts/RescueWaitlistContext';
 import type { SignalPopupProps } from '../types/popup';
 import RescueFormSheet from './RescueFormSheet';
@@ -22,8 +22,19 @@ const PopoverRow = ({ label, value, isWide = false }: { label: string; value: Re
     </div>
 );
 
-export default function SignalPopover({ popover, setPopover, onClose, onOpenCommunityInfo, onDispatchRescue }: SignalPopupProps) {
-    const [isRescueFormOpen, setIsRescueFormOpen] = useState(false);
+export default function SignalPopover({ 
+    popover, 
+    setPopover, 
+    onClose, 
+    onOpenCommunityInfo, 
+    onDispatchRescue, 
+    onRemoveSignal, 
+    onShowWaitlistAlert,
+    onShowDispatchAlert,
+    onShowErrorAlert,
+    onShowDispatchConfirmation
+}: SignalPopupProps) {
+    const { isRescueFormOpen, setIsRescueFormOpen } = useRescueForm();
     const { setIsLiveReportOpen } = useLiveReport();
     const { addToWaitlist } = useRescueWaitlist();
     
@@ -32,6 +43,7 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
         
         const waitlistData = {
             ...formData,
+            alertId: popover.alertId, // Include alertId for backend operations and map updates
             deviceId: popover.deviceId,
             address: popover.address,
             date: popover.date,
@@ -41,11 +53,47 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
         addToWaitlist(waitlistData);
         setIsLiveReportOpen(true);
         setIsRescueFormOpen(false);
+        // Close the popover after adding to waitlist
+        setPopover(null);
+        
+        // Show success alert
+        onShowWaitlistAlert?.(popover.focalPerson || 'Unknown');
     };
 
-    const handleDispatch = () => {
-        setIsRescueFormOpen(false);
-        onDispatchRescue?.();
+    const handleDispatch = (formData?: any) => {
+        if (!popover || !popover.alertId) {
+            console.error('[SignalPopover] Cannot dispatch: missing alertId');
+            onShowErrorAlert?.('Cannot dispatch: missing alert information');
+            return;
+        }
+        
+        // Show confirmation dialog
+        if (formData) {
+            onShowDispatchConfirmation?.(formData, () => {
+                // Remove the signal from the map
+                if (onRemoveSignal && popover.alertId) {
+                    onRemoveSignal(popover.alertId);
+                }
+                
+                setIsRescueFormOpen(false);
+                setPopover(null); // Close the popover
+                onDispatchRescue?.(); // Show dispatch confirmation dialog
+                
+                // Show success alert
+                onShowDispatchAlert?.(popover.focalPerson || 'Unknown');
+            });
+        } else {
+            // Direct dispatch without confirmation
+            if (onRemoveSignal && popover.alertId) {
+                onRemoveSignal(popover.alertId);
+            }
+            
+            setIsRescueFormOpen(false);
+            setPopover(null);
+            onDispatchRescue?.();
+            
+            onShowDispatchAlert?.(popover.focalPerson || 'Unknown');
+        }
     };
     
     if (!popover) return null;
@@ -83,11 +131,21 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
                             />
                             <PopoverRow 
                                 label="Alert Type" 
-                                value={popover.alertType || 'N/A'} 
+                                value={
+                                    popover.alertType === 'CRITICAL' ? 'Critical' :
+                                    popover.alertType === 'USER-INITIATED' ? 'User-Initiated' :
+                                    popover.alertType === 'ONLINE' ? 'No Alert' :
+                                    popover.alertType === 'OFFLINE' ? 'No Alert' :
+                                    'N/A'
+                                } 
                             />
                             <PopoverRow 
-                                label="Status" 
-                                value={popover.status || 'N/A'} 
+                                label="Terminal Status" 
+                                value={
+                                    popover.status === 'ONLINE' ? 'Online' :
+                                    popover.status === 'OFFLINE' ? 'Offline' :
+                                    popover.status || 'N/A'
+                                } 
                             />
                             <PopoverRow 
                                 label="Time Sent" 
@@ -137,6 +195,7 @@ export default function SignalPopover({ popover, setPopover, onClose, onOpenComm
                 isOpen={isRescueFormOpen}
                 onClose={() => setIsRescueFormOpen(false)}
                 focalPerson={popover.focalPerson || 'N/A'}
+                alertId={popover.alertId}
                 onWaitlist={handleWaitlist}
                 onDispatch={handleDispatch}
             />
