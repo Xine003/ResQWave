@@ -1,14 +1,16 @@
 
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { ForgotPasswordVerification } from "@/pages/Focal/LoginFocal/components/VerifyandForgot";
 import { apiFetch } from '@/lib/api';
+import { ForgotPasswordVerification } from "@/pages/Focal/LoginFocal/components/VerifyandForgot";
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useFocalAuth } from '../../../context/focalAuthContext';
 
 export default function VerificationSignin() {
     const [code, setCode] = useState("");
     const [error, setError] = useState("");
     const [isVerifying, setIsVerifying] = useState(false);
     const navigate = useNavigate();
+    const { setToken } = useFocalAuth();
 
     // Retrieve tempToken from navigation state (preferred), fallback to sessionStorage
     const location = useLocation();
@@ -33,16 +35,9 @@ export default function VerificationSignin() {
                 }
             );
             setIsVerifying(false);
-            // On success, store token if needed and navigate
+            // On success, use the FocalAuthContext to set the token
             if (res.token) {
-                localStorage.setItem('focalToken', res.token);
-                // Decode JWT to get id (payload is base64 in the middle part)
-                try {
-                    const payload = JSON.parse(atob(res.token.split('.')[1]));
-                    if (payload.id) {
-                        localStorage.setItem('focalId', payload.id);
-                    }
-                } catch { }
+                setToken(res.token);
             }
             navigate('/focal-dashboard');
         } catch (err: any) {

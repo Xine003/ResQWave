@@ -40,6 +40,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Validate token and restore session on mount
   useEffect(() => {
     const validateToken = async () => {
+      // Skip token validation for focal routes (they have their own auth system)
+      const isFocalRoute = location.pathname.startsWith('/focal') || 
+                          location.pathname.startsWith('/login-focal') || 
+                          location.pathname.startsWith('/verification-signin-focal') ||
+                          location.pathname.startsWith('/forgot-password-focal') ||
+                          location.pathname.startsWith('/register')
+      
+      if (isFocalRoute) {
+        setIsLoading(false)
+        return
+      }
+
       const storedToken = localStorage.getItem('resqwave_token')
       
       if (!storedToken) {
