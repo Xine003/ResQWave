@@ -41,7 +41,7 @@ export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, 
     const offsetY = popover?.status === 'online' ? 345 : 185;
 
     return (
-        <div id="signal-popover-wrapper" style={{ position: 'absolute', left: 0, top: 0, transform: `translate(${(popover.screen.x - 200)}px, ${(popover.screen.y - offsetY)}px)`, zIndex: 'var(--z-map-popover)', pointerEvents: 'none' }}>
+        <div id="signal-popover-wrapper" style={{ position: 'absolute', left: 0, top: 0, transform: `translate(${(popover.screen.x - 200)}px, ${(popover.screen.y - offsetY)}px)`, zIndex: 40, pointerEvents: 'none' }}>
             <div style={{ position: 'relative', minWidth: 370, maxWidth: 420 }}>
                 <div style={{ backgroundColor: 'rgba(0,0,0,0.80)', color: '#fff', boxShadow: '0 8px 28px rgba(0,0,0,0.45)', padding: '20px 18px 20px 18px', fontFamily: 'inherit', borderRadius: 5 }}>
                     {/* Header with title and close button aligned horizontally */}
@@ -62,26 +62,26 @@ export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, 
                     {/* Rows (label/value) - full details when online, minimal (name/address/date) for gray/offline signals */}
                     {popover?.status === 'online' ? (
                         <div className={styles.popoverContainer}>
-                            <PopoverRow 
-                                label="Terminal ID" 
-                                value={popover.deviceId || 'RSQW-001'} 
+                            <PopoverRow
+                                label="Terminal ID"
+                                value={popover.deviceId || 'RSQW-001'}
                             />
-                            <PopoverRow 
-                                label="Focal Person" 
-                                value={popover.focalPerson || (popover.title || 'Gwyneth Uy')} 
+                            <PopoverRow
+                                label="Focal Person"
+                                value={popover.focalPerson || (popover.title || 'Gwyneth Uy')}
                             />
-                            <PopoverRow 
-                                label="Alternative Focal Person" 
-                                value={popover.altFocalPerson || 'Rodel Sustiguer'} 
+                            <PopoverRow
+                                label="Alternative Focal Person"
+                                value={popover.altFocalPerson || 'Rodel Sustiguer'}
                             />
-                            <PopoverRow 
-                                label="Terminal Address" 
-                                value={popover.address || 'Block 1, Lot 17, Paraiso Rd, 1400'} 
+                            <PopoverRow
+                                label="Terminal Address"
+                                value={popover.address || 'Block 1, Lot 17, Paraiso Rd, 1400'}
                             />
-                            
+
                             {/* Coordinates row (stacked values on right) */}
-                            <PopoverRow 
-                                label="Coordinates" 
+                            <PopoverRow
+                                label="Coordinates"
                                 isWide={true}
                                 value={
                                     popover.lat?.toFixed?.(6) && popover.lng?.toFixed?.(6) ? (
@@ -94,21 +94,21 @@ export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, 
                                     )
                                 }
                             />
-                            
-                            <PopoverRow 
-                                label="Date Registered" 
-                                value={popover.date || 'September 9, 2025'} 
+
+                            <PopoverRow
+                                label="Date Registered"
+                                value={popover.date || 'September 9, 2025'}
                             />
                         </div>
                     ) : (
                         <div className={styles.popoverContainer}>
-                            <PopoverRow 
-                                label="Address" 
-                                value={popover.address || '—'} 
+                            <PopoverRow
+                                label="Address"
+                                value={popover.address || '—'}
                             />
-                            <PopoverRow 
-                                label="Date Registered" 
-                                value={popover.date || '—'} 
+                            <PopoverRow
+                                label="Date Registered"
+                                value={popover.date || '—'}
                             />
                         </div>
                     )}

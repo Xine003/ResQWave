@@ -90,6 +90,16 @@ module.exports = new EntitySchema({
             default: false 
         },
 
+        failedAttempts: {
+            type: "int",
+            default: 0
+        },
+
+        lockUntil: {
+            type: "datetime",
+            nullable: true,
+        },
+
         createdAt: { 
             type: "timestamp", 
             createDate: true, 

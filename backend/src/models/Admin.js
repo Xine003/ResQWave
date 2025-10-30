@@ -20,6 +20,14 @@ module.exports = new EntitySchema ({
             nullable: false,
             unique: true,
         },
+        failedAttempts: {
+            type: "int",
+            default: 0
+        },
+        lockUntil: {
+            type: "datetime",
+            nullable: true
+        },
         password: {
             type: "varchar",
             length: 255,

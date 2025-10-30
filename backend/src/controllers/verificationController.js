@@ -117,7 +117,7 @@ const verifyFocalPersonLogin = async (req, res) => {
         const token = jwt.sign(
             {id: focalPerson.id, name: focalPerson.name, role:"focalPerson", sessionID}, 
             process.env.JWT_SECRET,
-            {expiresIn: "1h"}
+            {expiresIn: "8h"}
         );
 
         // Remove Verification
@@ -183,7 +183,7 @@ const adminDispatcherVerify = async (req, res) => {
     const token = jwt.sign(
       { id: decoded.id, role: decoded.role, name, sessionID },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "8h" }
     );
 
     return res.json({ message: "Login successful", token });
