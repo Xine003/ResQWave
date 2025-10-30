@@ -68,7 +68,11 @@ export const router = createBrowserRouter([
   // Focal verification page (public, uses tempToken)
   {
     path: '/verification-signin-focal',
-    element: <VerificationSignin />,
+    element: (
+      <FocalAuthProvider>
+        <VerificationSignin />
+      </FocalAuthProvider>
+    ),
   },
   // Focal Routes (protected)
   {

@@ -30,15 +30,29 @@ export async function apiFetch<T = any>(
 
   // Handle authentication errors
   if (res.status === 401 || res.status === 403) {
-    // Clear local storage
-    localStorage.removeItem('resqwave_token');
-    localStorage.removeItem('resqwave_user');
-    sessionStorage.removeItem('tempToken');
-    sessionStorage.removeItem('userType');
+    // Check if this is a focal route - don't trigger official logout for focal auth errors
+    const isFocalRoute = window.location.pathname.startsWith('/focal') || 
+                        window.location.pathname.startsWith('/login-focal') || 
+                        window.location.pathname.startsWith('/verification-signin-focal') ||
+                        window.location.pathname.startsWith('/forgot-password-focal') ||
+                        window.location.pathname.startsWith('/register')
+    
+    if (isFocalRoute) {
+      // For focal routes, only clear focal tokens
+      localStorage.removeItem('focalToken');
+      localStorage.removeItem('focalId');
+      sessionStorage.removeItem('focalTempToken');
+    } else {
+      // For official routes, clear official tokens and trigger logout
+      localStorage.removeItem('resqwave_token');
+      localStorage.removeItem('resqwave_user');
+      sessionStorage.removeItem('tempToken');
+      sessionStorage.removeItem('userType');
 
-    // Call global logout callback if set (triggers navigation in AuthContext)
-    if (logoutCallback) {
-      logoutCallback();
+      // Call global logout callback if set (triggers navigation in AuthContext)
+      if (logoutCallback) {
+        logoutCallback();
+      }
     }
 
     const error = await res.text();

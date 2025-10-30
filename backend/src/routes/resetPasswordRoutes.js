@@ -1,13 +1,15 @@
 const express = require("express");
 const {
-    requestPasswordReset,
+    requestAdminDispatcherReset,
+    requestFocalReset,
     verifyResetCode,
     resetPassword
 } = require("../controllers/resetPasswordController");
 const router = express.Router();
 
 // Reset Password
-router.post("/requestReset", requestPasswordReset);
+router.post("/official/reset", requestAdminDispatcherReset);
+router.post("/focal/reset", requestFocalReset);
 router.post("/verifyResetCode", verifyResetCode);
 router.post("/resetPassword", resetPassword);
 
