@@ -12,6 +12,13 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
     const navigate = useNavigate();
     const [popoverOpen, setPopoverOpen] = React.useState(false);
     const { logout } = useFocalAuth();
+    // Helper to log out and navigate before clearing tokens
+    const handleLogout = () => {
+        navigate('/');
+        setTimeout(() => {
+            logout();
+        }, 100);
+    };
     // When editing is active, render the editing header UI (previously inline in index.tsx)
     if (editBoundaryOpen) {
         return (
@@ -204,8 +211,7 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                             icon={<LogOut size={16} />}
                             onClick={() => {
                                 setPopoverOpen(false);
-                                logout();
-                                navigate('/login-focal');
+                                handleLogout();
                             }}
                         >
                             Logout

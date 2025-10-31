@@ -11,6 +11,30 @@ export interface ExportData {
     definition: string;
   }>;
   summary?: string;
+  // Optional: full report fields for PDF
+  communityInfo?: {
+    neighborhoodId?: string;
+    focalPersonName?: string;
+    focalPersonAddress?: string;
+    focalPersonContactNumber?: string;
+  };
+  emergencyContext?: {
+    emergencyId?: string;
+    waterLevel?: string;
+    urgencyOfEvacuation?: string;
+    hazardPresent?: string;
+    accessibility?: string;
+    resourceNeeds?: string;
+    otherInformation?: string;
+    timeOfRescue?: string;
+    alertType?: string;
+  };
+  rescueCompletion?: {
+    rescueCompletionTime?: string;
+    noOfPersonnel?: string;
+    resourcesUsed?: string;
+    actionsTaken?: string;
+  };
 }
 
 // Export to TXT
@@ -170,43 +194,41 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
   const col1w = Math.floor(tableWidth / 2);
   const col2w = tableWidth - col1w;
 
-
   // Title (centered, blue, 18)
   doc.setFont('times', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(34, 77, 153); // blue
-  doc.text('Rescue Operation Report', pageWidth / 2, y, { align: 'center' });
+  doc.text(data.title || 'Rescue Operation Report', pageWidth / 2, y, { align: 'center' });
   y += 10;
 
   // Intro/description (black, justified, 11)
   doc.setFont('times', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
-  const intro =
+  const intro = data.summary ||
     'This document serves as the official report of the rescue operation conducted for the affected community. It records the key information, emergency context, and actions taken to ensure accountability, transparency, and reference for future disaster response efforts.';
   const introLines = doc.splitTextToSize(intro, tableWidth);
-  // Render intro lines with normal spacing to preserve spaces
   introLines.forEach((line: string) => {
     doc.text(line, marginLeft, y);
     y += 6;
   });
   y += 12;
 
-  // Section: Community & Terminal Information (same size as main title)
+  // Section: Community & Terminal Information
   doc.setFont('times', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(34, 77, 153);
   doc.text('Community & Terminal Information', marginLeft, y);
   y += 6;
 
-  // Table: Community Info
+  // Table: Community Info (dynamic)
+  const comm = data.communityInfo || {};
   const commTable = [
-    ['Neighborhood ID', 'N-01'],
-    ["Focal Person’s Name", 'Rosalyn Dela Cruz'],
-    ["Focal Person’s Address", 'Paraiso Rd, 1400'],
-    ["Focal Person’s Contact Number", '09687342038'],
+    ['Neighborhood ID', comm.neighborhoodId || 'N/A'],
+    ["Focal Person’s Name", comm.focalPersonName || 'N/A'],
+    ["Focal Person’s Address", comm.focalPersonAddress || 'N/A'],
+    ["Focal Person’s Contact Number", comm.focalPersonContactNumber || 'N/A'],
   ];
-  // Table header
   doc.setFont('times', 'bold');
   doc.setFontSize(11);
   doc.setFillColor(34, 77, 153);
@@ -215,25 +237,17 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
   doc.text(commTable[0][0], marginLeft + 1, y + 7);
   doc.text(commTable[0][1], marginLeft + col1w + 1, y + 7);
   y += 10;
-  // Table rows
   for (let i = 1; i < commTable.length; i++) {
-    // Support multiline for both label and value
-    // Remove padding: use full cell width
-    // Use slightly reduced width for text wrapping to avoid overflow
-    // Add horizontal padding for text inside cells
     const cellPadX = 2;
     const labelLines = doc.splitTextToSize(commTable[i][0], col1w - cellPadX * 2);
     const valueLines = doc.splitTextToSize(commTable[i][1], col2w - cellPadX * 2);
-    // Add extra bottom padding for value cell
     const valuePadding = valueLines.length > 1 ? 4 : 0;
     const rowHeight = Math.max(10, labelLines.length * 6, valueLines.length * 6 + valuePadding);
-    // If not enough space for row, add new page
     if (y + rowHeight > pageHeight - marginBottom) {
       doc.addPage();
       y = marginTop;
     }
     doc.rect(marginLeft, y, col1w + col2w, rowHeight);
-    // Draw label lines (bold)
     doc.setFont('times', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
@@ -242,7 +256,6 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
       doc.text(line, marginLeft + cellPadX, labelY);
       if (idx < labelLines.length - 1) labelY += 6;
     });
-    // Draw value lines (normal)
     doc.setFont('times', 'normal');
     doc.setFontSize(11);
     let valY = y + 6;
@@ -251,7 +264,6 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
       if (idx < valueLines.length - 1) {
         valY += 6;
       } else {
-        // Add extra space after last line for padding
         valY += valuePadding;
       }
     });
@@ -259,26 +271,26 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
   }
   y += 12;
 
-  // Section: Emergency Context (same size as main title)
+  // Section: Emergency Context
   doc.setFont('times', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(34, 77, 153);
   doc.text('Emergency Context', marginLeft, y);
   y += 6;
 
-  // Table: Emergency Context
+  // Table: Emergency Context (dynamic)
+  const em = data.emergencyContext || {};
   const emTable = [
-    ['Emergency ID', 'EMERGENCY-01'],
-    ['Current Situation / Water Level', 'Waist-level inside most houses\nChest-deep near riverbank\nSome families moved to 2nd floors\nFew climbing rooftops (water still rising)'],
-    ['Urgency of Evacuation', 'Families on 2nd floors still safe for now\nOne-story houses = urgent evacuation needed\nRising water (fast) — risk of entrapment'],
-    ['Hazards Present', 'Live wires hanging near barangay hall\nLeaning electric posts\nStrong current along main road near creek (impassable)\nSmall landslide blocking Zone 5 alley (river path only access)'],
-    ['Accessibility', 'Rescue trucks can reach up to Zone 2\nBeyond Zone 2 = boats only\nAbandoned motorcycles/pedicabs on roads'],
-    ['Resource Needs', 'Rescue: trapped households\nRelief: evacuees at covered court haven’t eaten since morning\nMedical: 2 evacuees (1 with asthma, 1 with high fever)'],
-    ['Other Information', 'N/A'],
-    ['Time of Rescue', '3:45 AM, Thursday'],
-    ['Alert Type', 'Critical'],
+    ['Emergency ID', em.emergencyId || 'N/A'],
+    ['Current Situation / Water Level', em.waterLevel || 'N/A'],
+    ['Urgency of Evacuation', em.urgencyOfEvacuation || 'N/A'],
+    ['Hazards Present', em.hazardPresent || 'N/A'],
+    ['Accessibility', em.accessibility || 'N/A'],
+    ['Resource Needs', em.resourceNeeds || 'N/A'],
+    ['Other Information', em.otherInformation || 'N/A'],
+    ['Time of Rescue', em.timeOfRescue || 'N/A'],
+    ['Alert Type', em.alertType || 'N/A'],
   ];
-  // Table header
   doc.setFont('times', 'bold');
   doc.setFontSize(11);
   doc.setFillColor(34, 77, 153);
@@ -287,11 +299,7 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
   doc.text(emTable[0][0], marginLeft + 1, y + 7);
   doc.text(emTable[0][1], marginLeft + col1w + 1, y + 7);
   y += 10;
-  // Table rows
   for (let i = 1; i < emTable.length; i++) {
-    // Support multiline for both label and value (split on \n, then wrap)
-    // Remove padding: use full cell width
-    // Add horizontal padding for text inside cells
     const cellPadX = 2;
     const labelLines = doc.splitTextToSize(emTable[i][0], col1w - cellPadX * 2);
     const valueRawLines = emTable[i][1].split('\n');
@@ -299,17 +307,13 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
     valueRawLines.forEach(valLine => {
       valueLines = valueLines.concat(doc.splitTextToSize(valLine, col2w - cellPadX * 2));
     });
-    // Add extra bottom padding for value cell
     const valuePadding = valueLines.length > 1 ? 4 : 0;
     const rowHeight = Math.max(10, labelLines.length * 6, valueLines.length * 6 + valuePadding);
-    // If not enough space for row, add new page
     if (y + rowHeight > pageHeight - marginBottom) {
       doc.addPage();
       y = marginTop;
     }
-    // Draw only the outer border, not the vertical separator
     doc.rect(marginLeft, y, col1w + col2w, rowHeight);
-    // Draw label lines (bold)
     doc.setFont('times', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
@@ -318,7 +322,6 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
       doc.text(line, marginLeft + cellPadX, labelY);
       if (idx < labelLines.length - 1) labelY += 6;
     });
-    // Draw value lines (normal)
     doc.setFont('times', 'normal');
     doc.setFontSize(11);
     let valY = y + 6;
@@ -327,34 +330,30 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
       if (idx < valueLines.length - 1) {
         valY += 6;
       } else {
-        // Add extra space after last line for padding
         valY += valuePadding;
       }
     });
     y += rowHeight;
   }
 
-  // Add Rescue Completion Details table
+  // Rescue Completion Details
   y += 12;
-  // If not enough space for table, add new page
   if (y + 50 > pageHeight - marginBottom) {
     doc.addPage();
     y = marginTop;
   }
-  // Section title
   doc.setFont('times', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(34, 77, 153);
   doc.text('Rescue Completion Details', marginLeft, y);
   y += 6;
-  // Table data
+  const rc = data.rescueCompletion || {};
   const rescueTable = [
-    ['Rescue Completion Time', '1:09:46'],
-    ['No. of Personnel Deployed', '12'],
-    ['Resources Used', '12 Rescue Boats\n48 Rescue Personnel\n200 Life Vests\n15 First Aid Kits\n25 Radios\n6 Emergency Vehicles'],
-    ['Actions Taken', 'Removed fallen tree blocking road access\nRescued stranded residents from flooded homes\nEvacuated children, elderly, and PWDs to safe shelter\nCleared debris to reopen evacuation routes'],
+    ['Rescue Completion Time', rc.rescueCompletionTime || 'N/A'],
+    ['No. of Personnel Deployed', rc.noOfPersonnel || 'N/A'],
+    ['Resources Used', rc.resourcesUsed || 'N/A'],
+    ['Actions Taken', rc.actionsTaken || 'N/A'],
   ];
-  // Table header
   doc.setFont('times', 'bold');
   doc.setFontSize(11);
   doc.setFillColor(34, 77, 153);
@@ -363,11 +362,7 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
   doc.text(rescueTable[0][0], marginLeft + 1, y + 7);
   doc.text(rescueTable[0][1], marginLeft + col1w + 1, y + 7);
   y += 10;
-  // Table rows
   for (let i = 1; i < rescueTable.length; i++) {
-    // Support multiline for both label and value (split on \n, then wrap)
-    // Remove padding: use full cell width
-    // Add horizontal padding for text inside cells
     const cellPadX = 2;
     const labelLines = doc.splitTextToSize(rescueTable[i][0], col1w - cellPadX * 2);
     const valueRawLines = rescueTable[i][1].split('\n');
@@ -375,17 +370,13 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
     valueRawLines.forEach(valLine => {
       valueLines = valueLines.concat(doc.splitTextToSize(valLine, col2w - cellPadX * 2));
     });
-    // Add extra bottom padding for value cell
     const valuePadding = valueLines.length > 1 ? 4 : 0;
     const rowHeight = Math.max(10, labelLines.length * 6, valueLines.length * 6 + valuePadding);
-    // If not enough space for row, add new page
     if (y + rowHeight > pageHeight - marginBottom) {
       doc.addPage();
       y = marginTop;
     }
-    // Draw only the outer border, not the vertical separator
     doc.rect(marginLeft, y, col1w + col2w, rowHeight);
-    // Draw label lines (bold)
     doc.setFont('times', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
@@ -394,7 +385,6 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
       doc.text(line, marginLeft + cellPadX, labelY);
       if (idx < labelLines.length - 1) labelY += 6;
     });
-    // Draw value lines (normal)
     doc.setFont('times', 'normal');
     doc.setFontSize(11);
     let valY = y + 6;
@@ -403,7 +393,6 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
       if (idx < valueLines.length - 1) {
         valY += 6;
       } else {
-        // Add extra space after last line for padding
         valY += valuePadding;
       }
     });
@@ -417,7 +406,6 @@ export const exportToPdf = async (data: ExportData, headerImage: string) => {
     doc.setFont('times', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
-    // Clear background behind page number to prevent overlap
     const pageNumText = `Page | ${i}`;
     const textWidth = doc.getTextWidth(pageNumText);
     const xRight = pageWidth - marginRight;

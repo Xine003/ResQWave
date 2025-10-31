@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-
 import { ChevronDown, Search } from 'lucide-react';
 import { exportToPdf } from '../utils/exportUtils';
 import type { ExportData } from '../utils/exportUtils';
@@ -10,18 +9,43 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-
 import type { ReportGroup, ReportItem } from '../types/history';
-import { useSampleReports } from '../hooks/useSampleReports';
+import { useAggregatedRescueReports } from '../hooks/useAggregatedRescueReports';
+
 
 type HistoryModalProps = {
     open: boolean;
     onClose: () => void;
     center?: { x: number; y: number } | null;
 };
-// sampleReports is provided by a small hook so sample data can be reused elsewhere
-// and swapped for real data later.
-const { sampleReports } = useSampleReports();
+
+// Fetch aggregated rescue reports from backend
+function groupReportsByMonth(reports: any[]): ReportGroup[] {
+    // Group by month/year
+    const groups: { [key: string]: ReportGroup } = {};
+    reports.forEach((r) => {
+        const date = r.rescueCompleted && r.prfCompletedAt ? new Date(r.prfCompletedAt) : (r.timeOfRescue ? new Date(r.timeOfRescue) : null);
+        if (!date) return;
+        const monthLabel = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+        if (!groups[monthLabel]) {
+            groups[monthLabel] = { monthLabel, count: 0, items: [] };
+        }
+        groups[monthLabel].items.push({
+            id: r.emergencyId || r.alertId || 'Unknown',
+            date: date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
+            type: r.alertType || 'Unknown',
+        });
+        groups[monthLabel].count++;
+    });
+    // Sort by most recent month first
+    return Object.values(groups).sort((a, b) => {
+        const [am, ay] = a.monthLabel.split(' ');
+        const [bm, by] = b.monthLabel.split(' ');
+        const ad = new Date(`${am} 1, ${ay}`);
+        const bd = new Date(`${bm} 1, ${by}`);
+        return bd.getTime() - ad.getTime();
+    });
+}
 
 export default function HistoryModal({ open, onClose, center = null }: HistoryModalProps) {
     // State for filters and UI
@@ -49,10 +73,14 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
     })();
     const types = ['All Types', 'Critical', 'User Initiated'];
 
+    // Fetch reports from backend
+    const { reports } = useAggregatedRescueReports();
+
     // Derive filtered groups based on search and filters
     const groupedReports = useMemo(() => {
         const q = query.trim().toLowerCase();
-        return sampleReports.map((group: ReportGroup) => {
+        const groups = groupReportsByMonth(reports);
+        return groups.map((group: ReportGroup) => {
             const filteredItems = group.items.filter((item: ReportItem) => {
                 if (q && !item.id.toLowerCase().includes(q)) return false;
                 const parsed = new Date(item.date);
@@ -71,7 +99,7 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
             });
             return { ...group, items: filteredItems, count: filteredItems.length };
         }).filter(g => g.items.length > 0);
-    }, [query, selectedMonth, selectedYear, selectedType]);
+    }, [reports, query, selectedMonth, selectedYear, selectedType]);
 
     // (removed dynamic width measuring — using fixed minWidth values for menu content)
 
@@ -128,10 +156,10 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
     useEffect(() => {
         if (open) {
             const init: Record<string, boolean> = {};
-            sampleReports.forEach((g: ReportGroup) => { init[g.monthLabel] = true; });
+            groupReportsByMonth(reports).forEach((g: ReportGroup) => { init[g.monthLabel] = true; });
             setExpandedMap(init);
         }
-    }, [open]);
+    }, [open, reports]);
 
     if (!mounted) return null;
 
@@ -169,22 +197,82 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
         transition: `opacity ${ANIM_MS}ms ease, transform ${ANIM_MS}ms cubic-bezier(.2,.9,.2,1)`,
     };
 
-    // PDF export handler and mock data
-    const mockExportData: ExportData = {
-        title: "Community Emergency History",
-        totalItems: 2,
-        summary: "Summary of recent emergency reports in your community.",
-        items: [
-            { term: "Flood", definition: "Heavy rainfall caused flooding in the area." },
-            { term: "Fire", definition: "A fire incident was reported in Block 3." }
-        ]
-    };
 
     // PDF export: use exportToPdf utility for correct layout
-    const handleExportPdf = async () => {
+    // Export the first (most recent) report with full backend details
+    const handleExportPdf = async (reportId?: string) => {
         setPdfExporting(true);
         try {
-            await exportToPdf(mockExportData, ''); // headerImage param unused in new layout
+            // Find the most recent report or by ID
+            const flatReports = reports || [];
+            let selected = null;
+            if (reportId) {
+                selected = flatReports.find(r => (r.emergencyId || r.alertId) === reportId);
+            } else {
+                selected = flatReports.length > 0 ? flatReports[0] : null;
+            }
+            if (!selected) throw new Error('No report data found.');
+
+            const exportData: ExportData = {
+                title: `Rescue Operation Report - ${selected.emergencyId || selected.alertId || ''}`,
+                totalItems: 1,
+                summary: ' This document serves as the official report of the rescue operation conducted for the affected community. It records the key information, emergency context, and actions taken to ensure accountability, transparency, and reference for future disaster response efforts.',
+                items: [
+                    { term: selected.emergencyId || selected.alertId || 'N/A', definition: `Type: ${selected.alertType || 'N/A'} | Date: ${selected.prfCompletedAt || selected.timeOfRescue || 'N/A'}` }
+                ],
+                communityInfo: {
+                    neighborhoodId: selected.neighborhoodId || '',
+                    focalPersonName: selected.focalPersonName || '',
+                    focalPersonAddress: (() => {
+                        // If address is a JSON string/object, extract only the address field
+                        let addr = selected.focalPersonAddress;
+                        if (addr && typeof addr === 'string') {
+                            try {
+                                const parsed = JSON.parse(addr);
+                                if (parsed && typeof parsed === 'object' && parsed.address) {
+                                    return parsed.address;
+                                }
+                            } catch { }
+                        }
+                        return addr || '';
+                    })(),
+                    focalPersonContactNumber: selected.focalPersonContactNumber || '',
+                },
+                emergencyContext: {
+                    emergencyId: selected.emergencyId || selected.alertId || '',
+                    waterLevel: selected.waterLevel || '',
+                    urgencyOfEvacuation: selected.urgencyOfEvacuation || '',
+                    hazardPresent: selected.hazardPresent || '',
+                    accessibility: selected.accessibility || '',
+                    resourceNeeds: selected.resourceNeeds || '',
+                    otherInformation: selected.otherInformation || '',
+                    timeOfRescue: (() => {
+                        const val = selected.timeOfRescue;
+                        if (!val) return '';
+                        try {
+                            const dt = new Date(val);
+                            // Convert to UTC+8 (Philippine Time)
+                            const options: Intl.DateTimeFormatOptions = {
+                                year: 'numeric', month: 'long', day: 'numeric',
+                                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                                hour12: true,
+                                timeZone: 'Asia/Manila',
+                            };
+                            return dt.toLocaleString('en-PH', options);
+                        } catch {
+                            return val;
+                        }
+                    })(),
+                    alertType: selected.alertType || '',
+                },
+                rescueCompletion: {
+                    rescueCompletionTime: selected.rescueCompletionTime || '',
+                    noOfPersonnel: selected.noOfPersonnel ? String(selected.noOfPersonnel) : '',
+                    resourcesUsed: selected.resourcesUsed || '',
+                    actionsTaken: selected.actionsTaken || '',
+                },
+            };
+            await exportToPdf(exportData, '');
             console.log('PDF opened in new tab.');
         } catch (err) {
             console.error('PDF export failed:', err);
@@ -391,7 +479,7 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
                                                         cursor: pdfExporting ? "not-allowed" : "pointer", boxShadow: "inset 0 0 0 1px rgba(103,161,255,0.06)", transition: "all 0.2s ease-in-out",
                                                     }}
                                                     aria-label="View PDF"
-                                                    onClick={handleExportPdf}
+                                                    onClick={() => handleExportPdf(r.id)}
                                                     disabled={pdfExporting}
                                                 >
                                                     {/* Eye icon SVG */}
