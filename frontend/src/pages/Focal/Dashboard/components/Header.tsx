@@ -1,5 +1,5 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import resqwave_logo from '/Landing/resqwave_logo.png';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
@@ -7,11 +7,13 @@ import { Popover, PopoverTrigger, PopoverContent, PopoverItem, PopoverSeparator 
 import { LogOut, User, BookOpen } from "lucide-react";
 import type { HeaderProps } from '../types/header';
 import { useFocalAuth } from '../../context/focalAuthContext';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community', onAccountSettingsClick, onActivityLogClick, accountSettingsOpen = false, onRequestCloseAccountSettings }: HeaderProps) {
     const navigate = useNavigate();
     const [popoverOpen, setPopoverOpen] = React.useState(false);
-    const { logout } = useFocalAuth();
+    const { logout, focalId } = useFocalAuth();
+    const [profileUrl, setProfileUrl] = useState<string | null>(null);
     // Helper to log out and navigate before clearing tokens
     const handleLogout = () => {
         navigate('/');
@@ -19,6 +21,44 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
             logout();
         }, 100);
     };
+
+    // Helper to fetch focal profile photo
+    const fetchProfilePhoto = useCallback(() => {
+        if (!focalId) {
+            setProfileUrl(null);
+            return;
+        }
+        fetch(`${API_BASE_URL}/focalperson/${focalId}/photo`, {
+            credentials: 'include',
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token') || ''}`
+            }
+        })
+            .then(async (res) => {
+                if (!res.ok) throw new Error('No photo');
+                const blob = await res.blob();
+                if (blob.size > 0) {
+                    setProfileUrl(URL.createObjectURL(blob));
+                } else {
+                    setProfileUrl(null);
+                }
+            })
+            .catch(() => {
+                setProfileUrl(null);
+            });
+    }, [focalId]);
+
+    // Fetch on mount and when focalId changes
+    useEffect(() => {
+        fetchProfilePhoto();
+    }, [fetchProfilePhoto]);
+
+    // Listen for custom event to refresh profile photo
+    useEffect(() => {
+        const handler = () => fetchProfilePhoto();
+        window.addEventListener('focal-profile-photo-updated', handler);
+        return () => window.removeEventListener('focal-profile-photo-updated', handler);
+    }, [fetchProfilePhoto]);
     // When editing is active, render the editing header UI (previously inline in index.tsx)
     if (editBoundaryOpen) {
         return (
@@ -182,7 +222,7 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                 <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                     <PopoverTrigger asChild>
                         <img
-                            src="https://avatars.githubusercontent.com/u/1?v=4"
+                            src={profileUrl || "https://avatars.githubusercontent.com/u/1?v=4"}
                             alt="Profile"
                             style={{
                                 width: 50,

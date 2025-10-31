@@ -579,6 +579,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                                         })
                                                     });
                                                     // Save photo if changed
+                                                    let photoUpdated = false;
                                                     if (photoFile) {
                                                         const formData = new FormData();
                                                         formData.append('photo', photoFile);
@@ -590,10 +591,14 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                                             },
                                                             body: formData
                                                         });
+                                                        photoUpdated = true;
                                                     }
                                                     setConfirmSaveOpen(false);
                                                     handleClose();
                                                     try { onSaved && onSaved(); } catch (e) { }
+                                                    if (photoFile || photoUpdated) {
+                                                        window.dispatchEvent(new Event('focal-profile-photo-updated'));
+                                                    }
                                                 } catch (err) {
                                                     alert('Failed to save changes.');
                                                 }

@@ -178,7 +178,7 @@ export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBo
                         <div style={{ width: 50, borderTopLeftRadius: 7, borderTopRightRadius: 7, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, overflow: 'hidden', background: '#fff', boxShadow: '0 6px 16px rgba(2,6,23,0.21)', display: 'flex', flexDirection: 'column' }}>
                             <button
                                 aria-label="Zoom in"
-                                onClick={() => { const m = mapRef.current; if (m) m.zoomIn(); }}
+                                onClick={() => { const m = mapRef.current; if (m) m.zoomOut(); }}
                                 style={{
                                     width: '100%',
                                     height: 50,
@@ -200,7 +200,7 @@ export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBo
                         </div>
                     </TooltipTrigger>
                     <TooltipContent side="left" sideOffset={8}>
-                        Zoom in
+                        Zoom out
                     </TooltipContent>
                 </Tooltip>
                 <Tooltip>
@@ -208,7 +208,7 @@ export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBo
                         <div style={{ width: 50, borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: 7, borderBottomRightRadius: 7, overflow: 'hidden', background: '#fff', boxShadow: '0 6px 16px rgba(2,6,23,0.21)', display: 'flex', flexDirection: 'column' }}>
                             <button
                                 aria-label="Zoom out"
-                                onClick={() => { const m = mapRef.current; if (m) m.zoomOut(); }}
+                                onClick={() => { const m = mapRef.current; if (m) m.zoomIn(); }}
                                 style={{
                                     width: '100%',
                                     height: 50,
@@ -229,7 +229,7 @@ export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBo
                         </div>
                     </TooltipTrigger>
                     <TooltipContent side="left" sideOffset={8}>
-                        Zoom out
+                        Zoom in
                     </TooltipContent>
                 </Tooltip>
             </div>
