@@ -5,7 +5,7 @@ import { useMapAlerts } from './useMapAlerts';
 import { useMapWebSocket } from './useMapWebSocket';
 
 export default function useSignals() {
-    const { signals: mapSignals, isLoading, error, addSignal, removeSignal } = useMapAlerts();
+    const { signals: mapSignals, isLoading, error, addSignal, updateSignal } = useMapAlerts();
     
     const [popover, setPopover] = useState<SignalPopover | null>(null);
     const [infoBubble, setInfoBubble] = useState<InfoBubble | null>(null);
@@ -18,8 +18,26 @@ export default function useSignals() {
         addSignal(newSignal);
     }, [addSignal]);
     
+    // Handle alert status updates from WebSocket (for dispatched alerts)
+    const handleAlertStatusUpdate = useCallback((updatedSignal: MapSignal) => {
+        console.log('[useSignals] Alert status update from WebSocket:', updatedSignal);
+        // Update the existing signal with new status/alertType
+        updateSignal(updatedSignal);
+    }, [updateSignal]);
+    
+    // Handle waitlist form removal from WebSocket
+    const handleWaitlistFormRemoved = useCallback((data: { alertId: string; rescueFormId: string; action: string }) => {
+        console.log('[useSignals] Waitlist form removed from WebSocket:', data);
+        // This will be handled by the context - we just log it here for debugging
+        // The actual removal will be handled by the waitlist context
+    }, []);
+    
     // Set up WebSocket listener
-    const { isConnected } = useMapWebSocket({ onNewAlert: handleNewAlert });
+    const { isConnected } = useMapWebSocket({ 
+        onNewAlert: handleNewAlert,
+        onAlertStatusUpdate: handleAlertStatusUpdate,
+        onWaitlistFormRemoved: handleWaitlistFormRemoved
+    });
     
     // Transform backend MapSignal[] to frontend Signal[] format
     const transformedSignals: Signal[] = mapSignals.map(signal => {
@@ -34,9 +52,10 @@ export default function useSignals() {
                 focalPerson: signal.focalPerson,
                 address: signal.address,
                 name: signal.deviceName,
-                alertType: alertType as 'CRITICAL' | 'USER-INITIATED' | 'ONLINE' | 'OFFLINE',
+                alertType: alertType as 'CRITICAL' | 'USER-INITIATED' | 'ONLINE' | 'OFFLINE' | 'DISPATCHED',
                 contactNumber: signal.contactNumber,
-                timeSent: signal.timeSent
+                timeSent: signal.timeSent,
+                alertStatus: signal.alertStatus // Pass through alert status
             },
             boundary: []
         };
@@ -58,16 +77,21 @@ export default function useSignals() {
         getDistressCoord,
         isLoading,
         error,
-        isConnected,
-        removeSignal // Expose for removing dispatched alerts
+        isConnected
     } as const;
 }
 
 /**
  * Determines the alert type based on signal data
- * Returns terminal status if no alert exists
+ * Returns terminal status if no alert exists, or DISPATCHED if alert was completed
  */
 function determineAlertType(signal: any): string {
+    // Check if alert was dispatched (rescue completed)
+    if (signal.alertStatus === 'Dispatched') {
+        return 'DISPATCHED';
+    }
+    
+    // Check if there's an active alert
     if (!signal.alertType || signal.alertType === 'null' || signal.alertType === '') {
         return signal.terminalStatus.toUpperCase();
     }

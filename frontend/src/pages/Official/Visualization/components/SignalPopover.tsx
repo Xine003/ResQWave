@@ -1,6 +1,10 @@
 import { useLiveReport } from '@/components/Official/LiveReportContext';
 import { useRescueForm } from '@/components/Official/RescueFormContext';
 import { X } from 'lucide-react';
+import { useState } from 'react';
+import { getNeighborhoodByTerminalId } from '../../CommunityGroups/api/communityGroupApi';
+import { CommunityGroupInfoSheet } from '../../CommunityGroups/components/CommunityGroupInfoSheet';
+import type { CommunityGroupDetails } from '../../CommunityGroups/types';
 import { useRescueWaitlist } from '../contexts/RescueWaitlistContext';
 import type { SignalPopupProps } from '../types/popup';
 import RescueFormSheet from './RescueFormSheet';
@@ -26,7 +30,6 @@ export default function SignalPopover({
     popover, 
     setPopover, 
     onClose, 
-    onOpenCommunityInfo, 
     onDispatchRescue, 
     onRemoveSignal, 
     onShowWaitlistAlert,
@@ -37,6 +40,11 @@ export default function SignalPopover({
     const { isRescueFormOpen, setIsRescueFormOpen } = useRescueForm();
     const { setIsLiveReportOpen } = useLiveReport();
     const { addToWaitlist } = useRescueWaitlist();
+    
+    // Community info sheet state
+    const [communityInfoOpen, setCommunityInfoOpen] = useState(false);
+    const [communityData, setCommunityData] = useState<CommunityGroupDetails | undefined>(undefined);
+    const [loadingCommunityData, setLoadingCommunityData] = useState(false);
     
     const handleWaitlist = (formData: any) => {
         if (!popover) return;
@@ -67,8 +75,26 @@ export default function SignalPopover({
             return;
         }
         
-        // Show confirmation dialog
-        if (formData) {
+        // Show confirmation dialog with backend call as callback
+        if (formData && formData.dispatchCallback) {
+            onShowDispatchConfirmation?.(formData, async () => {
+                try {
+                    // Execute the backend dispatch call
+                    await formData.dispatchCallback();
+                    
+                    setIsRescueFormOpen(false);
+                    setPopover(null); // Close the popover
+                    onDispatchRescue?.(); // Show dispatch confirmation dialog
+                    
+                    // Show success alert
+                    onShowDispatchAlert?.(popover.focalPerson || 'Unknown');
+                } catch (error) {
+                    console.error('[SignalPopover] Error dispatching rescue form:', error);
+                    onShowErrorAlert?.('Failed to dispatch rescue form. Please try again.');
+                }
+            });
+        } else if (formData) {
+            // Fallback for old behavior (should not happen now)
             onShowDispatchConfirmation?.(formData, () => {
                 // Remove the signal from the map
                 if (onRemoveSignal && popover.alertId) {
@@ -96,7 +122,34 @@ export default function SignalPopover({
         }
     };
     
+    const handleMoreInfo = async () => {
+        if (!popover?.deviceId) {
+            console.error('[SignalPopover] No device ID available for More Info');
+            return;
+        }
+        
+        setLoadingCommunityData(true);
+        try {
+            const data = await getNeighborhoodByTerminalId(popover.deviceId);
+            if (data) {
+                setCommunityData(data);
+                setCommunityInfoOpen(true);
+            } else {
+                console.warn('[SignalPopover] No community data found for terminal:', popover.deviceId);
+                // You might want to show an error message to the user here
+            }
+        } catch (error) {
+            console.error('[SignalPopover] Error fetching community data:', error);
+            // You might want to show an error message to the user here
+        } finally {
+            setLoadingCommunityData(false);
+        }
+    };
+    
     if (!popover) return null;
+
+    // Check if rescue form is needed for this alert type (not for dispatched or offline/online terminals)
+    const isRescueNeeded = popover.alertType === 'CRITICAL' || popover.alertType === 'USER-INITIATED';
 
     const popoverWidth = 390;
     const popoverHeight = 320;
@@ -134,8 +187,10 @@ export default function SignalPopover({
                                 value={
                                     popover.alertType === 'CRITICAL' ? 'Critical' :
                                     popover.alertType === 'USER-INITIATED' ? 'User-Initiated' :
+                                    popover.alertType === 'DISPATCHED' ? 'Rescue Completed' :
                                     popover.alertType === 'ONLINE' ? 'No Alert' :
                                     popover.alertType === 'OFFLINE' ? 'No Alert' :
+                                    !popover.alertType || popover.alertType === null ? 'No Alert' :
                                     'N/A'
                                 } 
                             />
@@ -167,18 +222,25 @@ export default function SignalPopover({
                         {/* Action Buttons */}
                         <div className="flex gap-2 mt-4 pointer-events-auto">
                             <button
-                                onClick={() => {
-                                    onOpenCommunityInfo?.();
-                                }}
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+                                onClick={handleMoreInfo}
+                                disabled={loadingCommunityData}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded text-sm font-medium transition-colors"
                             >
-                                More Info
+                                {loadingCommunityData ? 'Loading...' : 'More Info'}
                             </button>
                             <button
                                 onClick={() => {
-                                    setIsRescueFormOpen(true);
+                                    if (isRescueNeeded) {
+                                        setIsRescueFormOpen(true);
+                                    }
                                 }}
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+                                disabled={!isRescueNeeded}
+                                className={`flex-1 px-4 py-2 rounded text-sm font-medium transition-colors ${
+                                    isRescueNeeded 
+                                        ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer' 
+                                        : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                                }`}
+                                title={!isRescueNeeded ? 'Rescue form only available for Critical and User-Initiated alerts' : 'Open rescue form'}
                             >
                                 Rescue Form
                             </button>
@@ -191,13 +253,22 @@ export default function SignalPopover({
             </div>
 
             {/* Rescue Form Sheet - Rendered separately at root level */}
-            <RescueFormSheet 
-                isOpen={isRescueFormOpen}
-                onClose={() => setIsRescueFormOpen(false)}
-                focalPerson={popover.focalPerson || 'N/A'}
-                alertId={popover.alertId}
-                onWaitlist={handleWaitlist}
-                onDispatch={handleDispatch}
+            {isRescueNeeded && (
+                <RescueFormSheet 
+                    isOpen={isRescueFormOpen}
+                    onClose={() => setIsRescueFormOpen(false)}
+                    focalPerson={popover.focalPerson || 'N/A'}
+                    alertId={popover.alertId}
+                    onWaitlist={handleWaitlist}
+                    onDispatch={handleDispatch}
+                />
+            )}
+
+            {/* Community Group Info Sheet */}
+            <CommunityGroupInfoSheet
+                open={communityInfoOpen}
+                onOpenChange={setCommunityInfoOpen}
+                communityData={communityData}
             />
         </>
     );

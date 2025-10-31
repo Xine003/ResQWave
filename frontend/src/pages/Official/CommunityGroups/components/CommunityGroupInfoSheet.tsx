@@ -118,9 +118,9 @@ export function CommunityGroupInfoSheet({
     >
       <SheetContent
         side="right"
-        className="w-full sm:w-[500px] bg-[#171717] border-[#2a2a2a] text-white p-0 overflow-y-auto rounded-[5px]"
+        className="w-full sm:w-[500px] bg-[#171717] border-[#2a2a2a] text-white p-0 overflow-y-auto rounded-[5px] z-[160]"
       >
-        <SheetHeader className="px-6 py-4 border-b border-[#2a2a2a]">
+        <SheetHeader className="px-6 py-5 border-b border-[#2a2a2a]">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-white text-lg font-medium">More Information</SheetTitle>
           </div>

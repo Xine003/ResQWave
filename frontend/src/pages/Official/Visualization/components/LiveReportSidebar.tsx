@@ -194,7 +194,7 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
             style={{ zIndex: 50 }}
         >
             {/* Header */}
-            <div className="p-5.5 border-b border-[#2a2a2a]">
+            <div className="p-5 border-b border-[#2a2a2a]">
                 <div className="flex justify-between items-center">
                     <h1 className="text-white text-lg font-normal">
                         Live Report

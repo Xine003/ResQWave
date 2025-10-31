@@ -11,7 +11,7 @@ export type Signal = {
         address?: string;
         date?: string;
         name?: string;
-        alertType?: 'CRITICAL' | 'USER-INITIATED' | 'ONLINE' | 'OFFLINE';
+        alertType?: 'CRITICAL' | 'USER-INITIATED' | 'ONLINE' | 'OFFLINE' | 'DISPATCHED';
         contactNumber?: string;
         timeSent?: string;
     };

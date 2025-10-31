@@ -383,6 +383,7 @@ export async function getAvailableTerminals(): Promise<Terminal[]> {
 
 export interface NeighborhoodApiResponse {
   neighborhoodID: string
+  terminalID?: string // Add terminalID to the interface
   terminalStatus: string
   focalPerson: string | null
   contactNumber: string | null
@@ -409,6 +410,28 @@ export async function getArchivedNeighborhoods(): Promise<NeighborhoodApiRespons
  */
 export async function getNeighborhoodDetails(id: string): Promise<any> {
   return apiFetch(`/neighborhood/${id}`)
+}
+
+/**
+ * Fetches neighborhood details by terminal ID
+ */
+export async function getNeighborhoodByTerminalId(terminalId: string): Promise<CommunityGroupDetails | null> {
+  try {
+    // Get all neighborhoods and find the one with matching terminal ID
+    const neighborhoods = await getNeighborhoods();
+    const neighborhood = neighborhoods.find(n => n.terminalID === terminalId);
+    
+    if (!neighborhood) {
+      console.warn(`No neighborhood found for terminal ID: ${terminalId}`);
+      return null;
+    }
+    
+    // Get detailed information using the neighborhood ID
+    return await fetchNeighborhoodDetailsTransformed(neighborhood.neighborhoodID);
+  } catch (error) {
+    console.error('Error fetching neighborhood by terminal ID:', error);
+    return null;
+  }
 }
 
 /**
