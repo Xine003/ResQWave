@@ -105,7 +105,7 @@ export default function RescueFormSheet({ isOpen, onClose, focalPerson = "Gwynet
                 style={{ zIndex: 60 }}
             >
             {/* Header */}
-            <div className="p-6 border-b border-[#2a2a2a]">
+            <div className="p-5 border-b border-[#2a2a2a]">
                 <div className="flex justify-between items-center">
                     <h1 className="text-white text-xl font-medium">
                         Rescue Form

@@ -6,8 +6,6 @@ export type SignalPopupProps = {
     // optional callback invoked when the popover is closed via the UI so the
     // parent can perform cleanup (for example: remove temporary map layers)
     onClose?: () => void;
-    // Handler for opening community info sheet
-    onOpenCommunityInfo?: () => void;
     // Handler for dispatch rescue action
     onDispatchRescue?: () => void;
     // Handler for removing signal from map when dispatched

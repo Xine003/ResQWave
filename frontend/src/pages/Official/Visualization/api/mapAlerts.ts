@@ -22,6 +22,7 @@ export interface MapSignal {
     deviceId: string;
     deviceName: string;
     alertType: string;
+    alertStatus?: string; // Added for dispatched status
     terminalStatus: 'Online' | 'Offline';
     timeSent: string;
     focalPerson: string;
@@ -107,6 +108,7 @@ export function transformToMapSignal(alert: MapAlertResponse): MapSignal | null 
         deviceId: alert.terminalId,
         deviceName: alert.terminalName || 'N/A',
         alertType: alert.alertType,
+        alertStatus: alert.alertStatus, // Include alert status (Dispatched, etc.)
         terminalStatus: alert.terminalStatus,
         timeSent: formatTime(alert.timeSent),
         focalPerson: `${alert.focalFirstName} ${alert.focalLastName}`.trim(),

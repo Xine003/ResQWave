@@ -266,6 +266,7 @@ const getNeighborhoods = async (req, res) => {
       const focal = byFocal[n.n_focalPersonID] || {};
       return {
         neighborhoodID: n.n_id,
+        terminalID: n.n_terminalID, // Include terminalID in the response
         terminalStatus: byTerminal[n.n_terminalID] || (n.n_terminalID ? "unknown" : "unlinked"),
         focalPerson: focal.name || null,
         contactNumber: focal.contactNumber || null,

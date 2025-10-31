@@ -3,11 +3,13 @@ const rescueFormRepo = AppDataSource.getRepository("RescueForm");
 const alertRepo = AppDataSource.getRepository("Alert");
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const terminalRepo = AppDataSource.getRepository("Terminal");
+const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 const {
   getCache, 
   setCache,
   deleteCache
 } = require("../config/cache");
+const { getIO } = require("../realtime/socket");
 
 // CREATE Rescue Form
 const createRescueForm = async (req, res) => {
@@ -152,6 +154,63 @@ const createRescueForm = async (req, res) => {
                 await terminalRepo.save(terminal);
                 console.log('[RescueForm] Terminal kept online:', terminal.id);
             }
+
+            // Emit real-time alert status update to all connected clients
+            try {
+                const io = getIO();
+                
+                // Get updated alert data with relationships for complete payload
+                const updatedAlert = await alertRepo
+                    .createQueryBuilder("alert")
+                    .leftJoinAndSelect("alert.terminal", "terminal")
+                    .where("alert.id = :id", { id: alert.id })
+                    .getOne();
+
+                // Get focal person data
+                const neighborhood = await neighborhoodRepo.findOne({ 
+                    where: { terminalID: alert.terminalID } 
+                });
+
+                let focalPerson = null;
+                if (neighborhood?.focalPersonID) {
+                    focalPerson = await focalPersonRepo.findOne({
+                        where: { id: neighborhood.focalPersonID }
+                    });
+                }
+
+                const alertUpdatePayload = {
+                    alertId: updatedAlert.id,
+                    alertType: null, // Now null since dispatched
+                    timeSent: updatedAlert.dateTimeSent || updatedAlert.createdAt || new Date(),
+                    alertStatus: 'Dispatched', // New status
+                    terminalId: updatedAlert.terminalID,
+                    terminalName: updatedAlert.terminal?.name || `Terminal ${updatedAlert.terminalID}`,
+                    terminalStatus: 'Online',
+                    focalPersonId: focalPerson?.id || null,
+                    focalFirstName: focalPerson?.firstName || 'N/A',
+                    focalLastName: focalPerson?.lastName || '',
+                    focalAddress: focalPerson?.address || null,
+                    focalContactNumber: focalPerson?.contactNumber || 'N/A',
+                    // Include rescue form info for waitlist removal
+                    rescueFormId: newForm.id,
+                    rescueFormStatus: 'Dispatched'
+                };
+                
+                io.to("alerts:all").emit("alert:statusUpdate", alertUpdatePayload);
+                io.to(`terminal:${alert.terminalID}`).emit("alert:statusUpdate", alertUpdatePayload);
+                console.log('[RescueForm] Alert status update broadcasted:', alertUpdatePayload);
+                
+                // Also emit specific waitlist removal event
+                const waitlistRemovalPayload = {
+                    alertId: alert.id,
+                    rescueFormId: newForm.id,
+                    action: 'dispatched'
+                };
+                io.to("alerts:all").emit("waitlist:formRemoved", waitlistRemovalPayload);
+                console.log('[RescueForm] Waitlist removal broadcasted:', waitlistRemovalPayload);
+            } catch (socketError) {
+                console.error('[RescueForm] Error emitting alert status update:', socketError);
+            }
         }
 
         // Invalidate Cache
@@ -279,6 +338,63 @@ const updateRescueFormStatus = async (req, res) => {
                     terminal.status = 'Online';
                     await terminalRepo.save(terminal);
                     console.log('[RescueForm] Terminal kept online:', terminal.id);
+                }
+
+                // Emit real-time alert status update to all connected clients
+                try {
+                    const io = getIO();
+                    
+                    // Get updated alert data with relationships for complete payload
+                    const updatedAlert = await alertRepo
+                        .createQueryBuilder("alert")
+                        .leftJoinAndSelect("alert.terminal", "terminal")
+                        .where("alert.id = :id", { id: alert.id })
+                        .getOne();
+
+                    // Get focal person data
+                    const neighborhood = await neighborhoodRepo.findOne({ 
+                        where: { terminalID: alert.terminalID } 
+                    });
+
+                    let focalPerson = null;
+                    if (neighborhood?.focalPersonID) {
+                        focalPerson = await focalPersonRepo.findOne({
+                            where: { id: neighborhood.focalPersonID }
+                        });
+                    }
+
+                    const alertUpdatePayload = {
+                        alertId: updatedAlert.id,
+                        alertType: null, // Now null since dispatched
+                        timeSent: updatedAlert.dateTimeSent || updatedAlert.createdAt || new Date(),
+                        alertStatus: 'Dispatched', // New status
+                        terminalId: updatedAlert.terminalID,
+                        terminalName: updatedAlert.terminal?.name || `Terminal ${updatedAlert.terminalID}`,
+                        terminalStatus: 'Online',
+                        focalPersonId: focalPerson?.id || null,
+                        focalFirstName: focalPerson?.firstName || 'N/A',
+                        focalLastName: focalPerson?.lastName || '',
+                        focalAddress: focalPerson?.address || null,
+                        focalContactNumber: focalPerson?.contactNumber || 'N/A',
+                        // Include rescue form info for waitlist removal
+                        rescueFormId: form.id,
+                        rescueFormStatus: 'Dispatched'
+                    };
+                    
+                    io.to("alerts:all").emit("alert:statusUpdate", alertUpdatePayload);
+                    io.to(`terminal:${alert.terminalID}`).emit("alert:statusUpdate", alertUpdatePayload);
+                    console.log('[RescueForm] Alert status update broadcasted:', alertUpdatePayload);
+                    
+                    // Also emit specific waitlist removal event
+                    const waitlistRemovalPayload = {
+                        alertId: alert.id,
+                        rescueFormId: form.id,
+                        action: 'dispatched'
+                    };
+                    io.to("alerts:all").emit("waitlist:formRemoved", waitlistRemovalPayload);
+                    console.log('[RescueForm] Waitlist removal broadcasted:', waitlistRemovalPayload);
+                } catch (socketError) {
+                    console.error('[RescueForm] Error emitting alert status update:', socketError);
                 }
             }
         }
