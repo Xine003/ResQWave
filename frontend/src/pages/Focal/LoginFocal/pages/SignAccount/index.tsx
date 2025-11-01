@@ -36,8 +36,10 @@ export function LoginFocal() {
       let tempToken = res.tempToken || '';
       // Reset OTP expiry timer to 5 minutes from now on login
       localStorage.setItem('focalOtpExpiry', (Date.now() + 5 * 60 * 1000).toString());
+      // Store emailOrNumber in localStorage for lockout check on refresh
+      localStorage.setItem('focalEmailOrNumber', id);
       setIsLoading(false);
-      navigate('/verification-signin-focal', { state: { tempToken } });
+      navigate('/verification-signin-focal', { state: { tempToken, emailOrNumber: id } });
     } catch (err: any) {
       setIsLoading(false);
       // Always show a generic error message for backend login errors
