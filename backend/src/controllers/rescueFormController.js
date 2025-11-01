@@ -414,10 +414,50 @@ const updateRescueFormStatus = async (req, res) => {
     }
 };
 
+const getAggregatedRescueForm = async (req, res) => {
+    try {
+        const { alertID } = req.query || {};
+        const cacheKey = alertID ? `rescueAggregatesBasic:${alertID}` : `rescueAggregatesBasic:all`;
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
+
+        let qb = rescueFormRepo
+            .createQueryBuilder("rf")
+            .leftJoin("rf.alert", "alert")
+            .leftJoin("rf.focalPerson", "fp")
+            .leftJoin("rf.dispatcher", "dispatcher");
+
+        if (alertID) {
+            qb = qb.where("alert.id = :alertID", { alertID });
+        }
+
+        const rows = await qb
+            .select([
+                "rf.emergencyID AS emergencyId",
+                "alert.terminalID AS terminalId",
+                "fp.firstName AS focalFirstName",
+                "fp.lastName AS focalLastName",
+                "alert.dateTimeSent AS dateTimeOccurred",
+                "alert.alertType AS alertType",
+                "fp.address AS houseAddress",
+                "dispatcher.name AS dispatchedName",
+            ])
+            .orderBy("rf.id", "DESC")
+            .getRawMany();
+
+        await setCache(cacheKey, rows, 300);
+        return res.json(rows);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server Error" });
+    }
+};
+
 
 module.exports = {
     createRescueForm,
     getRescueForm,
     getRescueForms,
+    getAggregatedRescueForm,
     updateRescueFormStatus
 };

@@ -5,11 +5,13 @@ const {
     getRescueForm,
     getRescueForms,
     updateRescueFormStatus,
+    getAggregatedRescueForm,
 } = require("../controllers/rescueFormController");
 
 router.post ("/:alertID", createRescueForm);
 router.patch("/:alertID/status", updateRescueFormStatus); // Update status
-router.get ("/:formID", getRescueForm);
+router.get("/aggregated", getAggregatedRescueForm);
 router.get ("/", getRescueForms);
+router.get ("/:formID", getRescueForm);
 
 module.exports = router;
