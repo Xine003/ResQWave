@@ -66,3 +66,51 @@ export async function apiFetch<T = any>(
 
   return res.json();
 }
+
+// Reports API functions
+export interface PendingReport {
+  alertId: string;
+  terminalName: string;
+  alertType: string;
+  dispatcherName: string;
+  rescueStatus: string;
+  createdAt: string;
+  address: string;
+}
+
+export interface CompletedReport {
+  alertId: string;
+  terminalName: string;
+  alertType: string;
+  dispatcherName: string;
+  rescueStatus: string;
+  completedAt: string;
+  address: string;
+}
+
+export async function fetchPendingReports(refresh = false): Promise<PendingReport[]> {
+  const url = refresh ? '/post/pending?refresh=true' : '/post/pending';
+  return apiFetch<PendingReport[]>(url);
+}
+
+export async function fetchCompletedReports(refresh = false): Promise<CompletedReport[]> {
+  const url = refresh ? '/post/completed?refresh=true' : '/post/completed';
+  return apiFetch<CompletedReport[]>(url);
+}
+
+export async function clearReportsCache(): Promise<any> {
+  return apiFetch('/post/cache', {
+    method: 'DELETE'
+  });
+}
+
+export async function createPostRescueForm(alertId: string, data: {
+  noOfPersonnelDeployed: number;
+  resourcesUsed: string;
+  actionTaken: string;
+}): Promise<any> {
+  return apiFetch(`/post/${alertId}`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}

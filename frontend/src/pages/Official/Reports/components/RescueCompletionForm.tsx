@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
+import { createPostRescueForm } from "@/pages/Official/Reports/api/api";
 import { X } from "lucide-react";
 import { useState } from "react";
 
 interface RescueCompletionFormProps {
     isOpen: boolean;
     onClose: () => void;
+    onSuccess?: () => void; // Callback for successful submission
     emergencyData?: {
         emergencyId: string;
         communityName: string;
@@ -15,7 +17,7 @@ interface RescueCompletionFormProps {
     };
 }
 
-export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueCompletionFormProps) {
+export function RescueCompletionForm({ isOpen, onClose, onSuccess, emergencyData }: RescueCompletionFormProps) {
     const [personnelDeployed, setPersonnelDeployed] = useState<number>(0);
     const [resources, setResources] = useState<string[]>([]);
     const [actions, setActions] = useState<string[]>([]);
@@ -23,6 +25,8 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
     const [showActionInput, setShowActionInput] = useState(false);
     const [newResource, setNewResource] = useState("");
     const [newAction, setNewAction] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const addResource = () => {
         if (showResourceInput && newResource.trim()) {
@@ -52,15 +56,53 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
         setActions(actions.filter((_, i) => i !== index));
     };
 
-    const handleSave = () => {
-        // TODO: Implement save functionality
-        console.log("Saving rescue completion form...", {
-            personnelDeployed,
-            resources,
-            actions,
-            emergencyData
-        });
-        onClose();
+    const handleSave = async () => {
+        if (!emergencyData?.emergencyId) {
+            setError('Emergency ID is required');
+            return;
+        }
+
+        if (personnelDeployed <= 0) {
+            setError('Number of personnel deployed must be greater than 0');
+            return;
+        }
+
+        if (resources.length === 0) {
+            setError('At least one resource must be specified');
+            return;
+        }
+
+        if (actions.length === 0) {
+            setError('At least one action must be specified');
+            return;
+        }
+
+        setIsSubmitting(true);
+        setError(null);
+
+        try {
+            await createPostRescueForm(emergencyData.emergencyId, {
+                noOfPersonnelDeployed: personnelDeployed,
+                resourcesUsed: resources.join(', '),
+                actionTaken: actions.join(', ')
+            });
+            
+            // Call success callback immediately to refresh reports data
+            if (onSuccess) {
+                onSuccess();
+            }
+            
+            // Reset form
+            setPersonnelDeployed(0);
+            setResources([]);
+            setActions([]);
+            
+            onClose();
+        } catch (err: any) {
+            setError(err.message || 'Failed to save rescue completion form');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -98,6 +140,13 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
 
             {/* Content Area - Scrollable */}
             <div className="flex-1 overflow-y-auto px-6 pb-24 h-[calc(100vh-160px)]">
+                {/* Error Display */}
+                {error && (
+                    <div className="mb-4 mt-6 p-4 bg-red-900/20 border border-red-600/50 rounded-[5px]">
+                        <p className="text-red-400 text-sm">{error}</p>
+                    </div>
+                )}
+
                 {/* Emergency Information Section */}
                 <div className="mb-6 pt-6">
                     {/* Title with white background */}
@@ -314,15 +363,17 @@ export function RescueCompletionForm({ isOpen, onClose, emergencyData }: RescueC
                     <Button
                         onClick={onClose}
                         variant="outline"
+                        disabled={isSubmitting}
                         className="flex-1 rounded-[5px] bg-transparent border-[#2a2a2a] text-white hover:bg-[#2a2a2a] hover:text-white h-12"
                     >
                         Back
                     </Button>
                     <Button
                         onClick={handleSave}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-[5px]"
+                        disabled={isSubmitting}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-[5px] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Save
+                        {isSubmitting ? "Saving..." : "Save"}
                     </Button>
                 </div>
             </div>

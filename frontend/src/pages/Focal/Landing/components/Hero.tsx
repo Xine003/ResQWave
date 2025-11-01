@@ -1,7 +1,6 @@
-import { useRef, useEffect, useState } from "react";
-import mapboxgl from "mapbox-gl";
 import { Button } from "@/components/ui/button";
-import { API_BASE_URL } from "@/lib/api";
+import mapboxgl from "mapbox-gl";
+import { useEffect, useRef, useState } from "react";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoicm9kZWxsbCIsImEiOiJjbWU0OXNvb2gwYnM0MnpvbXNueXo2dzhxIn0.Ep43_IxVhaPhEqWBaAuuyA";
 

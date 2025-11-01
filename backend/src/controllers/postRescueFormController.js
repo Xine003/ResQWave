@@ -45,18 +45,24 @@ const createPostRescueForm = async (req, res) => {
 
         await postRescueRepo.save(newForm);
 
-        // Update Rescue Form Status -> Dispatched
-        rescueForm.status = "Dispatched";
+        // Update Rescue Form Status -> Completed (marks the rescue as finished)
+        rescueForm.status = "Completed";
         await rescueFormRepo.save(rescueForm);
 
-        // Cache
+        // Cache invalidation - clear all relevant caches immediately for real-time updates
         await deleteCache("completedReports");
         await deleteCache("pendingReports");
         await deleteCache("rescueForms:all");
         await deleteCache(`rescueForm:${rescueForm.id}`);
         await deleteCache(`alert:${alertID}`);
+        await deleteCache("aggregatedReports:all");
+        await deleteCache("aggregatedPRF:all");
+        await deleteCache(`rescueAggregatesBasic:all`);
+        await deleteCache(`rescueAggregatesBasic:${alertID}`);
+        await deleteCache(`aggregatedReports:${alertID}`);
+        await deleteCache(`aggregatedPRF:${alertID}`);
 
-        return res.status(201).json({message: "Post Rescue Form Created"}, newForm);
+        return res.status(201).json({message: "Post Rescue Form Created", newForm});
     } catch (err) {
         console.error(err);
         return res.status(500).json({message: "Server Error"});
@@ -67,8 +73,16 @@ const createPostRescueForm = async (req, res) => {
 const getCompletedReports = async (req, res) => {
   try {
     const cacheKey = "completedReports";
-    const cached = await getCache(cacheKey);
-    if (cached) return res.json(cached);
+    const bypassCache = req.query.refresh === 'true';
+    
+    // Check cache only if not bypassing
+    if (!bypassCache) {
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        res.set('Cache-Control', 'public, max-age=300');
+        return res.json(cached);
+      }
+    }
 
     const reports = await alertRepo
       .createQueryBuilder("alert")
@@ -82,7 +96,7 @@ const getCompletedReports = async (req, res) => {
       .select([
         "alert.id AS alertId",
         "terminal.name AS terminalName",
-        "alert.alertType AS alertType",
+        "rescueForm.originalAlertType AS alertType", // Use original alert type from rescue form
         "dispatcher.name AS dispatcherName",
         "rescueForm.status AS rescueStatus",
         "prf.completedAt AS completedAt",
@@ -91,7 +105,9 @@ const getCompletedReports = async (req, res) => {
       .orderBy("prf.completedAt", "DESC")
       .getRawMany();
 
-    await setCache(cacheKey, reports, 300);
+    // Update cache with fresh data (balanced TTL for responsiveness)
+    await setCache(cacheKey, reports, 60);
+    res.set('Cache-Control', 'public, max-age=60');
     res.json(reports);
   } catch (err) {
     console.error(err);
@@ -102,8 +118,16 @@ const getCompletedReports = async (req, res) => {
 const getPendingReports = async (req, res) => {
   try {
     const cacheKey = "pendingReports";
-    const cached = await getCache(cacheKey);
-    if (cached) return res.json(cached);
+    const bypassCache = req.query.refresh === 'true';
+    
+    // Check cache only if not bypassing
+    if (!bypassCache) {
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        res.set('Cache-Control', 'public, max-age=300');
+        return res.json(cached);
+      }
+    }
 
     const pending = await alertRepo
       .createQueryBuilder("alert")
@@ -114,12 +138,12 @@ const getPendingReports = async (req, res) => {
       .leftJoin("Dispatcher", "dispatcher", "dispatcher.id = rescueForm.dispatcherID")
       .leftJoin("PostRescueForm", "prf", "prf.alertID = alert.id")
       .where("rescueForm.id IS NOT NULL")
-      .andWhere("rescueForm.status = :status", { status: "Pending" })
+      .andWhere("rescueForm.status = :status", { status: "Dispatched" })
       .andWhere("prf.id IS NULL")
       .select([
         "alert.id AS alertId",
         "terminal.name AS terminalName",
-        "alert.alertType AS alertType",
+        "rescueForm.originalAlertType AS alertType", // Use original alert type from rescue form
         "dispatcher.name AS dispatcherName",
         "rescueForm.status AS rescueStatus",
         "alert.dateTimeSent AS createdAt",
@@ -128,7 +152,9 @@ const getPendingReports = async (req, res) => {
       .orderBy("alert.dateTimeSent", "DESC")
       .getRawMany();
 
-    await setCache(cacheKey, pending, 300);
+    // Update cache with fresh data (balanced TTL for responsiveness)
+    await setCache(cacheKey, pending, 1); // 1 minute cache like terminals
+    res.set('Cache-Control', 'public, max-age=1');
     res.json(pending);
   } catch (err) {
     console.error(err);
@@ -176,7 +202,7 @@ const getAggregatedRescueReports = async (req, res) => {
         "rf.accessibility AS accessibility",
         "rf.resourceNeeds AS resourceNeeds",
         "rf.otherInformation AS otherInformation",
-        "alert.alertType AS alertType",
+        "rf.originalAlertType AS alertType", // Use original alert type from rescue form
         "prf.createdAt AS prfCreatedAt",
         "prf.completedAt AS prfCompletedAt",
         "prf.noOfPersonnelDeployed AS noOfPersonnel",
@@ -266,7 +292,7 @@ const getAggregatedPostRescueForm = async (req, res) => {
                 "fp.firstName AS focalFirstName",
                 "fp.lastName AS focalLastName",
                 "alert.dateTimeSent AS dateTimeOccurred",
-                "alert.alertType AS alertType",
+                "rf.originalAlertType AS alertType", // Use original alert type from rescue form
                 "fp.address AS houseAddress",
                 "dispatcher.name AS dispatchedName",
                 "prf.completedAt AS completionDate",
@@ -282,11 +308,122 @@ const getAggregatedPostRescueForm = async (req, res) => {
     }
 };
 
+// Clear Cache Endpoint
+const clearReportsCache = async (req, res) => {
+    try {
+        await deleteCache("completedReports");
+        await deleteCache("pendingReports");
+        await deleteCache("rescueForms:all");
+        
+        // Clear all aggregated cache keys that might exist
+        const keys = [
+            "aggregatedReports:all",
+            "aggregatedPRF:all"
+        ];
+        
+        for (const key of keys) {
+            await deleteCache(key);
+        }
+        
+        res.json({ message: "Reports cache cleared successfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+// Fix Data: Update RescueForm status to "Completed" for alerts with PostRescueForm records
+const fixRescueFormStatus = async (req, res) => {
+    try {
+        console.log('[FixData] Starting rescue form status fix...');
+        
+        // Get all PostRescueForm records
+        const postRescueForms = await postRescueRepo.find({
+            select: ["alertID"]
+        });
+        
+        if (postRescueForms.length === 0) {
+            return res.json({ message: "No PostRescueForm records found", fixed: 0 });
+        }
+        
+        const alertIds = postRescueForms.map(prf => prf.alertID);
+        console.log('[FixData] Found PostRescueForm records for alerts:', alertIds);
+        
+        // Find RescueForm records for these alerts that don't have status "Completed"
+        const rescueFormsToUpdate = await rescueFormRepo
+            .createQueryBuilder("rescueForm")
+            .where("rescueForm.emergencyID IN (:...alertIds)", { alertIds })
+            .andWhere("rescueForm.status != :status", { status: "Completed" })
+            .getMany();
+            
+        console.log('[FixData] Found rescue forms to update:', rescueFormsToUpdate.map(rf => ({ id: rf.id, emergencyID: rf.emergencyID, currentStatus: rf.status })));
+        
+        // Update the status to "Completed"
+        let updatedCount = 0;
+        for (const rescueForm of rescueFormsToUpdate) {
+            rescueForm.status = "Completed";
+            await rescueFormRepo.save(rescueForm);
+            updatedCount++;
+            console.log(`[FixData] Updated RescueForm ${rescueForm.id} status to "Completed"`);
+        }
+        
+        // Clear cache after fixing data
+        await deleteCache("completedReports");
+        await deleteCache("pendingReports");
+        
+        res.json({ 
+            message: `Fixed ${updatedCount} rescue form statuses`,
+            fixed: updatedCount,
+            alertIds: alertIds
+        });
+    } catch (err) {
+        console.error('[FixData] Error:', err);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+// Migration Helper: Update existing rescue forms with original alert types
+const migrateOriginalAlertTypes = async (req, res) => {
+    try {
+        const rescueForms = await rescueFormRepo
+            .createQueryBuilder("rf")
+            .leftJoin("Alert", "alert", "alert.id = rf.emergencyID")
+            .where("rf.originalAlertType IS NULL")
+            .andWhere("alert.alertType IS NOT NULL")
+            .select([
+                "rf.id AS rescueFormId",
+                "rf.emergencyID AS alertId", 
+                "alert.alertType AS currentAlertType"
+            ])
+            .getRawMany();
+
+        let updatedCount = 0;
+        for (const form of rescueForms) {
+            await rescueFormRepo.update(
+                { id: form.rescueFormId },
+                { originalAlertType: form.currentAlertType }
+            );
+            updatedCount++;
+        }
+
+        res.json({ 
+            message: `Migration completed: ${updatedCount} rescue forms updated with original alert types`,
+            updatedCount 
+        });
+    } catch (err) {
+        console.error('Migration error:', err);
+        res.status(500).json({ message: "Migration Error" });
+    }
+};
+
 module.exports = {
   createPostRescueForm,
   getCompletedReports,
   getPendingReports,
   getAggregatedPostRescueForm,
   getAggregatedRescueReports,
+  clearReportsCache,
+  migrateOriginalAlertTypes,
+  fixRescueFormStatus,
 };
 

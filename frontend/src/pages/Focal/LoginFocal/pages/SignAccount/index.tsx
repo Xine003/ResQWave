@@ -1,11 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { apiFetch } from '@/lib/api';
 import { FocalHeader } from '@/pages/Focal/LoginFocal/components/FocalHeader';
-import { Eye, EyeOff, CircleAlert } from 'lucide-react';
-import resqwave_logo from '/Landing/resqwave_logo.png';
+import { apiFetch } from '@/pages/Official/Reports/api/api';
+import { CircleAlert, Eye, EyeOff } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export function LoginFocal() {
   const navigate = useNavigate();

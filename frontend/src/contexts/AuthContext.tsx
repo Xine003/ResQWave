@@ -1,6 +1,6 @@
-import { setGlobalLogoutCallback } from '@/lib/api'
 import type { LoginRequest, UnifiedVerificationRequest } from '@/pages/Official/LoginDispatcher/api'
 import { ApiException, logout as apiLogout, getCurrentUser, unifiedLogin, unifiedVerifyLogin } from '@/pages/Official/LoginDispatcher/api'
+import { setGlobalLogoutCallback } from '@/pages/Official/Reports/api/api'
 import type { ReactNode } from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'

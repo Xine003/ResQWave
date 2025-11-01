@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import type { CommunityData } from '../types/community';
-import { apiFetch } from '../../../../lib/api';
+import { apiFetch } from '../../../Official/Reports/api/api';
 import { useFocalAuth } from '../../context/focalAuthContext';
+import type { CommunityData } from '../types/community';
 
 export default function useCommunityData() {
     const { token } = useFocalAuth();

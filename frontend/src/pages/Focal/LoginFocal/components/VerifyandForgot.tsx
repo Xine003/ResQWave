@@ -1,5 +1,5 @@
 
-import { FocalHeader } from "@/pages/Focal/LoginFocal/components/FocalHeader";
+import Alert, { AlertDescription } from '@/components/ui/alert-focal';
 import { Button } from "@/components/ui/button";
 import {
     InputOTP,
@@ -7,11 +7,10 @@ import {
     InputOTPSeparator,
     InputOTPSlot,
 } from "@/components/ui/input-otp-focal";
-import Alert, { AlertDescription } from '@/components/ui/alert-focal';
+import { FocalHeader } from "@/pages/Focal/LoginFocal/components/FocalHeader";
+import { apiFetch } from '@/pages/Official/Reports/api/api';
 import { CheckCircle2Icon } from 'lucide-react';
-import resqwave_logo from '/Landing/resqwave_logo.png';
-import { useState, useEffect, useRef } from "react";
-import { apiFetch } from '@/lib/api';
+import { useEffect, useRef, useState } from "react";
 
 export function ForgotPasswordVerification({
     code,

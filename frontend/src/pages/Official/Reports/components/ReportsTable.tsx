@@ -41,14 +41,16 @@ interface PendingReport {
 interface ReportsTableProps {
   type: "completed" | "pending";
   data: CompletedReport[] | PendingReport[];
+  onReportCreated?: () => void; // Callback when a report is successfully created
 }
 
 type ReportData = CompletedReport | PendingReport;
 
-export function ReportsTable({ type, data }: ReportsTableProps) {
+export function ReportsTable({ type, data, onReportCreated }: ReportsTableProps) {
   const isCompleted = type === "completed";
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedReportData, setSelectedReportData] = useState<ReportData | null>(null);
+
 
   const handleCreateReport = (reportData: ReportData) => {
     setSelectedReportData(reportData);
@@ -66,7 +68,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
     },
     {
       accessorKey: "communityName",
-      header: "Community Name",
+      header: "Terminal Name",
       cell: ({ row }) => (
         <div className="text-foreground">{row.getValue("communityName")}</div>
       ),
@@ -74,14 +76,23 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
     {
       accessorKey: "alertType",
       header: "Alert Type",
-      cell: ({ row }) => (
-        <Badge 
-          variant="secondary" 
-          className="bg-yellow-500/20 text-yellow-600 hover:bg-yellow-500/20 border-yellow-500/30"
-        >
-          {row.getValue("alertType")}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const alertType = row.getValue("alertType") as string
+        return (
+          <Badge
+            variant="outline"
+            className={
+              alertType === "CRITICAL" || alertType === "Critical"
+                ? "bg-red-500/20 text-red-500 border-red-500 hover:bg-red-500/30 h-7"
+                : (alertType === "USER-INITIATED" || alertType === "User-Initiated" || alertType === "User")
+                ? "bg-yellow-500/20 text-yellow-500 border-yellow-500 hover:bg-yellow-500/30 h-7"
+                : "bg-transparent text-white border-[#414141] h-7"
+            }
+          >
+            {alertType}
+          </Badge>
+        )
+      },
     },
     {
       accessorKey: "dispatcher",
@@ -108,7 +119,9 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
       accessorKey: "address",
       header: "Address",
       cell: ({ row }) => (
-        <div className="text-foreground">{row.getValue("address")}</div>
+        <div className="text-foreground max-w-[200px] truncate" title={row.getValue("address")}>
+          {row.getValue("address")}
+        </div>
       ),
     },
     {
@@ -324,6 +337,13 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
       <RescueCompletionForm
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
+        onSuccess={() => {
+          // Refresh the reports data after successful completion
+          console.log('RescueCompletionForm success - refreshing reports...');
+          if (onReportCreated) {
+            onReportCreated();
+          }
+        }}
         emergencyData={selectedReportData ? {
           emergencyId: selectedReportData.emergencyId,
           communityName: selectedReportData.communityName,

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { apiFetch } from '../../../../lib/api';
+import { useEffect, useState } from 'react';
+import { apiFetch } from '../../../Official/Reports/api/api';
 import { useFocalAuth } from '../../context/focalAuthContext';
+import type { InfoBubble, Signal, SignalPopover } from '../types/signals';
 // Fallback initial values (empty)
 const initialOtherSignals: Signal[] = [];
 const initialOwnCommunitySignal: Signal = {
@@ -15,7 +16,6 @@ const initialOwnCommunitySignal: Signal = {
         name: ''
     },
 };
-import type { Signal, SignalPopover, InfoBubble } from '../types/signals';
 
 
 // Fallback initial values (empty)
