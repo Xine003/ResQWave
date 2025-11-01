@@ -32,6 +32,7 @@ interface RescueWaitlistContextType {
     waitlistedForms: WaitlistedRescueForm[];
     addToWaitlist: (formData: RescueFormData) => void;
     removeFromWaitlist: (id: string) => void;
+    removeFromWaitlistByAlertId: (alertId: string) => void;
     selectedWaitlistForm: WaitlistedRescueForm | null;
     setSelectedWaitlistForm: (form: WaitlistedRescueForm | null) => void;
 }
@@ -56,11 +57,21 @@ export function RescueWaitlistProvider({ children }: { children: React.ReactNode
         setWaitlistedForms(prev => prev.filter(form => form.id !== id));
     };
 
+    const removeFromWaitlistByAlertId = (alertId: string) => {
+        console.log('[WaitlistContext] Removing form by alertId:', alertId);
+        setWaitlistedForms(prev => {
+            const filtered = prev.filter(form => form.alertId !== alertId);
+            console.log('[WaitlistContext] Forms before removal:', prev.length, 'after removal:', filtered.length);
+            return filtered;
+        });
+    };
+
     return (
         <RescueWaitlistContext.Provider value={{
             waitlistedForms,
             addToWaitlist,
             removeFromWaitlist,
+            removeFromWaitlistByAlertId,
             selectedWaitlistForm,
             setSelectedWaitlistForm
         }}>

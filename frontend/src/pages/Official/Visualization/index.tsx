@@ -13,6 +13,7 @@ import RescueFormPreview from './components/RescueFormPreview';
 import SignalPopover from './components/SignalPopover';
 import { RescueWaitlistProvider, useRescueWaitlist, type WaitlistedRescueForm } from './contexts/RescueWaitlistContext';
 import useSignals from './hooks/useSignals';
+import { useWaitlistWebSocket } from './hooks/useWaitlistWebSocket';
 import type { VisualizationSignals } from './types/signals';
 import { cinematicMapEntrance, flyToSignal } from './utils/flyingEffects';
 import { addCustomLayers, getPinColor, makeTooltip } from './utils/mapHelpers';
@@ -70,6 +71,9 @@ function VisualizationContent() {
         getDistressCoord,
         removeSignal // Function to remove dispatched alerts from map
     } = signals as unknown as VisualizationSignals & { removeSignal: (alertId: string) => void };
+    
+    // Set up waitlist WebSocket for real-time removal
+    useWaitlistWebSocket();
     
     const distressCoord: [number, number] = getDistressCoord();
     const popoverRef = useRef<typeof popover>(popover);
@@ -375,16 +379,6 @@ function VisualizationContent() {
     }, [otherSignals, OwnCommunitySignal]);
 
     /**
-     * Handler for opening community info sheet from popover
-     */
-    const handleOpenCommunityInfo = () => {
-        if (popover?.communityDetails) {
-            setSelectedCommunityData(popover.communityDetails);
-            setInfoSheetOpen(true);
-        }
-    };
-
-    /**
      * Handler for closing popover
      */
     const handleClosePopover = () => {
@@ -413,7 +407,6 @@ function VisualizationContent() {
                 setPopover={setPopover}
                 infoBubble={infoBubble}
                 infoBubbleVisible={infoBubbleVisible}
-                onOpenCommunityInfo={handleOpenCommunityInfo}
                 onRemoveSignal={removeSignal}
                 onClose={handleClosePopover}
                 onShowWaitlistAlert={handleShowWaitlistAlert}
@@ -509,27 +502,47 @@ function VisualizationContent() {
                         handleShowWaitlistAlert(formData.focalPerson || 'Unknown');
                     }}
                     onDispatch={(formData) => {
-                        // Show dispatch confirmation and handle map updates
-                        handleShowDispatchConfirmation(formData, () => {
-                            // Remove the signal from the map if alertId exists
-                            if (formData.alertId && removeSignal) {
-                                console.log('[Visualization] Removing signal from map:', formData.alertId);
-                                removeSignal(formData.alertId);
-                            }
-                            
-                            // Remove from waitlist if it was a waitlisted form
-                            if (formData.id) {
-                                console.log('[Visualization] Removing form from waitlist:', formData.id);
-                                removeFromWaitlist(formData.id);
-                            }
-                            
-                            // Show dispatch success alert
-                            handleShowDispatchAlert(formData.focalPerson || 'Unknown');
-                            
-                            // Close the preview
-                            setShowWaitlistPreview(false);
-                            setSelectedWaitlistForm(null);
-                        });
+                        // Show dispatch confirmation with the actual backend call as callback
+                        if (formData.dispatchCallback) {
+                            handleShowDispatchConfirmation(formData, async () => {
+                                try {
+                                    // Execute the backend dispatch call
+                                    await formData.dispatchCallback!();
+                                    
+                                    // Show dispatch success alert
+                                    handleShowDispatchAlert(formData.focalPerson || 'Unknown');
+                                    
+                                    // Close the preview
+                                    setShowWaitlistPreview(false);
+                                    setSelectedWaitlistForm(null);
+                                } catch (error) {
+                                    console.error('[Visualization] Error dispatching rescue form:', error);
+                                    handleShowErrorAlert('Failed to dispatch rescue form. Please try again.');
+                                }
+                            });
+                        } else {
+                            // Fallback for old behavior (should not happen now)
+                            handleShowDispatchConfirmation(formData, () => {
+                                // Remove the signal from the map if alertId exists
+                                if (formData.alertId && removeSignal) {
+                                    console.log('[Visualization] Removing signal from map:', formData.alertId);
+                                    removeSignal(formData.alertId);
+                                }
+                                
+                                // Remove from waitlist if it was a waitlisted form
+                                if (formData.id) {
+                                    console.log('[Visualization] Removing form from waitlist:', formData.id);
+                                    removeFromWaitlist(formData.id);
+                                }
+                                
+                                // Show dispatch success alert
+                                handleShowDispatchAlert(formData.focalPerson || 'Unknown');
+                                
+                                // Close the preview
+                                setShowWaitlistPreview(false);
+                                setSelectedWaitlistForm(null);
+                            });
+                        }
                     }}
                 />
             )}

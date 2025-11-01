@@ -93,6 +93,7 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
                     "case",
                     ["==", ["get", "alertType"], "CRITICAL"], "#ef4444",
                     ["==", ["get", "alertType"], "USER-INITIATED"], "#eab308", 
+                    ["==", ["get", "alertType"], "DISPATCHED"], "#10b981",
                     ["==", ["get", "alertType"], "ONLINE"], "#22c55e",
                     ["==", ["get", "alertType"], "OFFLINE"], "#6b7280",
                     "#6b7280" // default gray
@@ -146,10 +147,11 @@ export function createGeoJSONCircle(center: [number, number], radiusInMeters: nu
 // Helper to get pin color based on alert type
 export function getPinColor(alertType: string): string {
     const colors: Record<string, string> = {
-        'critical': '#ef4444',
-        'user-initiated': '#eab308',
-        'online': '#22c55e',
-        'offline': '#6b7280'
+        'critical': '#ef4444',       // Red for critical alerts
+        'user-initiated': '#eab308', // Yellow for user-initiated alerts
+        'dispatched': '#10b981',     // Green for dispatched/completed rescues
+        'online': '#22c55e',         // Green for online terminals
+        'offline': '#6b7280'         // Gray for offline terminals
     };
     return colors[alertType?.toLowerCase()] || '#6b7280';
 }

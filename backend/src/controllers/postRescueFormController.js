@@ -239,10 +239,54 @@ const getAggregatedRescueReports = async (req, res) => {
   }
 };
 
+// Post Rescue Form
+// Complete Table 
+const getAggregatedPostRescueForm = async (req, res) => {
+    try {
+        const { alertID } = req.query || {};
+        const cacheKey = alertID ? `aggregatedPRF:${alertID}` : `aggregatedPRF:all`;
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
+
+        let qb = postRescueRepo
+            .createQueryBuilder("prf")
+            .leftJoin("prf.alerts", "alert")
+            .leftJoin("rescueforms", "rf", "rf.emergencyID = alert.id")
+            .leftJoin("focalpersons", "fp", "fp.id = rf.focalPersonID")
+            .leftJoin("dispatchers", "dispatcher", "dispatcher.id = rf.dispatcherID");
+
+        if (alertID) {
+            qb = qb.where("prf.alertID = :alertID", { alertID });
+        }
+
+        const rows = await qb
+            .select([
+                "rf.emergencyID AS emergencyId",
+                "alert.terminalID AS terminalId",
+                "fp.firstName AS focalFirstName",
+                "fp.lastName AS focalLastName",
+                "alert.dateTimeSent AS dateTimeOccurred",
+                "alert.alertType AS alertType",
+                "fp.address AS houseAddress",
+                "dispatcher.name AS dispatchedName",
+                "prf.completedAt AS completionDate",
+            ])
+            .orderBy("prf.completedAt", "DESC")
+            .getRawMany();
+
+        await setCache(cacheKey, rows, 300);
+        return res.json(rows);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server Error" });
+    }
+};
+
 module.exports = {
   createPostRescueForm,
   getCompletedReports,
   getPendingReports,
+  getAggregatedPostRescueForm,
   getAggregatedRescueReports,
 };
 

@@ -23,6 +23,8 @@ interface RescueFormData {
     id?: string;
     timestamp?: string;
     status?: string;
+    // Optional callback for dispatch confirmation
+    dispatchCallback?: () => Promise<void>;
 }
 
 interface RescueFormPreviewProps {
@@ -87,59 +89,68 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
             return;
         }
 
-        setIsSubmitting(true);
-        setError(null);
+        // Instead of making backend calls here, show confirmation dialog
+        // The actual backend calls will be made when user confirms in the dialog
+        console.log('[RescueFormPreview] Showing dispatch confirmation for:', formData.focalPerson);
 
-        try {
-            console.log('[RescueFormPreview] Form data:', formData);
-            console.log('[RescueFormPreview] Has id?', 'id' in formData, formData.id);
-            console.log('[RescueFormPreview] Status:', formData.status);
+        // Close the preview immediately
+        onClose();
 
-            let response;
+        // Show confirmation dialog with the actual dispatch logic as callback
+        if (onDispatch) {
+            const dispatchCallback = async () => {
+                try {
+                    console.log('[RescueFormPreview] Executing actual dispatch after confirmation');
+                    console.log('[RescueFormPreview] Form data:', formData);
+                    console.log('[RescueFormPreview] Has id?', 'id' in formData, formData.id);
+                    console.log('[RescueFormPreview] Status:', formData.status);
 
-            // Check if form already exists (has an id OR status is Waitlisted)
-            if (formData.id || formData.status === 'Waitlisted') {
-                // Update existing form status to Dispatched
-                console.log('[RescueFormPreview] Updating existing form to Dispatched');
-                
-                response = await updateRescueFormStatus(formData.alertId, 'Dispatched');
-                
-                // Remove from waitlist if it was waitlisted (moved to parent callback)
-                console.log('[RescueFormPreview] Waitlisted form dispatch completed');
-            } else {
-                // Create new form with status 'Dispatched'
-                console.log('[RescueFormPreview] Creating new form with Dispatched status');
-                response = await createRescueForm(formData.alertId, {
-                    focalUnreachable: formData.focalUnreachable,
-                    waterLevel: formData.waterLevel,
-                    waterLevelDetails: formData.waterLevelDetails,
-                    urgencyOfEvacuation: formData.urgencyLevel,
-                    urgencyDetails: formData.urgencyDetails,
-                    hazardPresent: formData.hazards.join(', '),
-                    hazardDetails: formData.hazardDetails,
-                    accessibility: formData.accessibility,
-                    accessibilityDetails: formData.accessibilityDetails,
-                    resourceNeeds: formData.resources.join(', '),
-                    resourceDetails: formData.resourceDetails,
-                    otherInformation: formData.otherInfo,
-                    status: 'Dispatched'
-                });
-            }
+                    let response;
 
-            console.log('[RescueFormPreview] Rescue form dispatched:', response);
+                    // Check if form already exists (has an id OR status is Waitlisted)
+                    if (formData.id || formData.status === 'Waitlisted') {
+                        // Update existing form status to Dispatched
+                        console.log('[RescueFormPreview] Updating existing form to Dispatched');
+                        
+                        response = await updateRescueFormStatus(formData.alertId!, 'Dispatched');
+                        
+                        // Remove from waitlist if it was waitlisted
+                        console.log('[RescueFormPreview] Waitlisted form dispatch completed');
+                    } else {
+                        // Create new form with status 'Dispatched'
+                        console.log('[RescueFormPreview] Creating new form with Dispatched status');
+                        response = await createRescueForm(formData.alertId!, {
+                            focalUnreachable: formData.focalUnreachable,
+                            waterLevel: formData.waterLevel,
+                            waterLevelDetails: formData.waterLevelDetails,
+                            urgencyOfEvacuation: formData.urgencyLevel,
+                            urgencyDetails: formData.urgencyDetails,
+                            hazardPresent: formData.hazards.join(', '),
+                            hazardDetails: formData.hazardDetails,
+                            accessibility: formData.accessibility,
+                            accessibilityDetails: formData.accessibilityDetails,
+                            resourceNeeds: formData.resources.join(', '),
+                            resourceDetails: formData.resourceDetails,
+                            otherInformation: formData.otherInfo,
+                            status: 'Dispatched'
+                        });
+                    }
 
-            // Close the preview immediately
-            onClose();
+                    console.log('[RescueFormPreview] Rescue form dispatched successfully:', response);
+                    
+                    // The real-time updates will be triggered by the backend automatically
+                    // Show success alert after dispatch
+                    // (This will be handled by the parent component)
+                    
+                } catch (err: any) {
+                    console.error('[RescueFormPreview] Error dispatching rescue form:', err);
+                    // Handle error in confirmation callback
+                    throw err;
+                }
+            };
 
-            // Call the dispatch callback to show the dialog in the parent component
-            if (onDispatch) {
-                onDispatch({ ...formData, id: response.id });
-            }
-        } catch (err: any) {
-            console.error('[RescueFormPreview] Error dispatching rescue form:', err);
-            setError(err.message || 'Failed to dispatch rescue form');
-        } finally {
-            setIsSubmitting(false);
+            // Pass the form data and the dispatch callback to show confirmation dialog
+            onDispatch({ ...formData, dispatchCallback });
         }
     };
 
@@ -184,7 +195,7 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
             style={{ zIndex: 70 }}
         >
             {/* Header */}
-            <div className="p-6 border-b border-[#2a2a2a]">
+            <div className="p-5 border-b border-[#2a2a2a]">
                 <div className="flex justify-between items-center">
                     <h1 className="text-white text-xl font-medium">
                         Confirm Rescue Form

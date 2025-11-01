@@ -161,7 +161,7 @@ export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(
 
 			{/* Dispatch Confirmation Dialog - Center */}
 			{showDispatchConfirm && dispatchConfirmData && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+				<div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50">
 					<div className="bg-[#171717] border border-[#2a2a2a] rounded-[5px] p-6 max-w-md w-full mx-4 shadow-xl">
 						<div className="flex items-start gap-4">
 							<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-600/25 flex-shrink-0">
