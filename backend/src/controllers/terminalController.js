@@ -286,6 +286,7 @@ const updateTerminal = async (req, res) => {
         await terminalRepo.save(terminal);
 
         // Invalidate
+        await deleteCache(`terminal:${id}`);
         await deleteCache("terminals:active")
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
@@ -309,11 +310,14 @@ const archivedTerminal = async (req, res) => {
             return res.status(404).json({ message: "Terminal Not Found" });
         }
 
-        // Block if occupied (linked to a non-archived neighborhood)
-        const linked = await neighborhoodRepo.findOne({ where: { terminalID: id, archived: false } });
-        if (linked) {
+        // Check if terminal is linked to an ACTIVE (non-archived) neighborhood
+        const activeNeighborhood = await neighborhoodRepo.findOne({ 
+            where: { terminalID: id, archived: false } 
+        });
+        
+        if (activeNeighborhood) {
             return res.status(400).json({
-                message: "Cannot archive: Terminal is currently assigned to a neighborhood. Detach it first."
+                message: "Cannot archive: Terminal is currently assigned to an active neighborhood. Please archive the neighborhood first or detach the terminal."
             });
         }
 
@@ -322,11 +326,13 @@ const archivedTerminal = async (req, res) => {
         terminal.availability = "Available"; // Make it available again
         await terminalRepo.save(terminal);
 
-        // Find linked neighborhood
-        const neighborhood = await neighborhoodRepo.findOne({ where: { terminalID: id } });
-        if (neighborhood) {
-            neighborhood.terminalID = null; // Detach terminal
-            await neighborhoodRepo.save(neighborhood);
+        // If terminal is linked to an archived neighborhood, detach it
+        const archivedNeighborhood = await neighborhoodRepo.findOne({ 
+            where: { terminalID: id, archived: true } 
+        });
+        if (archivedNeighborhood) {
+            archivedNeighborhood.terminalID = null; // Detach terminal
+            await neighborhoodRepo.save(archivedNeighborhood);
         }
 
         // Invalidate cache
@@ -412,11 +418,35 @@ const permanentDeleteTerminal = async (req, res) => {
             });
         }
 
-        // Check if terminal is linked to any neighborhood before permanent deletion
-        const neighborhood = await neighborhoodRepo.findOne({ where: { terminalID: id } });
-        if (neighborhood) {
-            neighborhood.terminalID = null; // Detach terminal
-            await neighborhoodRepo.save(neighborhood);
+        // Check if terminal is linked to an ACTIVE (non-archived) neighborhood
+        const activeNeighborhood = await neighborhoodRepo.findOne({ 
+            where: { terminalID: id, archived: false } 
+        });
+        
+        if (activeNeighborhood) {
+            return res.status(400).json({
+                message: "Cannot permanently delete: Terminal is currently assigned to an active neighborhood. Please archive the neighborhood first or detach the terminal."
+            });
+        }
+
+        // Delete related alerts automatically (no need for force parameter)
+        const alertRepo = AppDataSource.getRepository("Alert");
+        const relatedAlerts = await alertRepo.find({ where: { terminalID: id } });
+        let deletedAlertsCount = 0;
+        
+        if (relatedAlerts.length > 0) {
+            await alertRepo.remove(relatedAlerts);
+            deletedAlertsCount = relatedAlerts.length;
+            console.log(`Cascade deleted ${deletedAlertsCount} alerts for terminal ${id}`);
+        }
+
+        // If terminal is linked to an archived neighborhood, detach it
+        const archivedNeighborhood = await neighborhoodRepo.findOne({ 
+            where: { terminalID: id, archived: true } 
+        });
+        if (archivedNeighborhood) {
+            archivedNeighborhood.terminalID = null; // Detach terminal
+            await neighborhoodRepo.save(archivedNeighborhood);
         }
 
         // Permanently delete the terminal from database
@@ -428,10 +458,16 @@ const permanentDeleteTerminal = async (req, res) => {
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
 
-        res.json({ message: "Terminal Permanently Deleted" });
+        res.json({ 
+            message: "Terminal Permanently Deleted",
+            deletedAlerts: deletedAlertsCount
+        });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error - PERMANENT DELETE Terminal" });
+        console.error("Error in permanentDeleteTerminal:", err);
+        res.status(500).json({ 
+            message: "Server Error - PERMANENT DELETE Terminal",
+            error: err.message
+        });
     }
 };
 

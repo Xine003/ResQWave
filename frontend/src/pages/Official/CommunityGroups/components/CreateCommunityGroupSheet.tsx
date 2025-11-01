@@ -89,20 +89,40 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
   const updateFormData = useCallback((data: Partial<CommunityFormData>) => {
     setFormData(prev => ({ ...prev, ...data }))
     setIsDirty(true)
-    // Clear errors when user makes changes
+    
+    // Clear field-specific errors when user makes changes to those fields
+    const clearedErrors = { ...errors }
+    Object.keys(data).forEach(fieldName => {
+      if (clearedErrors[fieldName]) {
+        delete clearedErrors[fieldName]
+      }
+    })
+    
+    // Clear general errors when user makes changes
     if (errors.general) {
-      setErrors({})
+      delete clearedErrors.general
     }
-  }, [errors.general])
+    
+    setErrors(clearedErrors)
+  }, [errors])
   
   // Simple photo upload handler
   const handleFileUpload = useCallback((field: "focalPersonPhoto" | "altFocalPersonPhoto", file: File | null) => {
     setFormData(prev => ({ ...prev, [field]: file }))
     setIsDirty(true)
-    // Clear errors when user makes changes
-    if (errors.general) {
-      setErrors({})
+    
+    // Clear field-specific errors when user makes changes to those fields
+    const clearedErrors = { ...errors }
+    if (clearedErrors[field]) {
+      delete clearedErrors[field]
     }
+    
+    // Clear general errors when user makes changes
+    if (errors.general) {
+      delete clearedErrors.general
+    }
+    
+    setErrors(clearedErrors)
     
     // Update photo URLs for display
     if (file) {
@@ -117,7 +137,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
         return { ...prev, [field]: null }
       })
     }
-  }, [errors.general])
+  }, [errors])
 
   // Form validation
   const isFormValid = useMemo(() => {
@@ -326,11 +346,7 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
       focalPersonAddress: address,
       focalPersonCoordinates: coordinates
     })
-    // Clear errors when user makes changes
-    if (errors.general) {
-      setErrors({})
-    }
-  }, [updateFormData, errors.general])
+  }, [updateFormData])
 
   // Centralized handler when an attempt is made to close the sheet
   const requestClose = useCallback(() => {
@@ -414,12 +430,38 @@ export function CommunityGroupDrawer({ open, onOpenChange, onSave, editData, isE
       onOpenChange(false)
     } catch (error) {
       console.error(`Error ${isEditing ? 'updating' : 'creating'} community group:`, error)
-      // Set error but DO NOT reset form data or close sheet
-      setErrors({ general: error instanceof Error ? error.message : `Failed to ${isEditing ? 'update' : 'create'} community group` })
-      // Scroll to top to show error message
-      const sheetContent = document.querySelector('[data-radix-scroll-area-viewport]')
-      if (sheetContent) {
-        sheetContent.scrollTop = 0
+      
+      // Parse specific backend validation errors
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      const newErrors: Record<string, string> = {}
+      
+      // Map backend error messages to specific form fields
+      if (errorMessage.includes('Email already in use')) {
+        newErrors.focalPersonEmail = 'This email address is already registered'
+      } else if (errorMessage.includes('Contact number already in use')) {
+        newErrors.focalPersonContact = 'This contact number is already registered'
+      } else if (errorMessage.includes('Alt email already in use')) {
+        newErrors.altFocalPersonEmail = 'This email address is already registered'
+      } else if (errorMessage.includes('Alt contact number already in use')) {
+        newErrors.altFocalPersonContact = 'This contact number is already registered'
+      } else if (errorMessage.includes('Alt email must be different from email')) {
+        newErrors.altFocalPersonEmail = 'Alternative email must be different from main email'
+      } else if (errorMessage.includes('Alt contact must be different from contact number')) {
+        newErrors.altFocalPersonContact = 'Alternative contact must be different from main contact'
+      } else {
+        // For other errors, show general error
+        newErrors.general = errorMessage
+      }
+      
+      setErrors(newErrors)
+      
+      // If there are field-specific errors, don't scroll to top
+      // If it's a general error, scroll to top to show the header error
+      if (newErrors.general) {
+        const sheetContent = document.querySelector('[data-radix-scroll-area-viewport]')
+        if (sheetContent) {
+          sheetContent.scrollTop = 0
+        }
       }
     } finally {
       setIsSubmitting(false)

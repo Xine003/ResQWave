@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Eye, EyeOff, RefreshCcw, Trash, Upload } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
-import type { DispatcherDetails, DispatcherDrawerProps, DispatcherFormData } from "../types"
+import type { DispatcherDetails, DispatcherFormData } from "../types"
 import { CloseCreateDialog } from "./CloseCreateDialog"
 
 interface FormData {
@@ -24,6 +24,18 @@ interface FormErrors {
   email?: string
   password?: string
   confirmPassword?: string
+  general?: string // Add general error for network issues
+}
+
+interface DispatcherDrawerProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSave?: (dispatcherData: DispatcherDetails, formData?: DispatcherFormData) => Promise<boolean> // Make async and return success status
+  editData?: DispatcherDetails
+  isEditing?: boolean
+  saving?: boolean
+  serverErrors?: FormErrors // Add prop for server-side errors
+  onClearServerError?: (fieldName: string) => void // Add callback to clear specific server errors
 }
 
 export function CreateDispatcherSheet({ 
@@ -32,7 +44,9 @@ export function CreateDispatcherSheet({
   onSave, 
   editData, 
   isEditing = false,
-  saving = false
+  saving = false,
+  serverErrors = {},
+  onClearServerError
 }: DispatcherDrawerProps) {
   const [formData, setFormData] = useState<FormData>({
     photo: null,
@@ -44,12 +58,22 @@ export function CreateDispatcherSheet({
     confirmPassword: "",
   })
   
-  const [errors, setErrors] = useState<FormErrors>({})
+  const [localErrors, setLocalErrors] = useState<FormErrors>({})
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  // Merge local errors with server errors, with server errors taking precedence
+  const errors = { ...localErrors, ...serverErrors }
+
+  // Clear local errors when server errors change (to allow fresh start)
+  useEffect(() => {
+    if (Object.keys(serverErrors).length === 0) {
+      setLocalErrors({})
+    }
+  }, [serverErrors])
 
   // Validation functions
   const validateName = (name: string, field: string): string | undefined => {
@@ -130,7 +154,7 @@ export function CreateDispatcherSheet({
       })
       // Set existing photo as preview
       setPhotoPreview(editData.photo || null)
-      setErrors({})
+      setLocalErrors({})
       setIsDirty(false)
       setShowPassword(false)
       setShowConfirmPassword(false)
@@ -146,7 +170,7 @@ export function CreateDispatcherSheet({
         confirmPassword: "",
       })
       setPhotoPreview(null)
-      setErrors({})
+      setLocalErrors({})
       setIsDirty(false)
       setShowPassword(false)
       setShowConfirmPassword(false)
@@ -165,7 +189,7 @@ export function CreateDispatcherSheet({
     
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({
+      setLocalErrors(prev => ({
         ...prev,
         [field]: undefined
       }))
@@ -174,7 +198,7 @@ export function CreateDispatcherSheet({
     // Real-time validation
     const fieldName = field === 'firstName' ? 'First name' : 'Last name'
     const error = validateName(filteredValue, fieldName)
-    setErrors(prev => ({ ...prev, [field]: error }))
+    setLocalErrors(prev => ({ ...prev, [field]: error }))
     setIsDirty(true)
   }, [errors.firstName, errors.lastName, validateName])
 
@@ -190,20 +214,25 @@ export function CreateDispatcherSheet({
         contactNumber: digitsOnly
       }))
       
-      // Clear error when user starts typing
-      if (errors.contactNumber) {
-        setErrors(prev => ({
+      // Clear local error when user starts typing
+      if (localErrors.contactNumber) {
+        setLocalErrors(prev => ({
           ...prev,
           contactNumber: undefined
         }))
       }
       
+      // Clear server error when user starts typing
+      if (serverErrors.contactNumber && onClearServerError) {
+        onClearServerError('contactNumber')
+      }
+      
       // Real-time validation
       const error = validateContactNumber(digitsOnly)
-      setErrors(prev => ({ ...prev, contactNumber: error }))
+      setLocalErrors(prev => ({ ...prev, contactNumber: error }))
       setIsDirty(true)
     }
-  }, [errors.contactNumber, validateContactNumber])
+  }, [localErrors.contactNumber, serverErrors.contactNumber, onClearServerError, validateContactNumber])
 
   const handleInputChange = useCallback((field: keyof FormData, value: string | File | null) => {
     setFormData(prev => ({
@@ -211,33 +240,38 @@ export function CreateDispatcherSheet({
       [field]: value
     }))
     
-    // Clear error for this field when user starts typing
-    if (errors[field as keyof FormErrors]) {
-      setErrors(prev => ({
+    // Clear local error for this field when user starts typing
+    if (localErrors[field as keyof FormErrors]) {
+      setLocalErrors(prev => ({
         ...prev,
         [field]: undefined
       }))
     }
     
+    // Clear server error for this field when user starts typing
+    if (serverErrors[field as keyof FormErrors] && onClearServerError) {
+      onClearServerError(field as string)
+    }
+    
     // Real-time validation for specific fields
     if (field === 'email' && typeof value === 'string') {
       const error = validateEmail(value)
-      setErrors(prev => ({ ...prev, email: error }))
+      setLocalErrors(prev => ({ ...prev, email: error }))
     } else if (field === 'password' && typeof value === 'string') {
       const error = validatePassword(value)
-      setErrors(prev => ({ ...prev, password: error }))
+      setLocalErrors(prev => ({ ...prev, password: error }))
       // Also revalidate confirm password if it exists
       if (formData.confirmPassword) {
         const confirmError = validateConfirmPassword(formData.confirmPassword, value)
-        setErrors(prev => ({ ...prev, confirmPassword: confirmError }))
+        setLocalErrors(prev => ({ ...prev, confirmPassword: confirmError }))
       }
     } else if (field === 'confirmPassword' && typeof value === 'string') {
       const error = validateConfirmPassword(value, formData.password)
-      setErrors(prev => ({ ...prev, confirmPassword: error }))
+      setLocalErrors(prev => ({ ...prev, confirmPassword: error }))
     }
     
     setIsDirty(true)
-  }, [errors, formData.password, formData.confirmPassword, validateEmail, validatePassword, validateConfirmPassword])
+  }, [localErrors, serverErrors, onClearServerError, formData.password, formData.confirmPassword, validateEmail, validatePassword, validateConfirmPassword])
 
   const handlePhotoUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -292,7 +326,7 @@ export function CreateDispatcherSheet({
     event.preventDefault()
   }, [])
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     // Validate all fields
     const newErrors: FormErrors = {}
     
@@ -330,7 +364,7 @@ export function CreateDispatcherSheet({
     
     // If there are errors, show them and return
     if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
+      setLocalErrors(newErrors)
       return
     }
 
@@ -363,9 +397,17 @@ export function CreateDispatcherSheet({
       photo: formData.photo || undefined,
     }
 
-    onSave?.(dispatcherData, rawFormData)
-    setIsDirty(false)
-    onOpenChange(false)
+    // Call the parent's save handler and wait for result
+    if (onSave) {
+      const success = await onSave(dispatcherData, rawFormData)
+      
+      // Only close the sheet if save was successful
+      if (success) {
+        setIsDirty(false)
+        onOpenChange(false)
+      }
+      // If unsuccessful, the sheet stays open and server errors will be displayed via serverErrors prop
+    }
   }, [formData, isEditing, editData, onSave, onOpenChange, photoPreview, validateName, validateContactNumber, validateEmail, validatePassword, validateConfirmPassword])
 
   const handleClose = useCallback(() => {

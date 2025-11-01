@@ -1,13 +1,13 @@
 import {
-  type ColumnFiltersState,
-  type SortingState,
-  type VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
+    type ColumnFiltersState,
+    type SortingState,
+    type VisibilityState,
+    flexRender,
+    getCoreRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    useReactTable,
 } from "@tanstack/react-table"
 import * as React from "react"
 
@@ -20,7 +20,6 @@ export function DataTable<TData, TValue>({ columns, data, onRowClick }: DataTabl
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
 
   const table = useReactTable({
     data,
@@ -32,12 +31,10 @@ export function DataTable<TData, TValue>({ columns, data, onRowClick }: DataTabl
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
     },
     initialState: {
       pagination: {
@@ -53,9 +50,19 @@ export function DataTable<TData, TValue>({ columns, data, onRowClick }: DataTabl
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="bg-white border-b border-[#404040] hover:bg-white">
-                {headerGroup.headers.map((header) => {
+                {headerGroup.headers.map((header, index) => {
+                  const isFirst = index === 0
+                  const isLast = index === headerGroup.headers.length - 1
+                  
                   return (
-                    <TableHead key={header.id} className="text-black font-medium">
+                    <TableHead 
+                      key={header.id} 
+                      className={`text-black font-medium ${
+                        isFirst ? 'rounded-tl-[5px]' : ''
+                      } ${
+                        isLast ? 'rounded-tr-[5px]' : ''
+                      }`}
+                    >
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   )
@@ -68,8 +75,7 @@ export function DataTable<TData, TValue>({ columns, data, onRowClick }: DataTabl
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="border-b border-[#262626] hover:bg-[#1f1f1f] data-[state=selected]:bg-[#1f1f1f] cursor-pointer"
+                  className="border-b border-[#262626] hover:bg-[#1f1f1f] cursor-pointer"
                   onClick={() => onRowClick && onRowClick(row.original as TData)}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -92,8 +98,7 @@ export function DataTable<TData, TValue>({ columns, data, onRowClick }: DataTabl
 
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="text-sm text-[#a1a1a1]">
-          {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s)
-          selected.
+          Showing {table.getFilteredRowModel().rows.length} community group(s).
         </div>
         <div className="flex items-center space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2">

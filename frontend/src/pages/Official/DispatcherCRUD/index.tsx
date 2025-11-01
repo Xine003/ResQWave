@@ -85,7 +85,6 @@ export function Dispatchers() {
     archivedDispatchers,
     infoById,
     loading,
-    error,
     archiveDispatcherById,
     restoreDispatcherById,
     createNewDispatcher,
@@ -104,6 +103,8 @@ export function Dispatchers() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingDispatcher, setEditingDispatcher] = useState<Dispatcher | null>(null)
   const [editData, setEditData] = useState<DispatcherDetails | undefined>(undefined)
+  const [saving, setSaving] = useState(false)
+  const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
 
   const handleMoreInfo = useCallback(async (dispatcher: Dispatcher) => {
     // Always fetch fresh data from API to get the photo
@@ -202,6 +203,7 @@ export function Dispatchers() {
     }
     
     setEditData(detailed)
+    setServerErrors({}) // Clear server errors when editing
     setDrawerOpen(true)
   }, [infoById])
 
@@ -226,10 +228,9 @@ export function Dispatchers() {
   const tableData = activeTab === "active" ? filteredActiveDispatchers : filteredArchivedDispatchers
   const tableColumns = activeTab === "active" ? activeColumns : archivedColumns
 
-  const [saving, setSaving] = useState(false)
-
-  const handleSaveDispatcher = useCallback(async (dispatcherData: DispatcherDetails, formData?: DispatcherFormData) => {
+  const handleSaveDispatcher = useCallback(async (dispatcherData: DispatcherDetails, formData?: DispatcherFormData): Promise<boolean> => {
     setSaving(true)
+    setServerErrors({}) // Clear previous server errors
     
     try {
       if (editingDispatcher) {
@@ -273,6 +274,7 @@ export function Dispatchers() {
         
         // Show success alert
         alertsRef.current?.showUpdateSuccess(dispatcherData.name)
+        return true // Success
       } else {
         // Create new dispatcher using raw form data
         if (!formData) {
@@ -289,15 +291,45 @@ export function Dispatchers() {
         
         // Show success alert with or without temporary password
         alertsRef.current?.showCreateSuccess(formData.name, result.temporaryPassword)
+        return true // Success
       }
     } catch (err) {
       console.error('Error saving dispatcher:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save dispatcher'
-      alertsRef.current?.showError(errorMessage)
+      
+      // Parse specific backend validation errors
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      const newServerErrors: Record<string, string> = {}
+      
+      // Map backend error messages to specific form fields
+      if (errorMessage.includes('Email Already Used') || errorMessage.includes('Email already in use')) {
+        newServerErrors.email = 'This email address is already registered'
+      } else if (errorMessage.includes('Contact Number already used') || errorMessage.includes('Contact number already in use')) {
+        newServerErrors.contactNumber = 'This contact number is already registered'
+      } else {
+        // For other errors (network, server errors, etc.), show via alerts
+        alertsRef.current?.showError(errorMessage)
+      }
+      
+      // Set field-specific errors to display under input fields
+      if (Object.keys(newServerErrors).length > 0) {
+        setServerErrors(newServerErrors)
+        return false // Keep form open to show field errors
+      }
+      
+      return false // Failure
     } finally {
       setSaving(false)
     }
   }, [editingDispatcher, createNewDispatcher, updateDispatcherById])
+
+  // Function to clear specific server errors when user starts typing
+  const handleClearServerError = useCallback((fieldName: string) => {
+    setServerErrors(prev => {
+      const newErrors = { ...prev }
+      delete newErrors[fieldName]
+      return newErrors
+    })
+  }, [])
 
   // Show loading state
   if (loading) {
@@ -314,25 +346,6 @@ export function Dispatchers() {
   return (
     <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col h-[calc(100vh-73px)]">
       <div className="w-full max-w-9xl mx-auto flex-1 flex flex-col min-h-0">
-        {/* Error Alert */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-900/20 border border-red-800 rounded-lg flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.99-.833-2.76 0L3.054 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              <span className="text-red-400">Error: {error}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={refreshData}
-              className="text-red-400 hover:text-red-300 hover:bg-red-900/30"
-            >
-              Retry
-            </Button>
-          </div>
-        )}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
             <h1 className="text-2xl font-semibold text-white">Dispatchers</h1>
@@ -412,6 +425,7 @@ export function Dispatchers() {
               onClick={() => {
                 setEditingDispatcher(null)
                 setEditData(undefined)
+                setServerErrors({}) // Clear server errors when creating new
                 setDrawerOpen(true)
               }} 
               className="bg-[#4285f4] hover:bg-[#3367d6] text-white px-4 py-2 rounded-[5px] flex items-center gap-2"
@@ -447,9 +461,10 @@ export function Dispatchers() {
           if (!saving) { // Prevent closing while saving
             setDrawerOpen(open)
             if (!open) {
-              // Clear edit state when closing
+              // Clear edit state and server errors when closing
               setEditingDispatcher(null)
               setEditData(undefined)
+              setServerErrors({})
             }
           }
         }}
@@ -457,6 +472,8 @@ export function Dispatchers() {
         isEditing={!!editingDispatcher}
         onSave={handleSaveDispatcher}
         saving={saving}
+        serverErrors={serverErrors}
+        onClearServerError={handleClearServerError}
       />
 
       {/* Dispatcher Alerts */}

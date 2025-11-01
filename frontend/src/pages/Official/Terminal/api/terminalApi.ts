@@ -111,8 +111,8 @@ export async function unarchiveTerminal(id: string): Promise<{ message: string }
 }
 
 // Permanently delete terminal (only archived terminals)
-export async function permanentDeleteTerminal(id: string): Promise<{ message: string }> {
-  return apiRequest<{ message: string }>(`/terminal/${id}/permanent`, {
+export async function permanentDeleteTerminal(id: string): Promise<{ message: string; deletedAlerts?: number }> {
+  return apiRequest<{ message: string; deletedAlerts?: number }>(`/terminal/${id}/permanent`, {
     method: 'DELETE',
   })
 }

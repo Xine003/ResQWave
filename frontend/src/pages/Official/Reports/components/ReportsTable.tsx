@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,7 +47,6 @@ type ReportData = CompletedReport | PendingReport;
 
 export function ReportsTable({ type, data }: ReportsTableProps) {
   const isCompleted = type === "completed";
-  const [rowSelection, setRowSelection] = useState({});
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedReportData, setSelectedReportData] = useState<ReportData | null>(null);
 
@@ -59,13 +57,6 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
 
   // Define columns based on table type
   const columns: ColumnDef<ReportData>[] = [
-    {
-      id: "select",
-      header: () => <Checkbox />,
-      cell: () => <Checkbox />,
-      enableSorting: false,
-      enableHiding: false,
-    },
     {
       accessorKey: "emergencyId",
       header: "Emergency ID",
@@ -158,10 +149,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onRowSelectionChange: setRowSelection,
-    state: {
-      rowSelection,
-    },
+    state: {},
     initialState: {
       pagination: {
         pageSize: 8,
@@ -177,7 +165,6 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
           <div className="w-full overflow-x-auto">
             <table className="w-full caption-bottom text-sm table-fixed">
               <colgroup>
-                <col className="col-checkbox" />
                 <col className="col-emergency-id" />
                 <col className="col-community-name" />
                 <col className="col-alert-type" />
@@ -190,15 +177,27 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id} className="bg-white border-b border-[#404040] hover:bg-white">
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id} className="text-black font-medium px-3 py-2">
-                        {header.isPlaceholder ? null : (
-                          typeof header.column.columnDef.header === 'function' 
-                            ? header.column.columnDef.header(header.getContext())
-                            : header.column.columnDef.header
-                        )}
-                      </TableHead>
-                    ))}
+                    {headerGroup.headers.map((header, index) => {
+                      const isFirst = index === 0
+                      const isLast = index === headerGroup.headers.length - 1
+                      
+                      return (
+                        <TableHead 
+                          key={header.id} 
+                          className={`text-black font-medium px-3 py-2 ${
+                            isFirst ? 'rounded-tl-[5px]' : ''
+                          } ${
+                            isLast ? 'rounded-tr-[5px]' : ''
+                          }`}
+                        >
+                          {header.isPlaceholder ? null : (
+                            typeof header.column.columnDef.header === 'function' 
+                              ? header.column.columnDef.header(header.getContext())
+                              : header.column.columnDef.header
+                          )}
+                        </TableHead>
+                      )
+                    })}
                   </TableRow>
                 ))}
               </TableHeader>
@@ -210,7 +209,6 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
         <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0 reports-table-scrollable">
           <table className="w-full caption-bottom text-sm table-fixed">
             <colgroup>
-              <col className="col-checkbox" />
               <col className="col-emergency-id" />
               <col className="col-community-name" />
               <col className="col-alert-type" />
@@ -225,8 +223,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="border-b border-[#262626] hover:bg-[#1f1f1f] data-[state=selected]:bg-[#1f1f1f]"
+                    className="border-b border-[#262626] hover:bg-[#1f1f1f]"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="px-3 py-2">
@@ -253,7 +250,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
       {/* Pagination */}
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="text-sm text-[#a1a1a1]">
-          {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.
+          Showing {table.getFilteredRowModel().rows.length} report(s).
         </div>
         <div className="flex items-center space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2">

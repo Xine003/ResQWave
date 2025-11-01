@@ -60,19 +60,67 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
     }, [] as Signal[]);
 
     const formatTime = (dateString?: string) => {
-        if (!dateString) return '12:00:00 PM';
+        if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return date.toLocaleTimeString('en-US', { 
             hour: 'numeric', 
-            minute: '2-digit', 
-            second: '2-digit',
+            minute: '2-digit',
             hour12: true 
         });
     };
 
+    // Helper function to get timestamp for sorting
+    const getTimestamp = (item: Signal | WaitlistedRescueForm): number => {
+        if ('properties' in item) {
+            // It's a Signal
+            const signal = item as Signal;
+            // Try to parse from date or timeSent property
+            const dateStr = signal.properties.date || signal.properties.timeSent;
+            if (dateStr) {
+                // Handle both ISO strings and formatted time strings
+                const parsed = new Date(dateStr);
+                if (!isNaN(parsed.getTime())) {
+                    return parsed.getTime();
+                }
+                // If the formatted time doesn't parse, try to extract from other properties
+                // This might be a formatted time like "2:30 PM", so we'll use current date with that time
+                try {
+                    const today = new Date();
+                    const timeMatch = dateStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                    if (timeMatch) {
+                        let hours = parseInt(timeMatch[1]);
+                        const minutes = parseInt(timeMatch[2]);
+                        const period = timeMatch[3].toUpperCase();
+                        
+                        if (period === 'PM' && hours !== 12) hours += 12;
+                        if (period === 'AM' && hours === 12) hours = 0;
+                        
+                        today.setHours(hours, minutes, 0, 0);
+                        return today.getTime();
+                    }
+                } catch (e) {
+                    // Ignore parsing errors
+                }
+            }
+            return Date.now(); // Default to now if no valid date
+        } else {
+            // It's a WaitlistedRescueForm
+            const form = item as WaitlistedRescueForm;
+            // Try date first (formatted from original signal), then timestamp (ISO string)
+            const dateStr = form.date || form.timestamp;
+            if (dateStr) {
+                const parsed = new Date(dateStr);
+                if (!isNaN(parsed.getTime())) {
+                    return parsed.getTime();
+                }
+            }
+            return Date.now(); // Default to now if no valid date
+        }
+    };
+
     const renderAlertCard = (signal: Signal, index: number) => (
         <div 
-            key={signal.properties.deviceId} 
+            key={`signal-${signal.properties.deviceId}-${index}`} 
             className="border border-[#2a2a2a] rounded-[5px] p-4 mb-3 relative hover:bg-[#262626] transition-colors duration-200 cursor-pointer"
             onClick={() => onCardClick?.(signal)}
         >
@@ -97,7 +145,7 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                 )}
                 
                 <div className="space-y-1 text-xs text-gray-400">
-                    <p>Time Sent: {formatTime(signal.properties.date)}</p>
+                    <p>Time Sent: {signal.properties.timeSent || formatTime(signal.properties.date)}</p>
                     <p>{signal.properties.address || 'No address provided'}</p>
                 </div>
             </div>
@@ -141,7 +189,7 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                 )}
                 
                 <div className="space-y-1 text-xs text-gray-400">
-                    <p>Time Sent: {formatTime(form.timestamp)}</p>
+                    <p>Time Sent: {form.date || formatTime(form.timestamp)}</p>
                     <p>{form.address || 'No address provided'}</p>
                 </div>
             </div>
@@ -164,9 +212,21 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
             return acc;
         }, [] as Signal[]);
 
-        const totalItems = activeTab === 'waitlisted' 
-            ? uniqueAlerts.length + (waitlistedForms?.length || 0)
-            : uniqueAlerts.length;
+        // Combine signals and waitlisted forms for sorting (only for waitlisted tab)
+        let allItems: (Signal | WaitlistedRescueForm)[] = [...uniqueAlerts];
+        
+        if (activeTab === 'waitlisted' && waitlistedForms) {
+            allItems = [...uniqueAlerts, ...waitlistedForms];
+        }
+
+        // Sort all items by timestamp (earliest first)
+        allItems.sort((a, b) => {
+            const timestampA = getTimestamp(a);
+            const timestampB = getTimestamp(b);
+            return timestampA - timestampB;
+        });
+
+        const totalItems = allItems.length;
 
         if (totalItems === 0) {
             return (
@@ -176,14 +236,16 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
             );
         }
 
-        const alertCards = uniqueAlerts.map((signal, index) => renderAlertCard(signal, index));
-        
-        if (activeTab === 'waitlisted' && waitlistedForms) {
-            const waitlistCards = waitlistedForms.map((form: WaitlistedRescueForm, index: number) => renderWaitlistCard(form, index));
-            return [...alertCards, ...waitlistCards];
-        }
-
-        return alertCards;
+        // Render the sorted items
+        return allItems.map((item, index) => {
+            if ('properties' in item) {
+                // It's a Signal
+                return renderAlertCard(item as Signal, index);
+            } else {
+                // It's a WaitlistedRescueForm
+                return renderWaitlistCard(item as WaitlistedRescueForm, index);
+            }
+        });
     };
 
     return (

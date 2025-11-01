@@ -54,7 +54,7 @@ export default function SignalPopover({
             alertId: popover.alertId, // Include alertId for backend operations and map updates
             deviceId: popover.deviceId,
             address: popover.address,
-            date: popover.date,
+            date: popover.timeSent || popover.date, // Use formatted timeSent, fallback to date
             alertType: (popover.alertType as 'CRITICAL' | 'USER-INITIATED') || 'USER-INITIATED'
         };
         

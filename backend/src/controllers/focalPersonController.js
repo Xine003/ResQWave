@@ -187,11 +187,17 @@ const createFocalPerson = async (req, res) => {
         await neighborhoodRepo.save(neighborhood);
 
         // Mark terminal occupied
-        await terminalRepo.update({ id: terminalID }, { availability: "occupied" });
+        await terminalRepo.update({ id: terminalID }, { availability: "Occupied" });
 
         // Invalidate caches
         await deleteCache("focalPersons:all");
         await deleteCache("neighborhoods:all");
+        
+        // Invalidate terminal caches to reflect availability change immediately
+        await deleteCache(`terminal:${terminalID}`);
+        await deleteCache("terminals:active");
+        await deleteCache("onlineTerminals");
+        await deleteCache("offlineTerminals");
 
         const response = {
             message: "Focal Person and Neighborhood Created",
@@ -317,7 +323,13 @@ const approveFocalRegistration = async (req, res) => {
         const savedNeighborhood = await neighborhoodRepo.save(neighborhoodEntity);
 
         // Mark Terminal occupied
-        await terminalRepo.update({ id: terminalID }, { availability: "occupied" });
+        await terminalRepo.update({ id: terminalID }, { availability: "Occupied" });
+
+        // Invalidate terminal caches to reflect availability change immediately
+        await deleteCache(`terminal:${terminalID}`);
+        await deleteCache("terminals:active");
+        await deleteCache("onlineTerminals");
+        await deleteCache("offlineTerminals");
 
         // Delete Registration after successful transfer
         await registrationRepo.delete({ id: registration.id });
