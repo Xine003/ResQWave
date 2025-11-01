@@ -16,6 +16,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { createDraw, ensureSquareGreenImage, changeToDrawPolygon, makeUpdateCanSave } from './utils/drawMapBoundary';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
 import { apiFetch } from '../../../lib/api';
+import { HazardLegend } from './components/HazardLegend';
 
 import DashboardAlerts from './components/DashboardAlerts';
 import {
@@ -861,6 +862,7 @@ export default function Dashboard() {
 
             <MapControls mapRef={mapRef} mapLoaded={mapLoaded} makeTooltip={makeTooltip} addCustomLayers={(m) => addCustomLayers(m, otherSignals, OwnCommunitySignal)} editBoundaryOpen={editBoundaryOpen} handleDeleteBoundary={handleDeleteBoundary} />
 
+            <HazardLegend />
 
             <CommunityDataProvider>
                 <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
