@@ -4,6 +4,7 @@ const alertRepo = AppDataSource.getRepository("Alert");
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const terminalRepo = AppDataSource.getRepository("Terminal");
 const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
+const postRescueRepo = AppDataSource.getRepository("PostRescueForm");
 const {
   getCache, 
   setCache,
@@ -414,6 +415,8 @@ const updateRescueFormStatus = async (req, res) => {
     }
 };
 
+// Rescue Form
+// Pending Table
 const getAggregatedRescueForm = async (req, res) => {
     try {
         const { alertID } = req.query || {};

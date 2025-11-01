@@ -10,7 +10,7 @@ const {
 
 router.post ("/:alertID", createRescueForm);
 router.patch("/:alertID/status", updateRescueFormStatus); // Update status
-router.get("/aggregated", getAggregatedRescueForm);
+router.get("/table/aggregated", getAggregatedRescueForm);
 router.get ("/", getRescueForms);
 router.get ("/:formID", getRescueForm);
 
