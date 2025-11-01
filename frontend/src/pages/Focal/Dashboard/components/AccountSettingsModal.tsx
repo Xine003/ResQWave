@@ -2,12 +2,59 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { API_BASE_URL, apiFetch } from '@/lib/api';
 import { ArrowLeft, Camera, Check, Eye, EyeOff, User, X } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useFocalAuth } from '../../context/focalAuthContext';
 import type { AccountSettingsModalProps } from '../types/accountSettings';
 import { isAccountFormDirty, validatePassword } from '../utils/passwordUtils';
 
 export default function AccountSettingsModal({ open, onClose, onSaved, center = null, isDirtyRef = null }: AccountSettingsModalProps) {
+    // Helper to refresh profile data from backend
+    const refreshProfile = async () => {
+        if (!focalId) return;
+        try {
+            const data = await apiFetch(`/focalperson/${focalId}`);
+            setFirstName(data.firstName || '');
+            setLastName(data.lastName || '');
+            setPhoneNumber(data.contactNumber || '');
+            setEmail(data.email || '');
+            setLastUpdated(data.updatedAt || null);
+            setIsVerified(!!data.approvedBy);
+            setInitialProfile((prev) => ({
+                ...prev,
+                firstName: data.firstName || '',
+                lastName: data.lastName || '',
+                phoneNumber: data.contactNumber || '',
+                email: data.email || '',
+            }));
+            // Fetch photo as blob and create object URL using API_BASE_URL
+            fetch(`${API_BASE_URL}/focalperson/${focalId}/photo`, {
+                credentials: 'include',
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token') || ''}`
+                }
+            })
+                .then(async (res) => {
+                    if (!res.ok) throw new Error('No photo');
+                    const blob = await res.blob();
+                    if (blob.size > 0) {
+                        const url = URL.createObjectURL(blob);
+                        setPhotoUrl(url);
+                        setInitialProfile((prev) => ({ ...prev, photoUrl: url }));
+                    } else {
+                        setPhotoUrl(null);
+                        setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
+                    }
+                })
+                .catch(() => {
+                    setPhotoUrl(null);
+                    setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
+                });
+            setPhotoFile(null); // reset file input
+        } catch {
+            // fallback to empty or previous state
+        }
+    };
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -24,6 +71,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [email, setEmail] = useState('');
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+    const [isVerified, setIsVerified] = useState(false);
 
     // Track initial values for dirty check
     const [initialProfile, setInitialProfile] = useState({
@@ -43,6 +91,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                     setPhoneNumber(data.contactNumber || '');
                     setEmail(data.email || '');
                     setLastUpdated(data.updatedAt || null);
+                    setIsVerified(!!data.approvedBy);
                     setInitialProfile((prev) => ({
                         ...prev,
                         firstName: data.firstName || '',
@@ -322,7 +371,30 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     return (
         <div style={overlayStyle}>
             <div style={animatedModalStyle}>
-                <button onClick={handleClose} aria-label="Close" style={{ position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer', transition: 'color 0.18s, transform 0.18s' }}>✕</button>
+                {/* Exit and Refresh buttons */}
+                <div style={{ position: 'absolute', right: 35, top: 30, display: 'flex', gap: 20 }}>
+                    <button
+                        onClick={refreshProfile}
+                        aria-label="Refresh"
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#BABABA',
+                            fontSize: 19,
+                            cursor: 'pointer',
+                            marginRight: 2,
+                            transition: 'color 0.18s, transform 0.18s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 0
+                        }}
+                        title="Refresh profile data"
+                    >
+                        <RefreshCw size={17} />
+                    </button>
+                    <button onClick={handleClose} aria-label="Close" style={{ background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer', transition: 'color 0.18s, transform 0.18s' }}>✕</button>
+                </div>
 
                 {/* Exit confirmation dialog */}
                 <AlertDialog open={confirmExitOpen} onOpenChange={setConfirmExitOpen}>
@@ -501,10 +573,10 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                             right: 15,
                                             top: '50%',
                                             transform: 'translateY(-50%)',
-                                            color: '#3b82f6',
+                                            color: isVerified ? '#3b82f6' : '#e11d48',
                                             fontWeight: 600,
                                             fontSize: 15
-                                        }}>VERIFIED</span>
+                                        }}>{isVerified ? 'VERIFIED' : 'NOT VERIFIED'}</span>
                                     </div>
                                 </div>
                             </div>
