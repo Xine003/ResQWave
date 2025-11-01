@@ -6,16 +6,16 @@ import type { MapControlsProps } from '../types/controls';
 
 export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBoundaryOpen, handleDeleteBoundary }: MapControlsProps) {
     const [layersOpen, setLayersOpen] = useState(false);
-    const [selectedLayer, setSelectedLayer] = useState<'terrain' | 'satellite'>('terrain');
+    const [selectedLayer, setSelectedLayer] = useState<'street' | 'terrain' | 'satellite'>('street');
     const [heatmapVisible, setHeatmapVisible] = useState(true);
 
     const toggleHeatmap = () => {
         const map = mapRef.current;
         if (!map) return;
-        
+
         const newVisibility = !heatmapVisible;
         setHeatmapVisible(newVisibility);
-        
+
         // Toggle visibility of flood polygon layers
         const floodLayerIds = ['flood-polygons-metro-manila'];
         floodLayerIds.forEach(layerId => {
@@ -35,8 +35,8 @@ export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBo
                             width: 50,
                             height: 50,
                             borderRadius: 7,
-                            background: heatmapVisible 
-                                ? 'linear-gradient(135deg, #fbbf24 0%, #fb923c 50%, #f43f5e 100%)' 
+                            background: heatmapVisible
+                                ? 'linear-gradient(135deg, #fbbf24 0%, #fb923c 50%, #f43f5e 100%)'
                                 : '#fff',
                             display: 'flex',
                             alignItems: 'center',
@@ -154,6 +154,31 @@ export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBo
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', padding: 6, borderRadius: 12, boxShadow: '0 8px 20px rgba(2,6,23,0.12)' }}>
                             <button
                                 onClick={() => {
+                                    setSelectedLayer('street');
+                                    const m = mapRef.current;
+                                    if (m) {
+                                        m.setStyle('mapbox://styles/mapbox/streets-v12');
+                                        m.once('styledata', () => {
+                                            addCustomLayers(m);
+                                        });
+                                    }
+                                }}
+                                style={{
+                                    padding: '8px 14px',
+                                    borderRadius: 8,
+                                    background: selectedLayer === 'street' ? '#111827' : 'transparent',
+                                    color: selectedLayer === 'street' ? '#fff' : '#9ca3af',
+                                    border: 'none',
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                    boxShadow: selectedLayer === 'street' ? '0 6px 12px rgba(0,0,0,0.25)' : 'none',
+                                    fontSize: 14
+                                }}
+                            >
+                                Street
+                            </button>
+                            <button
+                                onClick={() => {
                                     setSelectedLayer('terrain');
                                     const m = mapRef.current;
                                     if (m) {
@@ -164,14 +189,15 @@ export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBo
                                     }
                                 }}
                                 style={{
-                                    padding: '8px 16px',
+                                    padding: '8px 14px',
                                     borderRadius: 8,
                                     background: selectedLayer === 'terrain' ? '#111827' : 'transparent',
                                     color: selectedLayer === 'terrain' ? '#fff' : '#9ca3af',
                                     border: 'none',
                                     fontWeight: 500,
                                     cursor: 'pointer',
-                                    boxShadow: selectedLayer === 'terrain' ? '0 6px 12px rgba(0,0,0,0.25)' : 'none'
+                                    boxShadow: selectedLayer === 'terrain' ? '0 6px 12px rgba(0,0,0,0.25)' : 'none',
+                                    fontSize: 14
                                 }}
                             >
                                 Terrain
@@ -188,14 +214,15 @@ export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBo
                                     }
                                 }}
                                 style={{
-                                    padding: '8px 16px',
+                                    padding: '8px 14px',
                                     borderRadius: 8,
                                     background: selectedLayer === 'satellite' ? '#111827' : 'transparent',
                                     color: selectedLayer === 'satellite' ? '#fff' : '#9ca3af',
                                     border: 'none',
                                     fontWeight: 500,
                                     cursor: 'pointer',
-                                    boxShadow: selectedLayer === 'satellite' ? '0 6px 12px rgba(0,0,0,0.25)' : 'none'
+                                    boxShadow: selectedLayer === 'satellite' ? '0 6px 12px rgba(0,0,0,0.25)' : 'none',
+                                    fontSize: 14
                                 }}
                             >
                                 Satellite
