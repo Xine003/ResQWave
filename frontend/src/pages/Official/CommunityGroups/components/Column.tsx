@@ -1,35 +1,11 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Archive, Edit, Info } from "lucide-react"
 import type { CommunityColumnsOptions, CommunityGroup } from "../types"
 
 export const createColumns = (opts: CommunityColumnsOptions): ColumnDef<CommunityGroup>[] => [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="data-[state=checked]:bg-[#4285f4] data-[state=checked]:border-[#4285f4]"
-        onClick={(e) => e.stopPropagation()}
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="border-white data-[state=checked]:bg-[#4285f4] data-[state=checked]:border-[#4285f4] data-[state=unchecked]:border-white"
-        onClick={(e) => e.stopPropagation()}
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
   {
     accessorKey: "id",
     header: "Neighborhood ID",

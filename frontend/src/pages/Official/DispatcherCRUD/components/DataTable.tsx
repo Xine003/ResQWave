@@ -20,7 +20,6 @@ export function DataTable<TData, TValue>({ columns, data, onRowClick }: DataTabl
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
 
   const table = useReactTable({
     data,
@@ -32,12 +31,10 @@ export function DataTable<TData, TValue>({ columns, data, onRowClick }: DataTabl
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
     },
     initialState: {
       pagination: {
@@ -53,11 +50,18 @@ export function DataTable<TData, TValue>({ columns, data, onRowClick }: DataTabl
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="border-b border-[#2a2a2a] hover:bg-[#262626]">
-                {headerGroup.headers.map((header) => {
+                {headerGroup.headers.map((header, index) => {
+                  const isFirst = index === 0
+                  const isLast = index === headerGroup.headers.length - 1
+                  
                   return (
                     <TableHead 
                       key={header.id} 
-                      className="text-black font-medium bg-white h-12 px-4 text-left align-middle [&:has([role=checkbox])]:pr-0"
+                      className={`text-black font-medium bg-white h-12 px-4 text-left align-middle ${
+                        isFirst ? 'rounded-tl-[5px]' : ''
+                      } ${
+                        isLast ? 'rounded-tr-[5px]' : ''
+                      }`}
                     >
                       {header.isPlaceholder
                         ? null
@@ -76,7 +80,6 @@ export function DataTable<TData, TValue>({ columns, data, onRowClick }: DataTabl
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
                   className="border-b border-[#2a2a2a] hover:bg-[#262626] cursor-pointer transition-colors"
                   onClick={() => onRowClick?.(row.original)}
                 >
@@ -107,8 +110,7 @@ export function DataTable<TData, TValue>({ columns, data, onRowClick }: DataTabl
       {/* Pagination */}
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="text-sm text-[#a1a1a1]">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+          Showing {table.getFilteredRowModel().rows.length} dispatcher(s).
         </div>
         <div className="flex items-center space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2">

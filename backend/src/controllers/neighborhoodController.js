@@ -500,13 +500,22 @@ const archivedNeighborhood = async (req, res) => {
     // 3) Free/unlink terminal
     const terminalId = nb.n_terminalID;
     if (terminalId) {
-      await terminalRepo.update({ id: terminalId }, { availability: "available" });
+      await terminalRepo.update({ id: terminalId }, { availability: "Available" });
       await neighborhoodRepo.update({ id }, { terminalID: null });
     }
 
+    // Invalidate all relevant caches
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
     await deleteCache("neighborhoods:archived");
+    
+    // Invalidate terminal caches to reflect availability change immediately
+    if (terminalId) {
+      await deleteCache(`terminal:${terminalId}`);
+      await deleteCache("terminals:active");
+      await deleteCache("onlineTerminals");
+      await deleteCache("offlineTerminals");
+    }
 
     return res.json({ message: "Neighborhood Archived, Focal Person Archived, Terminal Available" });
   } catch (err) {
@@ -544,9 +553,18 @@ const deleteNeighborhood = async(req, res) => {
 
     await neighborhoodRepo.delete({id});
 
+    // Invalidate all relevant caches
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
     await deleteCache("neighborhoods:archived");
+    
+    // Invalidate terminal caches to reflect availability change immediately
+    if (nb.n_terminalID) {
+      await deleteCache(`terminal:${nb.n_terminalID}`);
+      await deleteCache("terminals:active");
+      await deleteCache("onlineTerminals");
+      await deleteCache("offlineTerminals");
+    }
 
     return res.json({message: "Neighborhood permanently delete"});
   } catch (err) {

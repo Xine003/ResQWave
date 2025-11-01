@@ -137,14 +137,6 @@ export function Terminals() {
   }, [fetchTerminalDetails])
 
   const handleArchive = useCallback(async (terminal: Terminal) => {
-    // Check if terminal is occupied before archiving
-    if (terminal.availability === "Occupied") {
-      alertsRef.current?.showError(
-        `Cannot archive terminal "${terminal.name}" because it is currently occupied. Please unassign it from the neighborhood first.`
-      )
-      return
-    }
-
     try {
       // Call the backend API to archive the terminal
       await archiveTerminalById(terminal.id)
@@ -174,24 +166,21 @@ export function Terminals() {
   }, [unarchiveTerminalById])
 
   const handleDeletePermanent = useCallback((terminal: Terminal) => {
-    // Check if terminal is occupied before deleting (safety check)
-    if (terminal.availability === "Occupied") {
-      alertsRef.current?.showError(
-        `Cannot delete terminal "${terminal.name}" because it is currently occupied. Please unassign it from the neighborhood first.`
-      )
-      return
-    }
-
     // Show confirmation dialog using the alert component
     alertsRef.current?.showDeleteConfirmation(
       terminal.id,
       terminal.name,
       async () => {
         try {
-          // Permanently delete the terminal from the database
-          await permanentDeleteTerminalById(terminal.id)
+          // Permanently delete the terminal (backend handles alert cleanup automatically)
+          const result = await permanentDeleteTerminalById(terminal.id)
           
-          console.log(`Terminal ${terminal.name} permanently deleted`)
+          let successMessage = `Terminal "${terminal.name}" permanently deleted!`
+          if (result.deletedAlerts && result.deletedAlerts > 0) {
+            successMessage += ` (${result.deletedAlerts} related alerts also removed)`
+          }
+          
+          console.log(`Terminal ${terminal.name} permanently deleted with ${result.deletedAlerts || 0} alerts`)
           alertsRef.current?.showDeleteSuccess(terminal.name)
         } catch (error) {
           console.error('Failed to permanently delete terminal:', error)

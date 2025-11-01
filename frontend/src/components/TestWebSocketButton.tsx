@@ -11,7 +11,7 @@ export function TestWebSocketButton() {
     }
 
     const testPayload = {
-      terminalId: 'RESQWAVE008', // Use a valid terminal ID from your database
+      terminalId: 'RESQWAVE004', // Use a valid terminal ID from your database
       alertType: 'Critical', // 'Critical' | 'User-Initiated' | null (for no alert)
       terminalStatus: 'Online' // Terminal status (Online/Offline)
     };
