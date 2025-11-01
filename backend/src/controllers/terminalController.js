@@ -20,7 +20,7 @@ const getNextTerminalId = async (req, res) => {
         let newNumber = 1;
         if (lastTerminal) {
             const lastNumber = parseInt(lastTerminal.id.replace("RESQWAVE", ""), 10);
-            newNumber = lastNumber + 1; 
+            newNumber = lastNumber + 1;
         }
 
         const nextID = "RESQWAVE" + String(newNumber).padStart(3, "0");
@@ -39,7 +39,7 @@ const createTerminal = async (req, res) => {
 
         // Validate Terminal Name
         if (!name) {
-            return res.status(400).json({message: "Terminal name is required"});
+            return res.status(400).json({ message: "Terminal name is required" });
         }
 
         // Generate Specific UID
@@ -51,12 +51,12 @@ const createTerminal = async (req, res) => {
         let newNumber = 1;
         if (lastTerminal) {
             const lastNumber = parseInt(lastTerminal.id.replace("RESQWAVE", ""), 10);
-            newNumber = lastNumber + 1; 
+            newNumber = lastNumber + 1;
         }
 
         const newID = "RESQWAVE" + String(newNumber).padStart(3, "0");
 
-        const terminal = terminalRepo.create ({
+        const terminal = terminalRepo.create({
             id: newID,
             name,
             status: "Offline",
@@ -70,10 +70,10 @@ const createTerminal = async (req, res) => {
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
 
-        res.status(201).json({message: "Terminal Created", terminal});
+        res.status(201).json({ message: "Terminal Created", terminal });
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - CREATE Terminal"});
+        res.status(500).json({ message: "Server Error - CREATE Terminal" });
     }
 };
 
@@ -121,7 +121,7 @@ const getOnlineTerminals = async (req, res) => {
 
 
 // READ All (Offline Only)
-const getOfflineTerminals = async(req, res) => {
+const getOfflineTerminals = async (req, res) => {
     try {
         const cacheKey = "offlineTerminals";
         const cached = await getCache(cacheKey);
@@ -136,28 +136,136 @@ const getOfflineTerminals = async(req, res) => {
         res.json(terminals);
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - READ Offline Terminals"});
+        res.status(500).json({ message: "Server Error - READ Offline Terminals" });
+    }
+};
+
+// GET Terminals for Map (with neighborhood and focal person data)
+const getTerminalsForMap = async (req, res) => {
+    try {
+        const cacheKey = "terminals:map";
+        const cached = await getCache(cacheKey);
+        if (cached) return res.json(cached);
+
+        // Get all active terminals
+        const terminals = await terminalRepo.find({
+            where: { archived: false },
+            select: ["id", "name", "status", "dateCreated"],
+        });
+
+        // For each terminal, find associated neighborhood and focal person
+        const mapData = await Promise.all(
+            terminals.map(async (terminal) => {
+                // Find neighborhood linked to this terminal
+                const neighborhood = await neighborhoodRepo.findOne({
+                    where: { terminalID: terminal.id, archived: false },
+                });
+
+                if (!neighborhood || !neighborhood.focalPersonID) {
+                    return null; // Skip terminals without linked neighborhood/focal person
+                }
+
+                // Find focal person
+                const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
+                const focalPerson = await focalPersonRepo.findOne({
+                    where: { id: neighborhood.focalPersonID, archived: false },
+                    select: ["id", "address", "createdAt"],
+                });
+
+                if (!focalPerson || !focalPerson.address) {
+                    return null; // Skip if no focal person or address
+                }
+
+                // Parse address JSON to get coordinates
+                let coordinates = null;
+                try {
+                    const addressData = typeof focalPerson.address === "string"
+                        ? JSON.parse(focalPerson.address)
+                        : focalPerson.address;
+
+                    if (addressData.lat && addressData.lng) {
+                        // Convert from [lat, lng] to [lng, lat] for Mapbox
+                        coordinates = [addressData.lng, addressData.lat];
+                    }
+                } catch (err) {
+                    console.error(`Failed to parse address for focal person ${focalPerson.id}:`, err);
+                    return null;
+                }
+
+                if (!coordinates) {
+                    return null; // Skip if no valid coordinates
+                }
+
+                // Format the address string (without coordinates)
+                let addressString = "";
+                try {
+                    const addressData = typeof focalPerson.address === "string"
+                        ? JSON.parse(focalPerson.address)
+                        : focalPerson.address;
+                    addressString = addressData.address || "—";
+                } catch {
+                    addressString = "—";
+                }
+
+                // Format date
+                const dateRegistered = focalPerson.createdAt
+                    ? new Date(focalPerson.createdAt).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                    })
+                    : "—";
+
+                return {
+                    type: "Feature",
+                    properties: {
+                        status: terminal.status.toLowerCase(), // "online" or "offline"
+                        name: terminal.name,
+                        address: addressString,
+                        date: dateRegistered,
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: coordinates, // [lng, lat]
+                    },
+                };
+            })
+        );
+
+        // Filter out null entries
+        const features = mapData.filter((item) => item !== null);
+
+        const geoJSON = {
+            type: "FeatureCollection",
+            features: features,
+        };
+
+        await setCache(cacheKey, geoJSON, 300); // Cache for 5 minutes
+        res.json(geoJSON);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error - GET Terminals for Map" });
     }
 };
 
 // READ One Terminal
 const getTerminal = async (req, res) => {
     try {
-        const {id} = req.params;
+        const { id } = req.params;
         const cacheKey = `terminal:${id}`;
         const cached = await getCache(cacheKey);
         if (cached) return res.json(cached);
 
-        const terminal = await terminalRepo.findOne({ where: {id} });
+        const terminal = await terminalRepo.findOne({ where: { id } });
         if (!terminal) {
-            return res.status(404).json({message: "Terminal Not Found"});
+            return res.status(404).json({ message: "Terminal Not Found" });
         }
 
         await setCache(cacheKey, terminal, 300);
         res.json(terminal)
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - READ Terminal"});
+        res.status(500).json({ message: "Server Error - READ Terminal" });
     }
 };
 
@@ -167,9 +275,9 @@ const updateTerminal = async (req, res) => {
         const { id } = req.params;
         const { status, name } = req.body;
 
-        const terminal = await terminalRepo.findOne({ where: {id} });
+        const terminal = await terminalRepo.findOne({ where: { id } });
         if (!terminal) {
-            return res.status(404).json({message: "Terminal Not Found"});
+            return res.status(404).json({ message: "Terminal Not Found" });
         }
 
         if (status) terminal.status = status;
@@ -183,10 +291,10 @@ const updateTerminal = async (req, res) => {
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
 
-        res.json({message: "Terminal Updated", terminal});
+        res.json({ message: "Terminal Updated", terminal });
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - UPDATE Terminal"});
+        res.status(500).json({ message: "Server Error - UPDATE Terminal" });
     }
 }
 
@@ -237,20 +345,20 @@ const archivedTerminal = async (req, res) => {
 // Unarchived Terminal
 const unarchiveTerminal = async (req, res) => {
     try {
-        const {id} = req.params;
+        const { id } = req.params;
 
-        const terminal = await terminalRepo.findOne({where: {id} });
+        const terminal = await terminalRepo.findOne({ where: { id } });
         if (!terminal) {
-            return res.status(404).json({message: "Terminal Not Found"});
+            return res.status(404).json({ message: "Terminal Not Found" });
         }
         if (!terminal.archived) {
-            return res.status(400).json({message: "Terminal is not archived"});
+            return res.status(400).json({ message: "Terminal is not archived" });
         }
 
         // Unarchive and make available
         // Not automatically attach to any neighborhood
         terminal.archived = false,
-        terminal.availability = "Available";
+            terminal.availability = "Available";
         terminal.status = terminal.status;
 
         await terminalRepo.save(terminal);
@@ -261,10 +369,10 @@ const unarchiveTerminal = async (req, res) => {
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
 
-        return res.json({message: "Terminal Unarchived and Available"});
+        return res.json({ message: "Terminal Unarchived and Available" });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({message: "Server Error"});
+        return res.status(500).json({ message: "Server Error" });
     }
 };
 
@@ -276,13 +384,13 @@ const getArchivedTerminals = async (req, res) => {
         const cached = await getCache(cacheKey);
         if (cached) return res.json(cached);
 
-        const terminals = await terminalRepo.find({ where: { archived: true} });
-        
+        const terminals = await terminalRepo.find({ where: { archived: true } });
+
         await setCache(cacheKey, terminals, 300);
         res.json(terminals);
     } catch (err) {
         console.error(err);
-        res.status(500).json({message: "Server Error - GET ARCHIVED Terminal"});
+        res.status(500).json({ message: "Server Error - GET ARCHIVED Terminal" });
     }
 };
 
@@ -299,8 +407,8 @@ const permanentDeleteTerminal = async (req, res) => {
 
         // Only allow permanent deletion of archived terminals
         if (!terminal.archived) {
-            return res.status(400).json({ 
-                message: "Terminal must be archived before permanent deletion" 
+            return res.status(400).json({
+                message: "Terminal must be archived before permanent deletion"
             });
         }
 
@@ -338,6 +446,7 @@ module.exports = {
     archivedTerminal,
     unarchiveTerminal,
     getArchivedTerminals,
-    permanentDeleteTerminal
+    permanentDeleteTerminal,
+    getTerminalsForMap
 };
 

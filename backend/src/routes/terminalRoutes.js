@@ -11,7 +11,8 @@ const {
     archivedTerminal,
     getArchivedTerminals,
     unarchiveTerminal,
-    permanentDeleteTerminal
+    permanentDeleteTerminal,
+    getTerminalsForMap
 } = require("../controllers/terminalController");
 
 // CRUD + Archived
@@ -19,6 +20,7 @@ router.get("/next-id", getNextTerminalId);
 router.post("/", createTerminal);
 router.get("/", getTerminals);
 router.get("/archived", getArchivedTerminals);
+router.get("/map", getTerminalsForMap);
 router.get("/:id", getTerminal);
 router.get("/online", getOnlineTerminals);
 router.get("/offline", getOfflineTerminals);

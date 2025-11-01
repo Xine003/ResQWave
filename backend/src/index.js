@@ -20,7 +20,7 @@ const focalRegistrationRoutes = require("./routes/focalRegistrationRoutes");
 const logsRoute = require("./routes/logRoutes");
 const sensorDataRoutes = require("./routes/sensorDataRoutes");
 const { authMiddleware, requireRole } = require("./middleware/authMiddleware");
-
+const { getTerminalsForMap } = require("./controllers/terminalController");
 // Test For Realtime
 // Remove the comment to test again
 const path = require("path");
@@ -49,6 +49,9 @@ AppDataSource.initialize()
         app.use("/", verificationRoutes);
         app.use("/", focalRegistrationRoutes);
         app.use("/", sensorDataRoutes); // public route for sensor data
+
+        // Public endpoint for map data (landing page)
+        app.get("/terminals/map", getTerminalsForMap);
 
         // Protect Everything After This
         app.use(authMiddleware);

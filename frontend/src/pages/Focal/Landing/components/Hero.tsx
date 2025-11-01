@@ -1,8 +1,7 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover-focal";
-import { useState } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoicm9kZWxsbCIsImEiOiJjbWU0OXNvb2gwYnM0MnpvbXNueXo2dzhxIn0.Ep43_IxVhaPhEqWBaAuuyA";
 
@@ -13,9 +12,29 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
     lat: number;
     screen: { x: number; y: number };
   } | null>(null);
+  const [mapFeatures, setMapFeatures] = useState<any[]>([]);
+
+  // Fetch terminals data for map
+  useEffect(() => {
+    const fetchMapData = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/terminals/map`);
+        const data = await response.json();
+        if (data.features && Array.isArray(data.features)) {
+          setMapFeatures(data.features);
+        }
+      } catch (error) {
+        console.error("Error fetching map data:", error);
+        // Keep empty array as fallback
+      }
+    };
+
+    fetchMapData();
+  }, []);
 
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (!mapContainer.current || mapFeatures.length === 0) return;
+
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12', // mapbox://styles/mapbox/outdoors-v12
@@ -38,7 +57,18 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
     // Prepare data and layers once the style is loaded
     map.on("load", () => {
       const cinematicEasing = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      const centerPoint: [number, number] = [121.056764, 14.756603];
+
+      // Use fetched features from backend
+      const features = mapFeatures;
+
+      // Calculate center point from all terminal coordinates
+      let centerPoint: [number, number] = [121.056764, 14.756603]; // Default fallback
+      if (features.length > 0) {
+        const avgLng = features.reduce((sum, f) => sum + f.geometry.coordinates[0], 0) / features.length;
+        const avgLat = features.reduce((sum, f) => sum + f.geometry.coordinates[1], 0) / features.length;
+        centerPoint = [avgLng, avgLat];
+      }
+
       const runCinematic = () => {
         map.flyTo({
           center: centerPoint,
@@ -89,23 +119,6 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
         ["==", ["get", "status"], "online"],
         "#22c55e",
         "#6b7280",
-      ];
-      const features = [
-        {
-          type: "Feature",
-          properties: { status: "online", name: "PETUNAI HOA", address: "Petunia Street, Block 23 Lot 3 Phase 5", date: "September 9 2025" },
-          geometry: { type: "Point", coordinates: [121.05385330493584, 14.757852990635486] },
-        },
-        {
-          type: "Feature",
-          properties: { status: "online", name: "KALAYAAN HOA", address: "Kalayaan St, Phase 2", date: "September 9 2025" },
-          geometry: { type: "Point", coordinates: [121.05439010437614, 14.7554320065437] },
-        },
-        {
-          type: "Feature",
-          properties: { status: "offline", name: "DISPATCH NODE", address: "Marcela St, Unit 1", date: "September 9 2025" },
-          geometry: { type: "Point", coordinates: [121.05631626707365, 14.756941307897185] },
-        },
       ];
 
       map.addSource("signals", {
@@ -188,6 +201,9 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
           map.off('moveend', onEnd);
         };
         map.on('moveend', onEnd);
+      } else {
+        // If no features, just run cinematic to default location
+        runCinematic();
       }
       // Animate existing rings (no extra pulse layer)
       let raf = 0;
@@ -218,8 +234,10 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
       raf = requestAnimationFrame(tick);
       map.once('remove', () => cancelAnimationFrame(raf));
 
-      // Kick off cinematic once everything is ready
-      runCinematic();
+      // Kick off cinematic once everything is ready (only if we have features)
+      if (features.length > 0) {
+        runCinematic();
+      }
 
       // Click interactions to open popover
       const clickableLayers = ["signals-core", "signals-core-stroke", "signals-ring-1", "signals-ring-2", "signals-ring-3"];
@@ -272,7 +290,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
 
     // Clean up on unmount
     return () => map.remove();
-  }, []);
+  }, [mapFeatures]);
 
   return (
     <main className="flex flex-1 flex-col md:flex-row items-center justify-between px-20 md:px-48 gap-8 md:gap-16 w-full relative" style={{ overflow: 'hidden', zIndex: 20, position: 'relative' }}>
