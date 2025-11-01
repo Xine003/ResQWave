@@ -1,15 +1,75 @@
 import { useState } from 'react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip-white';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover-focal';
-import { Layers, Locate, Minus, Plus, Trash2 } from 'lucide-react';
+import { Layers, Locate, Minus, Plus, Trash2, Waves } from 'lucide-react';
 import type { MapControlsProps } from '../types/controls';
 
 export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBoundaryOpen, handleDeleteBoundary }: MapControlsProps) {
     const [layersOpen, setLayersOpen] = useState(false);
     const [selectedLayer, setSelectedLayer] = useState<'terrain' | 'satellite'>('terrain');
+    const [heatmapVisible, setHeatmapVisible] = useState(true);
+
+    const toggleHeatmap = () => {
+        const map = mapRef.current;
+        if (!map) return;
+        
+        const newVisibility = !heatmapVisible;
+        setHeatmapVisible(newVisibility);
+        
+        // Toggle visibility of flood polygon layers
+        const floodLayerIds = ['flood-polygons-metro-manila'];
+        floodLayerIds.forEach(layerId => {
+            if (map.getLayer(layerId)) {
+                map.setLayoutProperty(layerId, 'visibility', newVisibility ? 'visible' : 'none');
+            }
+        });
+    };
 
     return (
         <div style={{ position: 'absolute', right: 21, bottom: 21, zIndex: 40, display: 'flex', flexDirection: 'column', gap: 11 }}>
+            {/* Heatmap toggle button */}
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div
+                        style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 7,
+                            background: heatmapVisible 
+                                ? 'linear-gradient(135deg, #fbbf24 0%, #fb923c 50%, #f43f5e 100%)' 
+                                : '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            boxShadow: heatmapVisible ? '0 6px 16px rgba(0,0,0,0.35)' : '0 4px 12px rgba(2,6,23,0.21)',
+                            transition: 'background 0.18s, box-shadow 0.18s'
+                        }}
+                        onMouseEnter={e => { if (!heatmapVisible) e.currentTarget.style.background = '#EEEEEE' }}
+                        onMouseLeave={e => { if (!heatmapVisible) e.currentTarget.style.background = '#fff' }}
+                    >
+                        <button
+                            aria-label="Toggle Heatmap"
+                            onClick={toggleHeatmap}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: heatmapVisible ? '#fff' : '#000',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                filter: heatmapVisible ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' : 'none'
+                            }}
+                        >
+                            <Waves size={21} />
+                        </button>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent side="left" sideOffset={8}>
+                    {heatmapVisible ? 'Hide Heatmap' : 'Show Heatmap'}
+                </TooltipContent>
+            </Tooltip>
+
             {/* Location button */}
             <Tooltip>
                 <TooltipTrigger asChild>
