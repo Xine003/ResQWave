@@ -230,6 +230,10 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
         setHasNumber(false);
         setHasSpecial(false);
         setPasswordsMatch(false);
+        setConfirmSaveOpen(false);
+        setConfirmExitOpen(false);
+        setPasswordError(null);
+        setSamePasswordError(null);
     };
 
     // Helper to check if any field or photo is dirty
@@ -666,11 +670,14 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                                         photoUpdated = true;
                                                     }
                                                     setConfirmSaveOpen(false);
-                                                    handleClose();
-                                                    try { onSaved && onSaved(); } catch (e) { }
-                                                    if (photoFile || photoUpdated) {
-                                                        window.dispatchEvent(new Event('focal-profile-photo-updated'));
-                                                    }
+                                                    // Wait for confirmation modal to close before closing parent
+                                                    setTimeout(() => {
+                                                        if (onClose) onClose();
+                                                        try { onSaved && onSaved(); } catch (e) { }
+                                                        if (photoFile || photoUpdated) {
+                                                            window.dispatchEvent(new Event('focal-profile-photo-updated'));
+                                                        }
+                                                    }, 200);
                                                 } catch (err) {
                                                     alert('Failed to save changes.');
                                                 }
