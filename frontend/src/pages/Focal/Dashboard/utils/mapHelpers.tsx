@@ -1,6 +1,7 @@
 import type React from 'react';
+import type { Signal } from '../types/signals';
 
-export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommunitySignal: any) {
+export function addCustomLayers(map: mapboxgl.Map, otherSignals: Signal[], OwnCommunitySignal: Signal) {
     // Helper to create a GeoJSON circle polygon from center and radius (meters)
     function createGeoJSONCircle(center: [number, number], radiusInMeters: number, points = 64): GeoJSON.Feature<GeoJSON.Polygon> {
         const coords: [number, number][] = [];
@@ -97,7 +98,7 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
     }
 
     // Expose helper for click handler
-    (map as any).createGeoJSONCircle = createGeoJSONCircle;
+    (map as mapboxgl.Map & { createGeoJSONCircle?: typeof createGeoJSONCircle }).createGeoJSONCircle = createGeoJSONCircle;
 }
 
 

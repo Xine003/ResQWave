@@ -20,56 +20,56 @@ const makeArchivedColumns = (
   onRestore?: (g: CommunityGroup) => void,
   onDeletePermanent?: (g: CommunityGroup) => void
 ) => [
-  ...createColumns({ onMoreInfo }).slice(0, -1), 
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }: any) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0 text-[#a1a1a1] hover:text-white hover:bg-[#262626]">
-            <span className="sr-only">Open menu</span>
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zM12 13a1 1 0 110-2 1 1 0 010 2zM12 20a1 1 0 110-2 1 1 0 010 2z"
-              />
-            </svg>
-          </Button>
-        </DropdownMenuTrigger>
-       <DropdownMenuContent
-        align="start" side="left" sideOffset={2}
-        className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-35 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
-      >
-        <DropdownMenuItem
-          onClick={(e) => { e.stopPropagation(); onMoreInfo(row.original) }}
-          className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
-        >
-          <Info className="mr-2 h-4 w-4 text-white" />
-          <span className="text-sm">More Info</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={(e) => { e.stopPropagation(); onRestore && onRestore(row.original) }}
-          className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
-        >
-          <ArchiveRestore className="mr-2 h-4 w-4 text-white" />
-          <span className="text-sm">Restore</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-[#404040]" />
-        <DropdownMenuItem
-          onClick={(e) => { e.stopPropagation(); onDeletePermanent && onDeletePermanent(row.original) }}
-          className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000] text-sm"
-        >
-          <Trash2 className="mr-2 h-4 w-4 text-[#FF0000]" />
-          <span>Delete Permanently</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-      </DropdownMenu>
-    ),
-  },
-]
+    ...createColumns({ onMoreInfo }).slice(0, -1),
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }: { row: { original: CommunityGroup } }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0 text-[#a1a1a1] hover:text-white hover:bg-[#262626]">
+              <span className="sr-only">Open menu</span>
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zM12 13a1 1 0 110-2 1 1 0 010 2zM12 20a1 1 0 110-2 1 1 0 010 2z"
+                />
+              </svg>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start" side="left" sideOffset={2}
+            className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-35 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
+          >
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); onMoreInfo(row.original); }}
+              className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+            >
+              <Info className="mr-2 h-4 w-4 text-white" />
+              <span className="text-sm">More Info</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); onRestore?.(row.original); }}
+              className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+            >
+              <ArchiveRestore className="mr-2 h-4 w-4 text-white" />
+              <span className="text-sm">Restore</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-[#404040]" />
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); onDeletePermanent?.(row.original); }}
+              className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000] text-sm"
+            >
+              <Trash2 className="mr-2 h-4 w-4 text-[#FF0000]" />
+              <span>Delete Permanently</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ]
 
 export function CommunityGroups() {
   const alertsRef = useRef<CommunityGroupAlertsHandle>(null)
@@ -130,6 +130,7 @@ export function CommunityGroups() {
         setLoading(false)
       }
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [infoById, awaitingInfoById, activeTab])
 
   const handleArchive = useCallback(async (group: CommunityGroup) => {
@@ -142,11 +143,10 @@ export function CommunityGroups() {
       ])
       setActiveGroups(activeData.map(transformNeighborhoodToCommunityGroup))
       setArchivedGroups(archivedData.map(transformNeighborhoodToCommunityGroup))
-      
+
       // Show success alert
       alertsRef.current?.showArchiveSuccess(group.name || group.focalPerson || 'Neighborhood Group')
-    } catch (err) {
-      console.error('Failed to archive neighborhood:', err)
+    } catch {
       alertsRef.current?.showError('Failed to archive neighborhood. Please try again.')
     }
   }, [])
@@ -168,14 +168,14 @@ export function CommunityGroups() {
           const archivedData = await getArchivedNeighborhoods()
           setArchivedGroups(archivedData.map(transformNeighborhoodToCommunityGroup))
           setInfoById((prev) => {
-            const { [group.id]: _omit, ...rest } = prev
-            return rest
+            const newState = { ...prev };
+            delete newState[group.id];
+            return newState;
           })
-          
+
           // Show success alert
           alertsRef.current?.showDeleteSuccess(group.name || group.focalPerson || 'Neighborhood Group')
-        } catch (err) {
-          console.error('Failed to delete neighborhood:', err)
+        } catch {
           alertsRef.current?.showError('Failed to delete neighborhood. Please try again.')
         }
       }
@@ -203,23 +203,24 @@ export function CommunityGroups() {
         id: newId,
         status: "OFFLINE"
       }
-      
+
       // Add to active groups
       setActiveGroups(prev => [approvedGroup, ...prev])
-      
+
       // Add detailed info with new ID and assigned terminal
-      const updatedDetails = { 
-        ...pendingApprovalData, 
-        communityId: newId, 
-        terminalId: terminalId 
+      const updatedDetails = {
+        ...pendingApprovalData,
+        communityId: newId,
+        terminalId: terminalId
       }
       setInfoById(prev => ({ ...prev, [newId]: updatedDetails }))
-      
+
       // Remove from awaiting
       setAwaitingGroups(prev => prev.filter(g => g.id !== awaitingGroup.id))
       setAwaitingInfoById(prev => {
-        const { [awaitingGroup.id]: _omit, ...rest } = prev
-        return rest
+        const newState = { ...prev };
+        delete newState[awaitingGroup.id];
+        return newState;
       })
 
       // Switch to active tab to show the newly approved group
@@ -238,15 +239,16 @@ export function CommunityGroups() {
     if (awaitingGroup) {
       setAwaitingGroups(prev => prev.filter(g => g.id !== awaitingGroup.id))
       setAwaitingInfoById(prev => {
-        const { [awaitingGroup.id]: _omit, ...rest } = prev
-        return rest
+        const newState = { ...prev };
+        delete newState[awaitingGroup.id];
+        return newState;
       })
     }
   }, [awaitingGroups])
 
   const handleEdit = useCallback(async (group: CommunityGroup) => {
     setEditingGroup(group)
-    
+
     try {
       setLoading(true)
       // Fetch the detailed neighborhood data from backend
@@ -268,7 +270,7 @@ export function CommunityGroups() {
   // Filter function for search
   const filterGroups = (groups: CommunityGroup[]) => {
     if (!searchQuery.trim()) return groups
-    
+
     return groups.filter((group) =>
       group.focalPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
       group.contactNumber.includes(searchQuery) ||
@@ -290,20 +292,20 @@ export function CommunityGroups() {
       try {
         setLoading(true)
         setError(null)
-        
+
         // Fetch active and archived neighborhoods in parallel
         const [activeData, archivedData] = await Promise.all([
           getNeighborhoods(),
           getArchivedNeighborhoods()
         ])
-        
+
         // Transform backend data to frontend format
         const transformedActive = activeData.map(transformNeighborhoodToCommunityGroup)
         const transformedArchived = archivedData.map(transformNeighborhoodToCommunityGroup)
-        
+
         setActiveGroups(transformedActive)
         setArchivedGroups(transformedArchived)
-        
+
       } catch (err) {
         console.error('Failed to fetch neighborhoods:', err)
         setError('Failed to load neighborhoods')
@@ -311,7 +313,7 @@ export function CommunityGroups() {
         setLoading(false)
       }
     }
-    
+
     fetchData()
   }, [])
 
@@ -324,20 +326,18 @@ export function CommunityGroups() {
             <div className="flex items-center gap-1 bg-[#262626] rounded-[5px] p-1">
               <button
                 onClick={() => setActiveTab("active")}
-                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
-                  activeTab === "active" ? "bg-[#404040] text-white" : "bg-transparent text-[#a1a1a1] hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${activeTab === "active" ? "bg-[#404040] text-white" : "bg-transparent text-[#a1a1a1] hover:text-white"
+                  }`}
               >
                 Active
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{activeGroups.length}</span>
               </button>
               <button
                 onClick={() => setActiveTab("archived")}
-                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
-                  activeTab === "archived"
-                    ? "bg-[#404040] text-white"
-                    : "bg-transparent text-[#a1a1a1] hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${activeTab === "archived"
+                  ? "bg-[#404040] text-white"
+                  : "bg-transparent text-[#a1a1a1] hover:text-white"
+                  }`}
               >
                 Archived
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{archivedGroups.length}</span>
@@ -358,9 +358,8 @@ export function CommunityGroups() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              searchVisible ? 'w-64 opacity-100' : 'w-0 opacity-0'
-            }`}>
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${searchVisible ? 'w-64 opacity-100' : 'w-0 opacity-0'
+              }`}>
               <Input
                 type="text"
                 placeholder="Search neighborhood groups..."
@@ -370,9 +369,9 @@ export function CommunityGroups() {
                 autoFocus={searchVisible}
               />
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className={`text-[#a1a1a1] hover:text-white hover:bg-[#262626] transition-all duration-200 ${searchVisible ? 'bg-[#262626] text-white' : ''}`}
               onClick={() => {
                 setSearchVisible(!searchVisible)
@@ -419,20 +418,20 @@ export function CommunityGroups() {
                     getNeighborhoods(),
                     getArchivedNeighborhoods()
                   ])
-                  
+
                   const transformedActive = activeData.map(transformNeighborhoodToCommunityGroup)
                   const transformedArchived = archivedData.map(transformNeighborhoodToCommunityGroup)
-                  
+
                   setActiveGroups(transformedActive)
                   setArchivedGroups(transformedArchived)
-                  
+
                   // Clear edit state
                   setEditingGroup(null)
                   setEditData(undefined)
-                  
+
                   // Show the newly created/updated item in active tab
                   setActiveTab("active")
-                  
+
                   // Show appropriate success alert
                   if (saveInfo?.groupName) {
                     if (editingGroup) {
@@ -444,7 +443,7 @@ export function CommunityGroups() {
                       )
                     }
                   }
-                  
+
                 } catch (err) {
                   console.error('Failed to refresh data:', err)
                   alertsRef.current?.showError('Failed to refresh data')
@@ -466,9 +465,9 @@ export function CommunityGroups() {
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <p className="text-red-400 mb-2">{error}</p>
-                <Button 
-                  onClick={() => window.location.reload()} 
-                  variant="outline" 
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
                   className="bg-transparent border-gray-600 text-white hover:bg-gray-800"
                 >
                   Retry
@@ -522,8 +521,8 @@ export function CommunityGroups() {
                   </SelectTrigger>
                   <SelectContent className="bg-[#262626] border-[#404040]">
                     {availableTerminals.map((terminal) => (
-                      <SelectItem 
-                        key={terminal.id} 
+                      <SelectItem
+                        key={terminal.id}
                         value={terminal.id}
                         className="text-white hover:bg-[#404040] focus:bg-[#404040]"
                       >

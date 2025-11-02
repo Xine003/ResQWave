@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
@@ -44,7 +45,7 @@ export function FocalAuthProvider({ children }: { children: ReactNode }) {
         if (payload.id) {
           setFocalIdState(payload.id);
         }
-      } catch { }
+      } catch { /* Ignore token removal errors */ }
     } else {
       setFocalIdState(null);
     }

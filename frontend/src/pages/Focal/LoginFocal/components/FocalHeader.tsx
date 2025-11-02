@@ -1,17 +1,9 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import resqwave_logo from '/Landing/resqwave_logo.png';
 
 export function FocalHeader() {
     const navigate = useNavigate();
-    const location = useLocation();
 
-
-    let buttonText = 'Create an account';
-    let handleClick = () => navigate('/register-focal');
-    if (location.pathname === '/register-focal') {
-        buttonText = 'Sign in instead';
-        handleClick = () => navigate('/login-focal');
-    }
     return (
         <header
             className="flex items-center justify-between px-10 md:px-20 py-6 border-b border-[#404040] relative"

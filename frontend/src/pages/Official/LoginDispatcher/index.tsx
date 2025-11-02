@@ -19,10 +19,10 @@ export function LoginOfficial() {
     e.preventDefault()
     setError("")
     setIsLoading(true)
-    
+
     try {
       const success = await login(ID, password)
-      
+
       if (success) {
         setIsLoading(false)
         // Both admin and dispatcher need 2FA - go to verification
@@ -31,8 +31,9 @@ export function LoginOfficial() {
         setError("Invalid credentials. Please check your ID and password.")
         setIsLoading(false)
       }
-    } catch (error: any) {
-      setError(error?.message || "An error occurred during login. Please try again.")
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      setError(err?.message || "An error occurred during login. Please try again.")
       setIsLoading(false)
     }
   }

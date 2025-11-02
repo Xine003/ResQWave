@@ -58,7 +58,7 @@ function groupDaysByMonth(days: LogDay[]): MonthGroup[] {
 }
 
 export default function ActivityLogModal({ open, onClose, center = null }: ActivityLogModalProps) {
-    const [activityLogs, setActivityLogs] = useState<any[]>([]);
+    const [activityLogs, setActivityLogs] = useState<MonthGroup[]>([]);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -115,9 +115,9 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
                     el.setAttribute('tabindex', '-1');
                     // restore tabindex shortly after so keyboard users can still tab to it later
                     setTimeout(() => {
-                        try { el.removeAttribute('tabindex'); } catch (e) { /* ignore */ }
+                        try { el.removeAttribute('tabindex'); } catch { /* ignore */ }
                     }, 350);
-                } catch (e) {
+                } catch {
                     /* ignore */
                 }
             }, 180);
@@ -129,7 +129,7 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
         if (!open) return;
         setLoading(true);
         setError(null);
-        apiFetch('/logs/own')
+        apiFetch<{ lastUpdated?: string; days?: LogDay[] }>('/logs/own')
             .then((data) => {
                 setLastUpdated(data.lastUpdated || null);
                 const grouped = groupDaysByMonth(data.days || []);
@@ -166,7 +166,7 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
     );
 
 
-    const baseStyle: any = {
+    const baseStyle: React.CSSProperties = {
         width: 'min(780px, 96%)',
         height: '85vh',
         minHeight: 80,
@@ -178,17 +178,17 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
         display: 'flex',
         flexDirection: 'column',
     };
-    const modalStyle: any = center
+    const modalStyle: React.CSSProperties = center
         ? { ...baseStyle, position: 'fixed', left: center.x, top: center.y, transform: 'translate(-50%, -50%)', background: '#171717' }
         : { ...baseStyle, position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#171717' };
-    const overlayStyle: any = {
+    const overlayStyle: React.CSSProperties = {
         position: 'fixed', inset: 0,
         background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
         zIndex: 'var(--z-popover)',
         transition: `background ${ANIM_MS}ms ease`,
         pointerEvents: visible ? 'auto' : 'none',
     };
-    const animatedModalStyle: any = {
+    const animatedModalStyle: React.CSSProperties = {
         ...modalStyle,
         opacity: visible ? 1 : 0,
         transform: center

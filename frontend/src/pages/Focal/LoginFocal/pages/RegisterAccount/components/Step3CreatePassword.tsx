@@ -39,8 +39,8 @@ export function Step3CreatePassword({ onNext, onBack, isLoading = false }: Step3
     },
     {
       label: "At least one special character (ex. !@#$%*_)",
-      regex: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
-      met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+      regex: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
+      met: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)
     },
     {
       label: "At least one lowercase",

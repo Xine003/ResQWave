@@ -14,7 +14,7 @@ export type DispatcherAlertsHandle = {
 	hideAll: () => void
 }
 
-export default forwardRef<DispatcherAlertsHandle, {}>(function DispatcherAlerts(_props, ref) {
+export default forwardRef<DispatcherAlertsHandle>(function DispatcherAlerts(_props, ref) {
 	// Create success alert (bottom left)
 	const [showCreate, setShowCreate] = useState(false)
 	const [createMessage, setCreateMessage] = useState("")

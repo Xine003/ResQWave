@@ -83,7 +83,7 @@ export function ensureSquareGreenImage(map: MapboxMap) {
 export function changeToDrawPolygon(draw: MapboxDraw | null) {
     try {
         draw?.changeMode('draw_polygon');
-    } catch (e) {
+    } catch {
         // ignore
     }
 }
@@ -95,7 +95,7 @@ export function makeUpdateCanSave(drawRef: { current: MapboxDraw | null }, setCa
         const data = draw.getAll();
         if (!data || !data.features) return setCanSave(false);
         const hasClosedPolygon = data.features.some(
-            (f: any) => f.geometry && f.geometry.type === "Polygon"
+            (f: GeoJSON.Feature) => f.geometry && f.geometry.type === "Polygon"
         );
         setCanSave(Boolean(hasClosedPolygon));
     };

@@ -1,6 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState } from 'react';
 
-interface RescueFormData {
+export interface RescueFormData {
     focalPerson: string;
     focalUnreachable: boolean;
     waterLevel: string;
@@ -88,4 +89,4 @@ export function useRescueWaitlist() {
     return context;
 }
 
-export type { RescueFormData, WaitlistedRescueForm };
+export type { WaitlistedRescueForm };

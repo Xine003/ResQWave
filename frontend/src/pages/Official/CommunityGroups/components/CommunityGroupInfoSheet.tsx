@@ -17,7 +17,7 @@ export function CommunityGroupInfoSheet({
   }, [open, communityData]);
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewerUrl, setViewerUrl] = useState<string | null>(null)
-  
+
   // Photo state (just for auth blob conversion)
   const [photos, setPhotos] = useState<{
     mainPhoto?: string
@@ -100,7 +100,7 @@ export function CommunityGroupInfoSheet({
       if (parsed && typeof parsed.coordinates === 'string' && parsed.coordinates.trim() !== '') {
         terminalCoordinates = parsed.coordinates;
       }
-    } catch {}
+    } catch { /* Ignore session storage errors */ }
   }
 
   return (
@@ -245,7 +245,7 @@ export function CommunityGroupInfoSheet({
                         // Find backdrop image and hide it too
                         const backdrop = parent.querySelector('[aria-hidden]') as HTMLImageElement
                         if (backdrop) backdrop.classList.add('hidden')
-                        
+
                         // Create fallback element
                         const fallback = document.createElement('div')
                         fallback.className = 'relative w-full h-full flex items-center justify-center'
@@ -347,7 +347,7 @@ export function CommunityGroupInfoSheet({
                         // Find backdrop image and hide it too
                         const backdrop = parent.querySelector('[aria-hidden]') as HTMLImageElement
                         if (backdrop) backdrop.classList.add('hidden')
-                        
+
                         // Create fallback element
                         const fallback = document.createElement('div')
                         fallback.className = 'relative w-full h-full flex items-center justify-center'
@@ -426,7 +426,7 @@ export function CommunityGroupInfoSheet({
           className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
           onClick={resetZoomAndClose}
         >
-          <div 
+          <div
             className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >

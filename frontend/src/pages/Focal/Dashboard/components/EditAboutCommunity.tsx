@@ -1,7 +1,7 @@
 // import { Button } from '@/components/ui/button';
 import { DropdownIcon } from '@/components/ui/DropdownIcon';
 
-import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Trash, Upload } from 'lucide-react';
 import {
@@ -21,7 +21,7 @@ import { apiFetch } from '@/lib/api';
 type EditAboutProps = {
     open: boolean;
     onClose: () => void;
-    onSave?: (data: any) => void;
+    onSave?: (data: unknown) => void;
     center?: { x: number; y: number } | null;
 };
 export type EditAboutHandle = {
@@ -160,6 +160,21 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
         };
     }, [householdsDropdownOpen, residentsDropdownOpen, floodwaterDropdownOpen]);
 
+    // Fetch alt focal photo from backend
+    const fetchAltFocalPhoto = useCallback(async (neighborhoodId: string) => {
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/neighborhood/${neighborhoodId}/alt-photo`, {
+                credentials: 'include',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (!res.ok) return setAltPhotoUrl(null);
+            const blob = await res.blob();
+            setAltPhotoUrl(URL.createObjectURL(blob));
+        } catch {
+            setAltPhotoUrl(null);
+        }
+    }, [token]);
+
     // Initialize local state from shared data when modal opens
     useEffect(() => {
         if (!open) return;
@@ -184,35 +199,20 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
         setResidentsRange(data?.stats?.noOfResidents ? String(data.stats.noOfResidents) : '');
         setFloodwaterRange(data?.floodwaterSubsidenceDuration ?? '');
         // Hazards are now synced in a separate effect above
-    }, [open, data?.stats?.noOfHouseholds, data?.stats?.noOfResidents, data?.floodwaterSubsidenceDuration, data?.hazards, data?.groupName]);
-
-    // Fetch alt focal photo from backend
-    const fetchAltFocalPhoto = async (neighborhoodId: string) => {
-        try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/neighborhood/${neighborhoodId}/alt-photo`, {
-                credentials: 'include',
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
-            if (!res.ok) return setAltPhotoUrl(null);
-            const blob = await res.blob();
-            setAltPhotoUrl(URL.createObjectURL(blob));
-        } catch {
-            setAltPhotoUrl(null);
-        }
-    };
+    }, [open, data, fetchAltFocalPhoto]);
 
     // revoke object URLs when photo changes / on unmount
     useEffect(() => {
         return () => {
             if (typeof photoUrl === 'string' && photoUrl.startsWith('blob:')) {
-                try { URL.revokeObjectURL(photoUrl); } catch (e) { }
+                try { URL.revokeObjectURL(photoUrl); } catch { /* Ignore revoke errors */ }
             }
         };
     }, [photoUrl]);
 
     // (image viewer utilities removed — not used in current UI)
 
-    const baseStyle: any = {
+    const baseStyle: React.CSSProperties = {
         width: 'min(780px, 92%)',
         maxHeight: 'calc(85vh)',
         minHeight: 80,
@@ -225,20 +225,20 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
         msOverflowStyle: 'none',
     };
 
-    const modalStyle: any = center
+    const modalStyle: React.CSSProperties = center
         ? { ...baseStyle, position: 'fixed', left: center.x, top: center.y, transform: 'translate(-50%, -50%)', background: '#171717' }
         : { ...baseStyle, position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#171717' };
     if (!mounted) return null;
 
-    const overlayStyle: any = {
+    const overlayStyle: React.CSSProperties = {
         position: 'fixed', inset: 0,
         background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
         zIndex: 'var(--z-popover)',
         transition: `background ${ANIM_MS}ms ease`,
         pointerEvents: visible ? 'auto' : 'none',
-    };
+    } as React.CSSProperties;
 
-    const animatedModalStyle: any = {
+    const animatedModalStyle: React.CSSProperties = {
         ...modalStyle,
         opacity: visible ? 1 : 0,
         transform: center
@@ -430,7 +430,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                     aria-label="Delete"
                                     onClick={() => {
                                         if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
-                                            try { URL.revokeObjectURL(altPhotoUrl); } catch (e) { }
+                                            try { URL.revokeObjectURL(altPhotoUrl); } catch { /* Ignore revoke errors */ }
                                         }
                                         setAltPhotoUrl(null);
                                         setAltPhotoFile(null);
@@ -461,11 +461,11 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                         try {
                             const url = URL.createObjectURL(f);
                             if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
-                                try { URL.revokeObjectURL(altPhotoUrl); } catch (e) { }
+                                try { URL.revokeObjectURL(altPhotoUrl); } catch { /* Ignore revoke errors */ }
                             }
                             setAltPhotoUrl(url);
                             setAltPhotoFile(f);
-                        } catch (err) { }
+                        } catch { /* Ignore file read errors */ }
                     }} />
 
 
@@ -532,7 +532,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                 setConfirmOpen(false);
                                 // If parent supplied a continue action (e.g. navigate), call it.
                                 if (pendingContinueRef.current) {
-                                    try { pendingContinueRef.current(); } catch (e) { }
+                                    try { pendingContinueRef.current(); } catch { /* Ignore callback errors */ }
                                     pendingContinueRef.current = null;
                                 } else {
                                     onClose();
@@ -594,7 +594,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                         onSave?.(payload);
                                         setConfirmSaveOpen(false);
                                         onClose();
-                                    } catch (e) {
+                                    } catch {
                                         alert('Failed to update community info.');
                                     }
                                 }}

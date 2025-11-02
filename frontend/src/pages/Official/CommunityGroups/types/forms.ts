@@ -38,7 +38,7 @@ export interface FormSnapshot {
   formData: CommunityFormData
   notableInfoInputs: string[]
   isEditing: boolean
-  editData?: any
+  editData?: unknown
 }
 
 export interface SessionState {

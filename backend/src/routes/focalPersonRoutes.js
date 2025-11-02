@@ -1,5 +1,5 @@
 const express = require("express");
-const multer = require("multer");
+// removed unused multer variable
 const router = express.Router();
 
 const {

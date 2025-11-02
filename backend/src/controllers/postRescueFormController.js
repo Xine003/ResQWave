@@ -2,8 +2,7 @@ const { AppDataSource } = require("../config/dataSource");
 const alertRepo = AppDataSource.getRepository("Alert");
 const postRescueRepo = AppDataSource.getRepository("PostRescueForm");
 const rescueFormRepo = AppDataSource.getRepository("RescueForm");
-const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
-const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
+// removed unused dispatcherRepo and communityGroupRepo variables
 const {
   getCache,
   setCache,
@@ -12,55 +11,55 @@ const {
 
 // CREATE POST RESCUE FORM
 const createPostRescueForm = async (req, res) => {
-    try {
-        const {alertID} = req.params;
-        const { noOfPersonnelDeployed, resourcesUsed, actionTaken} = req.body;
+  try {
+    const { alertID } = req.params;
+    const { noOfPersonnelDeployed, resourcesUsed, actionTaken } = req.body;
 
-        // Check if the Alert Exist
-        const alert = await alertRepo.findOne({where: {id: alertID} });
-        if (!alert) return res.status(404).json({message: "Alert Not Found"});
+    // Check if the Alert Exist
+    const alert = await alertRepo.findOne({ where: { id: alertID } });
+    if (!alert) return res.status(404).json({ message: "Alert Not Found" });
 
-        // Only Allowed if the Alert is "Dispatched"
-        if (alert.status !== "Dispatched") {
-            return res.status(400).json({message: "Please Dispatched a Rescue Team First"});
-        }
-
-        const rescueForm = await rescueFormRepo.findOne({ where: {emergencyID: alertID} });
-        if (!rescueForm) {
-            return res.status(400).json({message: "Rescue Form Not Found"});
-        }
-            
-        // Prevent Duplication
-        const existing = await postRescueRepo.findOne({where: {alertID} });
-        if (existing) return res.status(400).json({message: "Post Rescue Form Already Exists"});
-
-        // Create the Post Rescue Form
-        const newForm = postRescueRepo.create({
-            alertID,
-            noOfPersonnelDeployed,
-            resourcesUsed,
-            actionTaken,
-            completedAt: new Date()
-        });
-
-        await postRescueRepo.save(newForm);
-
-        // Update Rescue Form Status -> Dispatched
-        rescueForm.status = "Dispatched";
-        await rescueFormRepo.save(rescueForm);
-
-        // Cache
-        await deleteCache("completedReports");
-        await deleteCache("pendingReports");
-        await deleteCache("rescueForms:all");
-        await deleteCache(`rescueForm:${rescueForm.id}`);
-        await deleteCache(`alert:${alertID}`);
-
-        return res.status(201).json({message: "Post Rescue Form Created"}, newForm);
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({message: "Server Error"});
+    // Only Allowed if the Alert is "Dispatched"
+    if (alert.status !== "Dispatched") {
+      return res.status(400).json({ message: "Please Dispatched a Rescue Team First" });
     }
+
+    const rescueForm = await rescueFormRepo.findOne({ where: { emergencyID: alertID } });
+    if (!rescueForm) {
+      return res.status(400).json({ message: "Rescue Form Not Found" });
+    }
+
+    // Prevent Duplication
+    const existing = await postRescueRepo.findOne({ where: { alertID } });
+    if (existing) return res.status(400).json({ message: "Post Rescue Form Already Exists" });
+
+    // Create the Post Rescue Form
+    const newForm = postRescueRepo.create({
+      alertID,
+      noOfPersonnelDeployed,
+      resourcesUsed,
+      actionTaken,
+      completedAt: new Date()
+    });
+
+    await postRescueRepo.save(newForm);
+
+    // Update Rescue Form Status -> Dispatched
+    rescueForm.status = "Dispatched";
+    await rescueFormRepo.save(rescueForm);
+
+    // Cache
+    await deleteCache("completedReports");
+    await deleteCache("pendingReports");
+    await deleteCache("rescueForms:all");
+    await deleteCache(`rescueForm:${rescueForm.id}`);
+    await deleteCache(`alert:${alertID}`);
+
+    return res.status(201).json({ message: "Post Rescue Form Created" }, newForm);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error" });
+  }
 };
 
 // GET Completed Reports
@@ -155,7 +154,7 @@ const getAggregatedRescueReports = async (req, res) => {
 
     if (alertID) {
       qb = qb.where("alert.id = :alertID", { alertID })
-             .andWhere("rf.status = :rfStatus", { rfStatus: "Dispatched" });
+        .andWhere("rf.status = :rfStatus", { rfStatus: "Dispatched" });
     } else {
       // Only include those with a RescueForm that is Dispatched
       qb = qb.where("rf.status = :rfStatus", { rfStatus: "Dispatched" });
@@ -242,44 +241,44 @@ const getAggregatedRescueReports = async (req, res) => {
 // Post Rescue Form
 // Complete Table 
 const getAggregatedPostRescueForm = async (req, res) => {
-    try {
-        const { alertID } = req.query || {};
-        const cacheKey = alertID ? `aggregatedPRF:${alertID}` : `aggregatedPRF:all`;
-        const cached = await getCache(cacheKey);
-        if (cached) return res.json(cached);
+  try {
+    const { alertID } = req.query || {};
+    const cacheKey = alertID ? `aggregatedPRF:${alertID}` : `aggregatedPRF:all`;
+    const cached = await getCache(cacheKey);
+    if (cached) return res.json(cached);
 
-        let qb = postRescueRepo
-            .createQueryBuilder("prf")
-            .leftJoin("prf.alerts", "alert")
-            .leftJoin("rescueforms", "rf", "rf.emergencyID = alert.id")
-            .leftJoin("focalpersons", "fp", "fp.id = rf.focalPersonID")
-            .leftJoin("dispatchers", "dispatcher", "dispatcher.id = rf.dispatcherID");
+    let qb = postRescueRepo
+      .createQueryBuilder("prf")
+      .leftJoin("prf.alerts", "alert")
+      .leftJoin("rescueforms", "rf", "rf.emergencyID = alert.id")
+      .leftJoin("focalpersons", "fp", "fp.id = rf.focalPersonID")
+      .leftJoin("dispatchers", "dispatcher", "dispatcher.id = rf.dispatcherID");
 
-        if (alertID) {
-            qb = qb.where("prf.alertID = :alertID", { alertID });
-        }
-
-        const rows = await qb
-            .select([
-                "rf.emergencyID AS emergencyId",
-                "alert.terminalID AS terminalId",
-                "fp.firstName AS focalFirstName",
-                "fp.lastName AS focalLastName",
-                "alert.dateTimeSent AS dateTimeOccurred",
-                "alert.alertType AS alertType",
-                "fp.address AS houseAddress",
-                "dispatcher.name AS dispatchedName",
-                "prf.completedAt AS completionDate",
-            ])
-            .orderBy("prf.completedAt", "DESC")
-            .getRawMany();
-
-        await setCache(cacheKey, rows, 300);
-        return res.json(rows);
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: "Server Error" });
+    if (alertID) {
+      qb = qb.where("prf.alertID = :alertID", { alertID });
     }
+
+    const rows = await qb
+      .select([
+        "rf.emergencyID AS emergencyId",
+        "alert.terminalID AS terminalId",
+        "fp.firstName AS focalFirstName",
+        "fp.lastName AS focalLastName",
+        "alert.dateTimeSent AS dateTimeOccurred",
+        "alert.alertType AS alertType",
+        "fp.address AS houseAddress",
+        "dispatcher.name AS dispatchedName",
+        "prf.completedAt AS completionDate",
+      ])
+      .orderBy("prf.completedAt", "DESC")
+      .getRawMany();
+
+    await setCache(cacheKey, rows, 300);
+    return res.json(rows);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error" });
+  }
 };
 
 module.exports = {

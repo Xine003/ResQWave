@@ -32,14 +32,14 @@ export function LoginFocal() {
         }
       );
       // Success: store tempToken for verification step
-      let tempToken = res.tempToken || '';
+      const tempToken = res.tempToken || '';
       // Reset OTP expiry timer to 5 minutes from now on login
       localStorage.setItem('focalOtpExpiry', (Date.now() + 5 * 60 * 1000).toString());
       // Store emailOrNumber in localStorage for lockout check on refresh
       localStorage.setItem('focalEmailOrNumber', id);
       setIsLoading(false);
       navigate('/verification-signin-focal', { state: { tempToken, emailOrNumber: id } });
-    } catch (err: any) {
+    } catch {
       setIsLoading(false);
       // Always show a generic error message for backend login errors
       setError('Invalid email/phone number or password. Please try again.');
@@ -168,7 +168,7 @@ export function LoginFocal() {
                 style={{
                   fontSize: window.innerWidth <= 480 ? '13px' : '16px',
                   height: window.innerWidth <= 480 ? '38px' : '55px',
-                  width: window.innerWidth <= 480 ? '100%' : '100%',
+                  width: '100%',
                   maxWidth: window.innerWidth <= 480 ? '260px' : undefined,
                   marginLeft: window.innerWidth <= 480 ? 'auto' : undefined,
                   marginRight: window.innerWidth <= 480 ? 'auto' : undefined,

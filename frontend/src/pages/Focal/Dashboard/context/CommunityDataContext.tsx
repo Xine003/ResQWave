@@ -1,7 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext } from 'react';
 import useCommunityDataRaw from '../hooks/useCommunityData';
 
-const CommunityDataContext = createContext<any>(null);
+type CommunityDataContextType = ReturnType<typeof useCommunityDataRaw>;
+
+const CommunityDataContext = createContext<CommunityDataContextType | null>(null);
 
 export function CommunityDataProvider({ children }: { children: React.ReactNode }) {
     const { data, loading, error, refetch } = useCommunityDataRaw();

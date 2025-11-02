@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState } from 'react';
 
 interface RescueFormContextType {
@@ -37,5 +38,5 @@ export const useRescueForm = (): RescueFormContextType => {
   if (context === undefined) {
     throw new Error('useRescueForm must be used within a RescueFormProvider');
   }
-  return context; 
+  return context;
 };

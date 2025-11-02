@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { disconnectSocket, initializeSocket } from '@/services/socketService';
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -32,7 +33,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   useEffect(() => {
     // Get JWT token from localStorage (matches AuthContext key)
     const token = localStorage.getItem('resqwave_token');
-    
+
     if (!token) {
       console.log('[SocketContext] No token found, skipping connection');
       return;

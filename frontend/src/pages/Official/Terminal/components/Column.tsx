@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -78,12 +79,12 @@ export const createColumns = (opts: TerminalColumnsOptions): ColumnDef<Terminal>
       try {
         const dateA = new Date(rowA.getValue(columnId))
         const dateB = new Date(rowB.getValue(columnId))
-        
+
         // Handle invalid dates
         if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0
         if (isNaN(dateA.getTime())) return 1
         if (isNaN(dateB.getTime())) return -1
-        
+
         // Sort by date ascending (oldest to newest)
         return dateA.getTime() - dateB.getTime()
       } catch (error) {

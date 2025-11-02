@@ -35,7 +35,7 @@ export function animatePinBounce(
   const height = Math.max(4, Math.min(24, opts.height ?? 12))
 
   // Use Web Animations API when available
-  if (typeof (target as any).animate === "function") {
+  if ('animate' in target && typeof target.animate === "function") {
     const frames: Keyframe[] = [{ transform: "translateY(0px) scale(1)" }]
     for (let i = 0; i < bounces; i++) {
       const decay = Math.pow(0.6, i)
@@ -46,13 +46,14 @@ export function animatePinBounce(
     }
 
     target.style.willChange = "transform"
-    const anim = (target as any).animate(frames, {
+    const anim = target.animate(frames, {
       duration,
       easing: "cubic-bezier(0.22, 1, 0.36, 1)", // easeOutBack-ish
       fill: "none",
     })
 
     return anim.finished
+      .then(() => void 0)
       .catch(() => void 0)
       .finally(() => {
         target.style.willChange = ""
@@ -95,8 +96,8 @@ export async function animatePinSaved(marker: Marker): Promise<void> {
   const root = marker?.getElement?.() as (HTMLElement & { __pinWrap?: HTMLElement })
   if (!root) return
   const target = root.__pinWrap ?? root
-  if (typeof (target as any).animate !== "function") return
-  await (target as any)
+  if (!('animate' in target && typeof target.animate === 'function')) return
+  await target
     .animate(
       [
         { transform: "translateY(0px) scale(1)" },

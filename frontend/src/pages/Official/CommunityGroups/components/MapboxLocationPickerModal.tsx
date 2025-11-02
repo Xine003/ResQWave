@@ -75,7 +75,7 @@ export function MapboxLocationPickerModal({
       markerRef.current = new mapboxgl.Marker({ color: "#3b82f6" })
         .setLngLat([lng, lat])
         .addTo(map)
-      
+
       reverseGeocode(lng, lat).then((address) => {
         setSelectedPoint({ lng, lat, address })
         console.log(`✅ Initial location geocoded: ${address}`)
@@ -88,22 +88,24 @@ export function MapboxLocationPickerModal({
     // Resize guards
     map.on("load", () => {
       console.log("🗺️ Map loaded successfully")
-      try { ensureSquareBlueImage(map) } catch { }
-      try { map.resize() } catch { }
-      setTimeout(() => { try { map.resize() } catch { } }, 100)
-      setTimeout(() => { try { map.resize() } catch { } }, 500)
+      try { ensureSquareBlueImage(map); } catch { /* Ignore image load errors */ }
+      try { map.resize(); } catch { /* Ignore resize errors */ }
+      setTimeout(() => { try { map.resize(); } catch { /* Ignore resize errors */ } }, 100)
+      setTimeout(() => { try { map.resize(); } catch { /* Ignore resize errors */ } }, 500)
     })
 
     let ro: ResizeObserver | null = null
     try {
-      ro = new ResizeObserver(() => { try { map.resize() } catch { } })
+      ro = new ResizeObserver(() => { try { map.resize(); } catch { /* Ignore resize errors */ } })
       if (mapContainerRef.current) ro.observe(mapContainerRef.current)
-    } catch { }
+    } catch { /* Ignore ResizeObserver errors */ }
 
     return () => {
       console.log("🗺️ Cleaning up map...")
-      try { ro && mapContainerRef.current && ro.unobserve(mapContainerRef.current) } catch { }
-      try { map.remove() } catch { }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const currentContainer = mapContainerRef.current
+      try { if (ro && currentContainer) ro.unobserve(currentContainer); } catch { /* Ignore cleanup errors */ }
+      try { map.remove(); } catch { /* Ignore remove errors */ }
       mapRef.current = null
       markerRef.current = null
     }
@@ -115,23 +117,23 @@ export function MapboxLocationPickerModal({
     const m = mapRef.current as mapboxgl.Map
 
     // Clear existing listeners
-    try { m.off("click", onMapClick as any) } catch {}
-    
+    try { m.off("click", onMapClick) } catch { /* Ignore listener removal errors */ }
+
     m.on("click", onMapClick)
-    
+
     // Set cursor on both canvas and container
-    try { 
+    try {
       m.getCanvas().style.cursor = "crosshair"
       if (mapContainerRef.current) {
         mapContainerRef.current.style.cursor = "crosshair"
       }
-    } catch {}
+    } catch { /* Ignore cursor style errors */ }
 
-    function onMapClick(e: any) {
+    function onMapClick(e: mapboxgl.MapMouseEvent) {
       const { lng, lat } = e.lngLat
-      
+
       console.log(`📍 Map clicked at: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`)
-      
+
       // Set/update marker
       if (markerRef.current) {
         markerRef.current.setLngLat([lng, lat])
@@ -140,10 +142,10 @@ export function MapboxLocationPickerModal({
           .setLngLat([lng, lat])
           .addTo(m)
       }
-      
+
       // Reset saved state when placing new pin
       setTerminalSaved(false)
-      
+
       // Reverse geocode for address
       reverseGeocode(lng, lat).then((address) => {
         console.log(`✅ Address found: ${address}`)
@@ -158,13 +160,15 @@ export function MapboxLocationPickerModal({
     }
 
     return () => {
-      try { m.off("click", onMapClick as any) } catch {}
-      try { 
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const currentContainer = mapContainerRef.current
+      try { m.off("click", onMapClick); } catch { /* Ignore listener removal errors */ }
+      try {
         m.getCanvas().style.cursor = ""
-        if (mapContainerRef.current) {
-          mapContainerRef.current.style.cursor = ""
+        if (currentContainer) {
+          currentContainer.style.cursor = ""
         }
-      } catch {}
+      } catch { /* Ignore cursor reset errors */ }
     }
   }, [open])
 
@@ -172,28 +176,28 @@ export function MapboxLocationPickerModal({
   useEffect(() => {
     const map = mapRef.current
     if (!map || !open) return
-    try { 
-      map.setStyle(`mapbox://styles/mapbox/${baseStyle}`) 
+    try {
+      map.setStyle(`mapbox://styles/mapbox/${baseStyle}`)
       map.once("styledata", () => {
-        try { ensureSquareBlueImage(map) } catch { }
+        try { ensureSquareBlueImage(map); } catch { /* Ignore image load errors */ }
       })
-    } catch { }
+    } catch { /* Ignore style change errors */ }
   }, [baseStyle, open])
 
   const handleCancel = () => {
     // Hide alerts
     alertsRef.current?.hideAll()
-    
+
     // Clean up marker if not saving
     if (!terminalSaved) {
-      try { markerRef.current?.remove() } catch {}
+      try { markerRef.current?.remove(); } catch { /* Ignore marker removal errors */ }
       markerRef.current = null
       setSelectedPoint(null)
     }
-    
+
     // Reset saved state
     setTerminalSaved(false)
-    
+
     onOpenChange(false)
   }
 
@@ -208,25 +212,25 @@ export function MapboxLocationPickerModal({
 
   const handleConfirm = () => {
     if (!selectedPoint) return
-    
+
     // Hide alerts
     alertsRef.current?.hideAll()
-    
+
     // Pass data back to parent - MUST be lng,lat format for Mapbox
     const coordinates = `${selectedPoint.lng.toFixed(6)}, ${selectedPoint.lat.toFixed(6)}`
     onLocationSelect(selectedPoint.address, coordinates)
-    
+
     // Clean up and close
     setSelectedPoint(null)
     setTerminalSaved(false)
-    try { markerRef.current?.remove() } catch {}
+    try { markerRef.current?.remove(); } catch { /* Ignore marker removal errors */ }
     markerRef.current = null
-    
+
     onOpenChange(false)
   }
 
   const handleUndo = () => {
-    try { markerRef.current?.remove() } catch {}
+    try { markerRef.current?.remove(); } catch { /* Ignore marker removal errors */ }
     markerRef.current = null
     setSelectedPoint(null)
     setTerminalSaved(false)
@@ -234,9 +238,9 @@ export function MapboxLocationPickerModal({
   }
 
   const makeTooltip = (text: string) => <span>{text}</span>
-  const addCustomLayers = (_m: mapboxgl.Map) => {
+  const addCustomLayers = () => {
     if (mapRef.current) {
-      try { ensureSquareBlueImage(mapRef.current) } catch {}
+      try { ensureSquareBlueImage(mapRef.current); } catch { /* Ignore image load errors */ }
     }
   }
 
@@ -244,7 +248,7 @@ export function MapboxLocationPickerModal({
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/80" onClick={handleCancel}>
-      <div 
+      <div
         className="fixed inset-0 w-screen h-screen bg-[#171717] text-white flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -253,21 +257,21 @@ export function MapboxLocationPickerModal({
           <div className="font-semibold text-base">
             {title}
           </div>
-          
+
           <div className="flex gap-2">
             {!terminalSaved && (
               <>
-                <Button 
-                  onClick={handleSave} 
-                  disabled={!selectedPoint} 
+                <Button
+                  onClick={handleSave}
+                  disabled={!selectedPoint}
                   className="bg-[#4285f4] hover:bg-[#3367d6] text-white disabled:opacity-60"
                 >
                   <CircleCheck className="w-4 h-4 mr-2" />
                   Save
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleCancel} 
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
                   className="bg-transparent border-[#2a2a2a] text-white hover:bg-[#262626]"
                 >
                   <CircleX className="w-4 h-4 mr-2" />
@@ -277,16 +281,16 @@ export function MapboxLocationPickerModal({
             )}
             {terminalSaved && (
               <>
-                <Button 
-                  onClick={handleConfirm} 
+                <Button
+                  onClick={handleConfirm}
                   className="bg-[#4285f4] hover:bg-[#3367d6] text-white"
                 >
                   <CircleCheck className="w-4 h-4 mr-2" />
                   Confirm
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleCancel} 
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
                   className="bg-transparent border-[#2a2a2a] text-white hover:bg-[#262626]"
                 >
                   <CircleX className="w-4 h-4 mr-2" />
@@ -299,11 +303,11 @@ export function MapboxLocationPickerModal({
 
         {/* Map Container - Fixed height to fill remaining space */}
         <div className="relative flex-1 w-full h-[calc(100vh-73px)]">
-          <div 
-            ref={mapContainerRef} 
+          <div
+            ref={mapContainerRef}
             className="absolute inset-0 w-full h-full min-h-[400px] cursor-crosshair"
           />
-          
+
           {/* Map Controls (Floating) */}
           <div className="absolute bottom-4 right-4 z-10">
             <SettingLocationControls

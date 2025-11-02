@@ -14,18 +14,18 @@ interface FormErrors {
   name?: string
 }
 
-export function CreateTerminalSheet({ 
-  open, 
-  onOpenChange, 
-  onSave, 
-  editData 
+export function CreateTerminalSheet({
+  open,
+  onOpenChange,
+  onSave,
+  editData
 }: TerminalDrawerProps) {
   const isEditing = !!editData
-  
+
   const [formData, setFormData] = useState<FormData>({
     name: "",
   })
-  
+
   const [errors, setErrors] = useState<FormErrors>({})
   const [displayId, setDisplayId] = useState<string>("")
   const [isLoadingId, setIsLoadingId] = useState<boolean>(false)
@@ -82,12 +82,12 @@ export function CreateTerminalSheet({
     if (field === 'name' && value.length > 50) {
       return // Don't update state if exceeding limit
     }
-    
+
     setFormData(prev => ({
       ...prev,
       [field]: value
     }))
-    
+
     // Clear error for this field when user starts typing
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({
@@ -95,7 +95,7 @@ export function CreateTerminalSheet({
         [field]: undefined
       }))
     }
-    
+
     // Real-time validation
     if (field === 'name') {
       const error = validateName(value)
@@ -106,7 +106,7 @@ export function CreateTerminalSheet({
   const handleSave = useCallback(() => {
     // Validate all fields
     const nameError = validateName(formData.name)
-    
+
     const newErrors: FormErrors = {
       name: nameError,
     }
@@ -132,7 +132,7 @@ export function CreateTerminalSheet({
     onSave?.(terminalFormData).then(() => {
       // Close modal after successful save
       onOpenChange(false)
-      
+
       // Reset form
       setFormData({ name: "" })
       setErrors({})
@@ -140,7 +140,7 @@ export function CreateTerminalSheet({
       console.error('Error saving terminal:', err)
       // Error is handled by the parent component
     })
-  }, [formData, onSave])
+  }, [formData, onSave, onOpenChange])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

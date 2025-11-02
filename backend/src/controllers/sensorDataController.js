@@ -1,5 +1,5 @@
 const { AppDataSource } = require("../config/dataSource");
-const SensorData = require("../models/SensorData");
+// removed unused SensorData variable
 
 // Get the latest sensor status (assume only one row, or get the latest by ID)
 exports.getLatestStatus = async (req, res) => {

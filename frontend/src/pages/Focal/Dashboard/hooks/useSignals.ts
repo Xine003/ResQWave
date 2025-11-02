@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../../../../lib/api';
 import { useFocalAuth } from '../../context/focalAuthContext';
+import type { Signal, SignalPopover, InfoBubble } from '../types/signals';
+
+
 // Fallback initial values (empty)
 const initialOtherSignals: Signal[] = [];
 const initialOwnCommunitySignal: Signal = {
@@ -15,23 +18,8 @@ const initialOwnCommunitySignal: Signal = {
         name: ''
     },
 };
-import type { Signal, SignalPopover, InfoBubble } from '../types/signals';
 
-
-// Fallback initial values (empty)
 export function useSignals() {
-const initialOwnCommunitySignal: Signal = {
-    coordinates: [0, 0],
-    properties: {
-        status: '',
-        deviceId: '',
-        focalPerson: '',
-        altFocalPerson: '',
-        address: '',
-        date: '',
-        name: ''
-    },
-};
 
 
     const { token } = useFocalAuth();
@@ -54,9 +42,22 @@ const initialOwnCommunitySignal: Signal = {
                 if (token) headers['Authorization'] = `Bearer ${token}`;
 
                 // Fetch own neighborhood (with focal, terminal info)
-                const own = await apiFetch<any>(`/neighborhood/map/own`, { headers });
+                const own = await apiFetch<{
+                    address?: string;
+                    terminalID?: string;
+                    focalPerson?: {
+                        name?: string;
+                        alternativeFPFirstName?: string;
+                        alternativeFPLastName?: string;
+                    };
+                    createdDate?: string;
+                }>(`/neighborhood/map/own`, { headers });
                 // Fetch other neighborhoods (limited info)
-                const others = await apiFetch<any[]>(`/neighborhood/map/others`, { headers });
+                const others = await apiFetch<Array<{
+                    address?: string;
+                    terminalID?: string;
+                    createdDate?: string;
+                }>>(`/neighborhood/map/others`, { headers });
 
 
                 // Parse coordinates from address JSON string
@@ -69,7 +70,7 @@ const initialOwnCommunitySignal: Signal = {
                             ownCoords = [addrObj.lng, addrObj.lat];
                             ownAddress = addrObj.address || '';
                         }
-                    } catch (e) {
+                    } catch {
                         ownAddress = own.address;
                     }
                 }
@@ -91,7 +92,7 @@ const initialOwnCommunitySignal: Signal = {
                 });
 
                 setOtherSignals(
-                    (others || []).map((nb: any) => {
+                    (others || []).map((nb: { terminalID?: string; address?: string | Record<string, unknown>; groupName?: string; createdDate?: string }) => {
                         // Parse coordinates from address JSON string
                         let coords: [number, number] = [0, 0];
                         let address = '';
@@ -102,8 +103,8 @@ const initialOwnCommunitySignal: Signal = {
                                     coords = [addrObj.lng, addrObj.lat];
                                     address = addrObj.address || '';
                                 }
-                            } catch (e) {
-                                address = nb.address;
+                            } catch {
+                                address = typeof nb.address === 'string' ? nb.address : '';
                             }
                         }
                         return {
@@ -120,12 +121,13 @@ const initialOwnCommunitySignal: Signal = {
                         };
                     })
                 );
-            } catch (e) {
+            } catch {
                 setOtherSignals(initialOtherSignals);
                 setOwnCommunitySignal(initialOwnCommunitySignal);
             }
         }
         fetchSignals();
+
     }, [token]);
 
     const updateBoundary = (deviceId: string | undefined, newBoundary: [number, number][] | null) => {

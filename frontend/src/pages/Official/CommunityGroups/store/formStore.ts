@@ -11,7 +11,7 @@ interface GlobalFormState {
   notableInfoInputs: string[]
   isDirty: boolean
   isEditing: boolean
-  editData: any
+  editData: unknown
 }
 
 const createInitialFormData = (): CommunityFormData => ({
@@ -59,7 +59,7 @@ const subscribers = new Set<() => void>()
 // Global form store
 export const formStore = {
   getState: () => globalFormState,
-  
+
   setState: (updater: (state: GlobalFormState) => GlobalFormState) => {
     globalFormState = updater(globalFormState)
     subscribers.forEach(callback => callback())
@@ -123,7 +123,7 @@ export const formStore = {
     }))
   },
 
-  setEditData: (data: any) => {
+  setEditData: (data: unknown) => {
     formStore.setState(state => ({
       ...state,
       editData: data
@@ -132,14 +132,14 @@ export const formStore = {
 
   handleFileUpload: (field: "focalPersonPhoto" | "altFocalPersonPhoto", file: File | null) => {
     const currentState = formStore.getState()
-    
+
     // Update form data
     formStore.setState(state => ({
       ...state,
       formData: { ...state.formData, [field]: file },
       isDirty: true
     }))
-    
+
     // Create and store the photo URL for display
     if (file) {
       const url = URL.createObjectURL(file)
@@ -158,15 +158,15 @@ export const formStore = {
     if (state.photoUrls.focalPersonPhoto && state.photoUrls.focalPersonPhoto.startsWith('blob:')) {
       try {
         URL.revokeObjectURL(state.photoUrls.focalPersonPhoto)
-      } catch (e) {
+      } catch {
         // Ignore cleanup errors
       }
     }
-    
+
     if (state.photoUrls.altFocalPersonPhoto && state.photoUrls.altFocalPersonPhoto.startsWith('blob:')) {
       try {
         URL.revokeObjectURL(state.photoUrls.altFocalPersonPhoto)
-      } catch (e) {
+      } catch {
         // Ignore cleanup errors
       }
     }

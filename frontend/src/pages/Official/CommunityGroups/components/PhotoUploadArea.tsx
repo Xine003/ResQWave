@@ -30,19 +30,19 @@ export const PhotoUploadArea = ({
       hasFile: !!photo,
       photoUrls: photoUrls[photoUrlKey]
     })
-    
+
     // First priority: use the stored URL (for restored photos or manually set URLs)
     if (photoUrls[photoUrlKey]) {
       console.log(`✅ Using stored URL for ${photoUrlKey}:`, photoUrls[photoUrlKey]!.substring(0, 50) + '...')
       return photoUrls[photoUrlKey]
     }
-    
+
     // Second priority: create from file (for newly uploaded photos)
     if (!photo) {
       console.log(`ℹ️ No photo file or stored URL for ${photoUrlKey}`)
       return null
     }
-    
+
     try {
       const newUrl = URL.createObjectURL(photo)
       console.log(`🆕 Created new object URL for ${photoUrlKey}:`, newUrl)
@@ -61,7 +61,7 @@ export const PhotoUploadArea = ({
         try {
           URL.revokeObjectURL(photoUrl)
           console.log(`🧹 Cleaned up temporary blob URL for ${photoUrlKey}`)
-        } catch (e) {
+        } catch {
           // Ignore cleanup errors
         }
       }

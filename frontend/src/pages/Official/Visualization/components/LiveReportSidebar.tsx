@@ -27,17 +27,17 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
     // Filter signals - properly separate between unassigned and waitlisted
     // Get device IDs that have been added to waitlist to exclude them from unassigned
     const waitlistedDeviceIds = waitlistedForms.map(form => form.deviceId).filter(Boolean);
-    
+
     // Unassigned: CRITICAL and USER-INITIATED alerts that are currently ONLINE (active/unassigned)
     // and NOT in the waitlist
-    const unassignedAlerts = signals.filter(signal => 
+    const unassignedAlerts = signals.filter(signal =>
         (signal.properties.alertType === 'CRITICAL' || signal.properties.alertType === 'USER-INITIATED') &&
         signal.properties.status === 'ONLINE' &&
         !waitlistedDeviceIds.includes(signal.properties.deviceId)
     );
-    
+
     // Waitlisted: CRITICAL and USER-INITIATED alerts that are OFFLINE (waiting/assigned)
-    const waitlistedAlerts = signals.filter(signal => 
+    const waitlistedAlerts = signals.filter(signal =>
         (signal.properties.alertType === 'CRITICAL' || signal.properties.alertType === 'USER-INITIATED') &&
         signal.properties.status === 'OFFLINE'
     );
@@ -62,10 +62,10 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
     const formatTime = (dateString?: string) => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
-        return date.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
+        return date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
             minute: '2-digit',
-            hour12: true 
+            hour12: true
         });
     };
 
@@ -91,15 +91,15 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                         let hours = parseInt(timeMatch[1]);
                         const minutes = parseInt(timeMatch[2]);
                         const period = timeMatch[3].toUpperCase();
-                        
+
                         if (period === 'PM' && hours !== 12) hours += 12;
                         if (period === 'AM' && hours === 12) hours = 0;
-                        
+
                         today.setHours(hours, minutes, 0, 0);
                         return today.getTime();
                     }
-                } catch (e) {
-                    // Ignore parsing errors
+                } catch {
+                    // Ignore date parsing errors
                 }
             }
             return Date.now(); // Default to now if no valid date
@@ -119,8 +119,8 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
     };
 
     const renderAlertCard = (signal: Signal, index: number) => (
-        <div 
-            key={`signal-${signal.properties.deviceId}-${index}`} 
+        <div
+            key={`signal-${signal.properties.deviceId}-${index}`}
             className="border border-[#2a2a2a] rounded-[5px] p-4 mb-3 relative hover:bg-[#262626] transition-colors duration-200 cursor-pointer"
             onClick={() => onCardClick?.(signal)}
         >
@@ -128,28 +128,27 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                 <h3 className="text-white font-medium text-sm mb-3">
                     {signal.properties.name || 'Unknown Location'}
                 </h3>
-                
+
                 {signal.properties.alertType && (
                     <div className="mb-3">
-                        <Badge 
-                            variant="outline" 
-                            className={`text-xs px-2 py-1 rounded-[3px] ${
-                                signal.properties.alertType === 'CRITICAL' 
-                                    ? 'border-red-500 text-red-500 bg-red-500/10' 
+                        <Badge
+                            variant="outline"
+                            className={`text-xs px-2 py-1 rounded-[3px] ${signal.properties.alertType === 'CRITICAL'
+                                    ? 'border-red-500 text-red-500 bg-red-500/10'
                                     : 'border-yellow-500 text-yellow-500 bg-yellow-500/10'
-                            }`}
+                                }`}
                         >
                             {signal.properties.alertType}
                         </Badge>
                     </div>
                 )}
-                
+
                 <div className="space-y-1 text-xs text-gray-400">
                     <p>Time Sent: {signal.properties.timeSent || formatTime(signal.properties.date)}</p>
                     <p>{signal.properties.address || 'No address provided'}</p>
                 </div>
             </div>
-            
+
             {/* Info button positioned on the right side, vertically centered */}
             <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                 <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-6 w-6">
@@ -160,8 +159,8 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
     );
 
     const renderWaitlistCard = (form: WaitlistedRescueForm, index: number) => (
-        <div 
-            key={`waitlist-${form.id}-${index}`} 
+        <div
+            key={`waitlist-${form.id}-${index}`}
             className="border border-[#2a2a2a] rounded-[5px] p-4 mb-3 relative hover:bg-[#262626] transition-colors duration-200 cursor-pointer"
             onClick={() => {
                 setSelectedWaitlistForm(form);
@@ -172,28 +171,27 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                 <h3 className="text-white font-medium text-sm mb-3">
                     {form.deviceId || 'TERMINAL ID'}
                 </h3>
-                
+
                 {form.alertType && (
                     <div className="mb-3">
-                        <Badge 
-                            variant="outline" 
-                            className={`text-xs px-2 py-1 rounded-[3px] ${
-                                form.alertType === 'CRITICAL' 
-                                    ? 'border-red-500 text-red-500 bg-red-500/10' 
+                        <Badge
+                            variant="outline"
+                            className={`text-xs px-2 py-1 rounded-[3px] ${form.alertType === 'CRITICAL'
+                                    ? 'border-red-500 text-red-500 bg-red-500/10'
                                     : 'border-yellow-500 text-yellow-500 bg-yellow-500/10'
-                            }`}
+                                }`}
                         >
                             {form.alertType === 'CRITICAL' ? 'Critical' : 'User-Initiated'}
                         </Badge>
                     </div>
                 )}
-                
+
                 <div className="space-y-1 text-xs text-gray-400">
                     <p>Time Sent: {form.date || formatTime(form.timestamp)}</p>
                     <p>{form.address || 'No address provided'}</p>
                 </div>
             </div>
-            
+
             <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                 <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white h-6 w-6">
                     <Info className="h-4.5 w-4.5" />
@@ -214,7 +212,7 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
 
         // Combine signals and waitlisted forms for sorting (only for waitlisted tab)
         let allItems: (Signal | WaitlistedRescueForm)[] = [...uniqueAlerts];
-        
+
         if (activeTab === 'waitlisted' && waitlistedForms) {
             allItems = [...uniqueAlerts, ...waitlistedForms];
         }
@@ -249,10 +247,9 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
     };
 
     return (
-        <div 
-            className={`fixed top-0 right-0 h-full w-[400px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out ${
-                isOpen ? 'translate-x-0' : 'translate-x-full'
-            }`}
+        <div
+            className={`fixed top-0 right-0 h-full w-[400px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'
+                }`}
             style={{ zIndex: 50 }}
         >
             {/* Header */}
@@ -277,11 +274,10 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                 <div className="flex gap-2 p-1 rounded-[5px] bg-[#262626]">
                     <button
                         onClick={() => setActiveTab('unassigned')}
-                        className={`flex-1 rounded-[5px] h-8 px-4 transition-colors duration-200 flex items-center justify-center ${
-                            activeTab === 'unassigned'
+                        className={`flex-1 rounded-[5px] h-8 px-4 transition-colors duration-200 flex items-center justify-center ${activeTab === 'unassigned'
                                 ? 'bg-[#414141] text-white'
                                 : 'bg-transparent text-gray-300 hover:text-white hover:bg-[#333333]'
-                        }`}
+                            }`}
                     >
                         Unassigned
                         <span className="ml-2 bg-[#606060] text-white text-xs px-2 py-1 rounded-full">
@@ -290,11 +286,10 @@ export default function LiveReportSidebar({ isOpen, onClose, signals, onCardClic
                     </button>
                     <button
                         onClick={() => setActiveTab('waitlisted')}
-                        className={`flex-1 rounded-[5px] h-8 px-4 transition-colors duration-200 flex items-center justify-center ${
-                            activeTab === 'waitlisted'
+                        className={`flex-1 rounded-[5px] h-8 px-4 transition-colors duration-200 flex items-center justify-center ${activeTab === 'waitlisted'
                                 ? 'bg-[#414141] text-white'
                                 : 'bg-transparent text-gray-300 hover:text-white hover:bg-[#333333]'
-                        }`}
+                            }`}
                     >
                         Waitlisted
                         <span className="ml-2 bg-[#606060] text-white text-xs px-2 py-1 rounded-full">

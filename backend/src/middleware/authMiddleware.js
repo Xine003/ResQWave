@@ -7,8 +7,8 @@ const authMiddleware = async (req, res, next) => {
     const authHeader = req.headers["authorization"]
     const token = authHeader && authHeader.split(" ")[1];
 
-    if(!token) {
-        return res.status(401).json({ message: "Access Denied. No Token Provided"});
+    if (!token) {
+        return res.status(401).json({ message: "Access Denied. No Token Provided" });
     }
 
     try {
@@ -24,11 +24,11 @@ const authMiddleware = async (req, res, next) => {
 
         // Check if the session is Enough
         if (!decoded.sessionID) {
-            return res.status(403).json({message: "Invalid Session"});
+            return res.status(403).json({ message: "Invalid Session" });
         }
 
         const session = await verificationRepo.findOne({
-            where: {sessionID: decoded.sessionID},
+            where: { sessionID: decoded.sessionID },
         });
 
         if (!session || new Date() > session.expiry) {
@@ -39,11 +39,11 @@ const authMiddleware = async (req, res, next) => {
         req.user = decoded;
         // Optional: normalize for focal users so code can read either field
         if (req.user?.role && req.user.role.toLowerCase() === "focalperson") {
-          req.user.focalPersonID = req.user.id; // alias
+            req.user.focalPersonID = req.user.id; // alias
         }
         next();
-    } catch (err) {
-        return res.status(403).json({ message: "Invalid or Expired Token"});
+    } catch {
+        return res.status(403).json({ message: "Invalid or Expired Token" });
     }
 };
 
@@ -51,7 +51,7 @@ const authMiddleware = async (req, res, next) => {
 const requireRole = (roles) => (req, res, next) => {
     const allowed = Array.isArray(roles) ? roles : [roles];
     if (!req.user || !req.user.role || !allowed.includes(req.user.role)) {
-        return res.status(403).json({message: "Forbidden"});
+        return res.status(403).json({ message: "Forbidden" });
     }
     next();
 };

@@ -1,5 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip-white";
-import { useAuth } from "@/contexts/AuthContext";
+// import { useAuth } from "@/contexts/AuthContext";
 import { ClipboardCheck, Radio, RadioReceiver, UserCog, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SettingsPopover from "./settingsPopover";
@@ -39,23 +39,18 @@ const adminOnlyItems = [
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Safely get auth context - may be null if outside provider
   let isAdminUser = false;
   try {
-    const { isAdmin } = useAuth();
-    isAdminUser = isAdmin();
-  } catch (error) {
-    // useAuth will throw if outside provider, fallback to checking localStorage
+    // Try to get user from localStorage
     const storedUser = localStorage.getItem('resqwave_user');
     if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        isAdminUser = user.role === 'admin';
-      } catch {
-        isAdminUser = false;
-      }
+      const user = JSON.parse(storedUser);
+      isAdminUser = user.role === 'admin';
     }
+  } catch {
+    isAdminUser = false;
   }
 
   // Combine navigation items based on user role
@@ -84,11 +79,10 @@ export default function Sidebar() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        className={`w-[50px] h-[50px] flex my-0.5 items-center justify-center gap-2.5 flex-shrink-0 aspect-square rounded-[5px] border-[1.5px] border-[#404040] transition-colors ${
-                          isActive
+                        className={`w-[50px] h-[50px] flex my-0.5 items-center justify-center gap-2.5 flex-shrink-0 aspect-square rounded-[5px] border-[1.5px] border-[#404040] transition-colors ${isActive
                             ? "bg-white text-black"
                             : "bg-[#171717] text-white/60 hover:bg-[#302F2F] hover:text-white"
-                        }`}
+                          }`}
                         onClick={() => navigate(item.path)}
                         aria-label={item.label}
                       >
@@ -107,7 +101,7 @@ export default function Sidebar() {
 
         <div className="relative flex flex-col items-center">
           <SettingsPopover
-            isActive={location.pathname === "/settings-dispatcher"} 
+            isActive={location.pathname === "/settings-dispatcher"}
             isMobile={false}
           />
         </div>
@@ -124,11 +118,10 @@ export default function Sidebar() {
             <Tooltip key={index}>
               <TooltipTrigger asChild>
                 <button
-                  className={`flex flex-col items-center justify-center transition-colors ${
-                    isActive
+                  className={`flex flex-col items-center justify-center transition-colors ${isActive
                       ? "text-black bg-white"
                       : "text-white/60 hover:text-white"
-                  }`}
+                    }`}
                   onClick={() => navigate(item.path)}
                   aria-label={item.label}
                 >
@@ -144,7 +137,7 @@ export default function Sidebar() {
         })}
         <div className="relative flex flex-col items-center">
           <SettingsPopover
-            isActive={location.pathname === "/settings-dispatcher"} 
+            isActive={location.pathname === "/settings-dispatcher"}
             isMobile={true}
           />
         </div>

@@ -18,7 +18,7 @@ export function Step5AlternativeFocalPerson({ onNext, onBack, isLoading = false 
 
   // Philippine mobile number validation (same as RegisterAccount)
   const validatePhoneNumber = (phone: string): boolean => {
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    const cleanPhone = phone.replace(/[\s\-()]/g, '');
     const phoneRegex = /^9\d{9}$/;
     return phoneRegex.test(cleanPhone);
   };

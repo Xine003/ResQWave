@@ -16,9 +16,9 @@ const makeArchivedColumns = (
   onMoreInfo: (t: Terminal) => void,
   onRestore?: (t: Terminal) => void,
   onDeletePermanent?: (t: Terminal) => void
-) => 
-  createColumns({ 
-    onMoreInfo, 
+) =>
+  createColumns({
+    onMoreInfo,
     onEdit: undefined, // No edit for archived items
     onArchive: undefined // No archive for already archived items
   }).map(column => {
@@ -26,7 +26,7 @@ const makeArchivedColumns = (
       return {
         id: "actions",
         enableHiding: false,
-        cell: ({ row }: any) => (
+        cell: ({ row }: { row: { original: Terminal } }) => (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0 text-[#a1a1a1] hover:text-white hover:bg-[#262626]">
@@ -41,33 +41,33 @@ const makeArchivedColumns = (
                 </svg>
               </Button>
             </DropdownMenuTrigger>
-           <DropdownMenuContent
-            align="start" side="left" sideOffset={2}
-            className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-35 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
-          >
-            <DropdownMenuItem
-              onClick={(e) => { e.stopPropagation(); onMoreInfo(row.original) }}
-              className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+            <DropdownMenuContent
+              align="start" side="left" sideOffset={2}
+              className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-35 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
             >
-              <Info className="mr-2 h-4 w-4 text-white" />
-              <span className="text-sm">More Info</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={(e) => { e.stopPropagation(); onRestore && onRestore(row.original) }}
-              className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
-            >
-              <ArchiveRestore className="mr-2 h-4 w-4 text-white" />
-              <span className="text-sm">Restore</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-[#404040]" />
-            <DropdownMenuItem
-              onClick={(e) => { e.stopPropagation(); onDeletePermanent && onDeletePermanent(row.original) }}
-              className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000] text-sm"
-            >
-              <Trash2 className="mr-2 h-4 w-4 text-[#FF0000]" />
-              <span>Delete Permanently</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); onMoreInfo(row.original); }}
+                className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+              >
+                <Info className="mr-2 h-4 w-4 text-white" />
+                <span className="text-sm">More Info</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); onRestore?.(row.original); }}
+                className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+              >
+                <ArchiveRestore className="mr-2 h-4 w-4 text-white" />
+                <span className="text-sm">Restore</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-[#404040]" />
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); onDeletePermanent?.(row.original); }}
+                className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000] text-sm"
+              >
+                <Trash2 className="mr-2 h-4 w-4 text-[#FF0000]" />
+                <span>Delete Permanently</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
           </DropdownMenu>
         ),
       }
@@ -132,7 +132,7 @@ export function Terminals() {
         dateUpdated: terminal.dateUpdated,
       })
     }
-    
+
     setInfoOpen(true)
   }, [fetchTerminalDetails])
 
@@ -140,10 +140,10 @@ export function Terminals() {
     try {
       // Call the backend API to archive the terminal
       await archiveTerminalById(terminal.id)
-      
+
       // Switch to archive tab to show the archived terminal
       setActiveTab("archived")
-      
+
       // Show success alert
       alertsRef.current?.showArchiveSuccess(terminal.name)
     } catch (error) {
@@ -174,13 +174,12 @@ export function Terminals() {
         try {
           // Permanently delete the terminal (backend handles alert cleanup automatically)
           const result = await permanentDeleteTerminalById(terminal.id)
-          
-          let successMessage = `Terminal "${terminal.name}" permanently deleted!`
+
+          // Construct success message with deletion counts
           if (result.deletedAlerts && result.deletedAlerts > 0) {
-            successMessage += ` (${result.deletedAlerts} related alerts also removed)`
+            console.log(`Terminal ${terminal.name} permanently deleted with ${result.deletedAlerts} related alerts`)
           }
-          
-          console.log(`Terminal ${terminal.name} permanently deleted with ${result.deletedAlerts || 0} alerts`)
+
           alertsRef.current?.showDeleteSuccess(terminal.name)
         } catch (error) {
           console.error('Failed to permanently delete terminal:', error)
@@ -193,7 +192,7 @@ export function Terminals() {
 
   const handleEdit = useCallback((terminal: Terminal) => {
     setEditingTerminal(terminal)
-    
+
     // Get the detailed info for this terminal, or create default data
     const detailed = infoById[terminal.id] || {
       id: terminal.id,
@@ -203,7 +202,7 @@ export function Terminals() {
       dateCreated: terminal.dateCreated,
       dateUpdated: terminal.dateUpdated,
     }
-    
+
     setEditData(detailed)
     setDrawerOpen(true)
   }, [infoById])
@@ -214,7 +213,7 @@ export function Terminals() {
   // Filter function for search
   const filterTerminals = (terminals: Terminal[]) => {
     if (!searchQuery.trim()) return terminals
-    
+
     return terminals.filter((terminal) =>
       terminal.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       terminal.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -233,24 +232,24 @@ export function Terminals() {
 
   const handleSaveTerminal = useCallback(async (formData: TerminalFormData) => {
     setSaving(true)
-    
+
     try {
       if (editingTerminal) {
         // Update existing terminal
         await updateTerminalById(editingTerminal.id, {
           name: formData.name,
         })
-        
+
         // Clear edit state
         setEditingTerminal(null)
         setEditData(undefined)
         setDrawerOpen(false)
-        
+
         alertsRef.current?.showUpdateSuccess(formData.name)
       } else {
         // Create new terminal
         await createNewTerminal(formData)
-        
+
         setDrawerOpen(false)
         alertsRef.current?.showCreateSuccess(formData.name)
       }
@@ -303,20 +302,18 @@ export function Terminals() {
             <div className="flex items-center gap-1 bg-[#262626] rounded-[5px] p-1">
               <button
                 onClick={() => setActiveTab("active")}
-                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
-                  activeTab === "active" ? "bg-[#404040] text-white" : "bg-transparent text-[#a1a1a1] hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${activeTab === "active" ? "bg-[#404040] text-white" : "bg-transparent text-[#a1a1a1] hover:text-white"
+                  }`}
               >
                 Active
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{activeTerminals.length}</span>
               </button>
               <button
                 onClick={() => setActiveTab("archived")}
-                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
-                  activeTab === "archived"
+                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${activeTab === "archived"
                     ? "bg-[#404040] text-white"
                     : "bg-transparent text-[#a1a1a1] hover:text-white"
-                }`}
+                  }`}
               >
                 Archived
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{archivedTerminals.length}</span>
@@ -324,9 +321,8 @@ export function Terminals() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              searchVisible ? 'w-64 opacity-100' : 'w-0 opacity-0'
-            }`}>
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${searchVisible ? 'w-64 opacity-100' : 'w-0 opacity-0'
+              }`}>
               <Input
                 type="text"
                 placeholder="Search terminals..."
@@ -336,9 +332,9 @@ export function Terminals() {
                 autoFocus={searchVisible}
               />
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className={`text-[#a1a1a1] hover:text-white hover:bg-[#262626] transition-all duration-200 ${searchVisible ? 'bg-[#262626] text-white' : ''}`}
               onClick={() => {
                 setSearchVisible(!searchVisible)
@@ -356,9 +352,9 @@ export function Terminals() {
                 />
               </svg>
             </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="text-[#a1a1a1] hover:text-white hover:bg-[#262626]"
               onClick={refreshData}
               title="Refresh data"
@@ -372,12 +368,12 @@ export function Terminals() {
                 />
               </svg>
             </Button>
-            <Button 
+            <Button
               onClick={() => {
                 setEditingTerminal(null)
                 setEditData(undefined)
                 setDrawerOpen(true)
-              }} 
+              }}
               className="bg-[#4285f4] hover:bg-[#3367d6] text-white px-4 py-2 rounded-[5px] flex items-center gap-2"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -420,7 +416,7 @@ export function Terminals() {
         editData={editData}
         onSave={handleSaveTerminal}
       />
-      
+
       {/* Terminal Alerts */}
       <TerminalAlerts ref={alertsRef} />
     </div>

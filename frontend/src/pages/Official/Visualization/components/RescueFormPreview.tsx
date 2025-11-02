@@ -75,9 +75,10 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
             }
 
             onClose();
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { message?: string };
             console.error('[RescueFormPreview] Error creating rescue form:', err);
-            setError(err.message || 'Failed to create rescue form');
+            setError(error.message || 'Failed to create rescue form');
         } finally {
             setIsSubmitting(false);
         }
@@ -111,9 +112,9 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
                     if (formData.id || formData.status === 'Waitlisted') {
                         // Update existing form status to Dispatched
                         console.log('[RescueFormPreview] Updating existing form to Dispatched');
-                        
+
                         response = await updateRescueFormStatus(formData.alertId!, 'Dispatched');
-                        
+
                         // Remove from waitlist if it was waitlisted
                         console.log('[RescueFormPreview] Waitlisted form dispatch completed');
                     } else {
@@ -137,12 +138,12 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
                     }
 
                     console.log('[RescueFormPreview] Rescue form dispatched successfully:', response);
-                    
+
                     // The real-time updates will be triggered by the backend automatically
                     // Show success alert after dispatch
                     // (This will be handled by the parent component)
-                    
-                } catch (err: any) {
+
+                } catch (err: unknown) {
                     console.error('[RescueFormPreview] Error dispatching rescue form:', err);
                     // Handle error in confirmation callback
                     throw err;
@@ -188,10 +189,9 @@ export default function RescueFormPreview({ isOpen, onClose, onBack, formData, o
     };
 
     return (
-        <div 
-            className={`fixed top-0 right-0 h-full w-[400px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out ${
-                isOpen ? 'translate-x-0' : 'translate-x-full'
-            }`}
+        <div
+            className={`fixed top-0 right-0 h-full w-[400px] bg-[#171717] border-l border-[#2a2a2a] transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'
+                }`}
             style={{ zIndex: 70 }}
         >
             {/* Header */}

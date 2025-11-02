@@ -14,7 +14,7 @@ const terminalRepo = AppDataSource.getRepository("Terminal");
 // Helper to strip sensitive fields before caching
 function sanitizeFP(fp) {
     if (!fp) return fp;
-    const { password, photo, alternativeFPImage, ...rest } = fp;
+    // removed unused password, photo, alternativeFPImage variables
     return rest;
 }
 
@@ -31,7 +31,6 @@ const createFocalPerson = async (req, res) => {
             address,
             altFirstName,
             altLastName,
-            altEmail,
             altContactNumber,
             noOfHouseholds,
             noOfResidents,
@@ -140,7 +139,6 @@ const createFocalPerson = async (req, res) => {
         const focalPerson = focalPersonRepo.create({
             id: newFocalID,
             terminalID,
-            firstName,
             lastName,
             email,
             contactNumber,
@@ -192,7 +190,7 @@ const createFocalPerson = async (req, res) => {
         // Invalidate caches
         await deleteCache("focalPersons:all");
         await deleteCache("neighborhoods:all");
-        
+
         // Invalidate terminal caches to reflect availability change immediately
         await deleteCache(`terminal:${terminalID}`);
         await deleteCache("terminals:active");

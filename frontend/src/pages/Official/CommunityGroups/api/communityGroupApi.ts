@@ -27,10 +27,10 @@ export async function updateNeighborhood(
   }
 ): Promise<{ message: string }> {
   const payload = transformFormDataToPayload(formData)
-  
+
   // Use FormData to handle both JSON data and file uploads
   const formDataToSend = new FormData()
-  
+
   // Add all text fields
   Object.entries(payload).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
@@ -41,7 +41,7 @@ export async function updateNeighborhood(
       }
     }
   })
-  
+
   // Add photo files if provided
   if (photos?.mainPhoto) {
     formDataToSend.append('photo', photos.mainPhoto)
@@ -49,9 +49,9 @@ export async function updateNeighborhood(
   if (photos?.altPhoto) {
     formDataToSend.append('altPhoto', photos.altPhoto)
   }
-  
+
   const token = localStorage.getItem('resqwave_token')
-  
+
   const response = await fetch(`${API_BASE_URL}/neighborhood/${id}`, {
     method: 'PUT',
     credentials: 'include',
@@ -61,7 +61,7 @@ export async function updateNeighborhood(
     },
     body: formDataToSend,
   })
-  
+
   if (!response.ok) {
     let errorMessage = response.statusText
     try {
@@ -77,7 +77,7 @@ export async function updateNeighborhood(
     }
     throw new Error(errorMessage)
   }
-  
+
   return response.json()
 }
 
@@ -113,7 +113,7 @@ export async function fetchFocalPersonPhotos(focalPersonId: string): Promise<{
     fetchAuthenticatedPhoto(`/focalperson/${focalPersonId}/photo`),
     fetchAuthenticatedPhoto(`/focalperson/${focalPersonId}/altPhoto`)
   ])
-  
+
   return {
     mainPhoto,
     altPhoto
@@ -132,12 +132,12 @@ async function fetchAuthenticatedPhoto(endpoint: string): Promise<string | undef
         'Authorization': `Bearer ${localStorage.getItem('resqwave_token')}`,
       },
     })
-    
+
     if (!rawResponse.ok) {
       console.error('Photo fetch failed:', rawResponse.status, rawResponse.statusText)
       return undefined
     }
-    
+
     const blob = await rawResponse.blob()
     return URL.createObjectURL(blob)
   } catch (error) {
@@ -150,52 +150,52 @@ async function fetchAuthenticatedPhoto(endpoint: string): Promise<string | undef
  * Fetch neighborhood details from backend and transform to frontend CommunityGroupDetails
  */
 export async function fetchNeighborhoodDetailsTransformed(id: string): Promise<CommunityGroupDetails> {
-  const raw = await getNeighborhoodDetails(id)
-  
+  const raw = await getNeighborhoodDetails(id) as Record<string, unknown>
+
   // Debug logging
   console.log('Raw neighborhood data:', raw)
   console.log('Focal person data:', raw.focalPerson)
 
-  const focal = raw.focalPerson || null
+  const focal = (raw.focalPerson as Record<string, unknown>) || null
 
   // Do not parse address here; just pass as string
   const focalPerson = focal
     ? {
-        name: [focal.firstName, focal.lastName].filter(Boolean).join(" ") || focal.firstName || focal.name || null,
-        photo: focal.photo ? `${API_BASE_URL}/focalperson/${focal.id}/photo` : undefined,
-        contactNumber: focal.contactNumber || null,
-        email: focal.email || null,
-        houseAddress: focal.address || raw.address || null,
-        coordinates: raw.coordinates || focal.coordinates || undefined,
-      }
+      name: [focal.firstName, focal.lastName].filter(Boolean).join(" ") || focal.firstName || focal.name || null,
+      photo: focal.photo ? `${API_BASE_URL}/focalperson/${focal.id}/photo` : undefined,
+      contactNumber: focal.contactNumber || null,
+      email: focal.email || null,
+      houseAddress: focal.address || raw.address || null,
+      coordinates: raw.coordinates || focal.coordinates || undefined,
+    }
     : {
-        name: null,
-        photo: undefined,
-        contactNumber: null,
-        email: null,
-        houseAddress: raw.address || null,
-        coordinates: raw.coordinates || undefined,
-      }
+      name: null,
+      photo: undefined,
+      contactNumber: null,
+      email: null,
+      houseAddress: raw.address || null,
+      coordinates: raw.coordinates || undefined,
+    }
 
   const alt = focal
     ? {
-        altName: [focal.altFirstName, focal.altLastName].filter(Boolean).join(" ") || focal.altFirstName || focal.altName || null,
-        altPhoto: focal.alternativeFPImage ? `${API_BASE_URL}/focalperson/${focal.id}/altPhoto` : undefined,
-        altContactNumber: focal.altContactNumber || null,
-        altEmail: focal.altEmail || null,
-      }
+      altName: [focal.altFirstName, focal.altLastName].filter(Boolean).join(" ") || focal.altFirstName || focal.altName || null,
+      altPhoto: focal.alternativeFPImage ? `${API_BASE_URL}/focalperson/${focal.id}/altPhoto` : undefined,
+      altContactNumber: focal.altContactNumber || null,
+      altEmail: focal.altEmail || null,
+    }
     : { altName: null, altPhoto: undefined, altContactNumber: null, altEmail: null }
 
   return {
-    name: raw.name || focalPerson.name || `Neighborhood ${raw.id}`,
-    terminalId: raw.terminalID || raw.terminalId || "",
-    communityId: raw.id,
+    name: String(raw.name || focalPerson.name || `Neighborhood ${raw.id}`),
+    terminalId: String(raw.terminalID || raw.terminalId || ""),
+    communityId: String(raw.id),
     individuals: Number(raw.noOfResidents) || 0,
     families: Number(raw.noOfHouseholds) || 0,
-    floodSubsideHours: raw.floodSubsideHours || 0,
+    floodSubsideHours: Number(raw.floodSubsideHours) || 0,
     hazards: raw.hazards ? (Array.isArray(raw.hazards) ? raw.hazards : [String(raw.hazards)]) : [],
     notableInfo: raw.otherInformation ? (Array.isArray(raw.otherInformation) ? raw.otherInformation : [String(raw.otherInformation)]) : [],
-    address: (function(){
+    address: (function () {
       if (focal && focal.address) {
         try {
           if (typeof focal.address === 'string') {
@@ -209,7 +209,7 @@ export async function fetchNeighborhoodDetailsTransformed(id: string): Promise<C
       }
       return raw.address || "N/A"
     })(),
-    coordinates: (function(){
+    coordinates: (function () {
       if (focal && focal.address) {
         try {
           if (typeof focal.address === 'string') {
@@ -218,23 +218,23 @@ export async function fetchNeighborhoodDetailsTransformed(id: string): Promise<C
               return parsed.coordinates
             }
           }
-        } catch {}
+        } catch { /* Ignore missing hazard errors */ }
       }
       return (typeof raw.coordinates === 'string' && raw.coordinates.trim() !== '') ? raw.coordinates : undefined
     })(),
     focalPerson: {
-      name: focalPerson.name || null,
+      name: (focalPerson.name ? String(focalPerson.name) : null),
       photo: focalPerson.photo || undefined,
-      contactNumber: focalPerson.contactNumber || null,
-      email: focalPerson.email || null,
-      houseAddress: focalPerson.houseAddress || null,
-      coordinates: focalPerson.coordinates || null,
+      contactNumber: (focalPerson.contactNumber ? String(focalPerson.contactNumber) : null),
+      email: (focalPerson.email ? String(focalPerson.email) : null),
+      houseAddress: (focalPerson.houseAddress ? String(focalPerson.houseAddress) : null),
+      coordinates: (focalPerson.coordinates ? String(focalPerson.coordinates) : null),
     },
     alternativeFocalPerson: {
-      altName: alt.altName || "",
+      altName: String(alt.altName || ""),
       altPhoto: alt.altPhoto || undefined,
-      altContactNumber: alt.altContactNumber || "",
-      altEmail: alt.altEmail || "",
+      altContactNumber: String(alt.altContactNumber || ""),
+      altEmail: String(alt.altEmail || ""),
     }
   }
 }
@@ -257,10 +257,10 @@ export function transformFormDataToPayload(formData: CommunityFormData): CreateC
     address: formData.focalPersonAddress,
     coordinates: formData.focalPersonCoordinates
   }
-  
+
   // Convert address to string format as expected by backend
-  const addressString = typeof addressData === "object" 
-    ? JSON.stringify(addressData) 
+  const addressString = typeof addressData === "object"
+    ? JSON.stringify(addressData)
     : String(addressData)
 
   return {
@@ -274,11 +274,11 @@ export function transformFormDataToPayload(formData: CommunityFormData): CreateC
     altLastName: formData.altFocalPersonLastName || undefined,
     altEmail: formData.altFocalPersonEmail || undefined,
     altContactNumber: formData.altFocalPersonContact || undefined,
-    noOfHouseholds: typeof formData.totalFamilies === 'string' 
-      ? parseInt(formData.totalFamilies) || 0 
+    noOfHouseholds: typeof formData.totalFamilies === 'string'
+      ? parseInt(formData.totalFamilies) || 0
       : formData.totalFamilies,
-    noOfResidents: typeof formData.totalIndividuals === 'string' 
-      ? parseInt(formData.totalIndividuals) || 0 
+    noOfResidents: typeof formData.totalIndividuals === 'string'
+      ? parseInt(formData.totalIndividuals) || 0
       : formData.totalIndividuals,
     floodSubsideHours: parseInt(formData.floodwaterDuration) || 0,
     hazards: formData.floodHazards,
@@ -297,10 +297,10 @@ export async function createCommunityGroup(
   }
 ): Promise<CreateCommunityGroupResponse> {
   const payload = transformFormDataToPayload(formData)
-  
+
   // Use FormData to handle both JSON data and file uploads
   const formDataToSend = new FormData()
-  
+
   // Add all text fields
   Object.entries(payload).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
@@ -312,7 +312,7 @@ export async function createCommunityGroup(
       }
     }
   })
-  
+
   // Add photo files if provided
   if (photos?.mainPhoto) {
     formDataToSend.append('photo', photos.mainPhoto)
@@ -320,9 +320,9 @@ export async function createCommunityGroup(
   if (photos?.altPhoto) {
     formDataToSend.append('altPhoto', photos.altPhoto)
   }
-  
+
   const token = localStorage.getItem('resqwave_token')
-  
+
   const response = await fetch(`${API_BASE_URL}/focalperson`, {
     method: 'POST',
     credentials: 'include',
@@ -332,7 +332,7 @@ export async function createCommunityGroup(
     },
     body: formDataToSend,
   })
-  
+
   if (!response.ok) {
     let errorMessage = response.statusText
     try {
@@ -348,7 +348,7 @@ export async function createCommunityGroup(
     }
     throw new Error(errorMessage)
   }
-  
+
   return response.json()
 }
 
@@ -375,8 +375,8 @@ export async function getAllTerminals(): Promise<Terminal[]> {
 export async function getAvailableTerminals(): Promise<Terminal[]> {
   const allTerminals = await getAllTerminals()
   // Filter to show only available terminals (not occupied)
-  return allTerminals.filter(terminal => 
-    !terminal.archived && 
+  return allTerminals.filter(terminal =>
+    !terminal.archived &&
     terminal.availability === "Available"
   )
 }
@@ -408,7 +408,7 @@ export async function getArchivedNeighborhoods(): Promise<NeighborhoodApiRespons
 /**
  * Fetches detailed neighborhood information by ID
  */
-export async function getNeighborhoodDetails(id: string): Promise<any> {
+export async function getNeighborhoodDetails(id: string): Promise<Record<string, unknown>> {
   return apiFetch(`/neighborhood/${id}`)
 }
 
@@ -420,12 +420,12 @@ export async function getNeighborhoodByTerminalId(terminalId: string): Promise<C
     // Get all neighborhoods and find the one with matching terminal ID
     const neighborhoods = await getNeighborhoods();
     const neighborhood = neighborhoods.find(n => n.terminalID === terminalId);
-    
+
     if (!neighborhood) {
       console.warn(`No neighborhood found for terminal ID: ${terminalId}`);
       return null;
     }
-    
+
     // Get detailed information using the neighborhood ID
     return await fetchNeighborhoodDetailsTransformed(neighborhood.neighborhoodID);
   } catch (error) {
@@ -455,10 +455,10 @@ export function transformNeighborhoodToCommunityGroup(neighborhood: Neighborhood
         console.warn('Invalid date received:', dateStr)
         return 'Invalid Date'
       }
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       })
     } catch (error) {
       console.error('Error formatting date:', dateStr, error)

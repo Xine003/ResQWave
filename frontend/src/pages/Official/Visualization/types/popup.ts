@@ -18,5 +18,5 @@ export type SignalPopupProps = {
     onShowWaitlistAlert?: (focalPerson: string) => void;
     onShowDispatchAlert?: (focalPerson: string) => void;
     onShowErrorAlert?: (message: string) => void;
-    onShowDispatchConfirmation?: (formData: any, onConfirm: () => void) => void;
+    onShowDispatchConfirmation?: (formData: unknown, onConfirm: () => void) => void;
 };

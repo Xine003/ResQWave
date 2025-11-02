@@ -10,7 +10,7 @@ import {
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import type { ReportGroup, ReportItem } from '../types/history';
-import { useAggregatedRescueReports } from '../hooks/useAggregatedRescueReports';
+import { useAggregatedRescueReports, type RescueReport } from '../hooks/useAggregatedRescueReports';
 
 
 type HistoryModalProps = {
@@ -20,7 +20,7 @@ type HistoryModalProps = {
 };
 
 // Fetch aggregated rescue reports from backend
-function groupReportsByMonth(reports: any[]): ReportGroup[] {
+function groupReportsByMonth(reports: RescueReport[]): ReportGroup[] {
     // Group by month/year
     const groups: { [key: string]: ReportGroup } = {};
     reports.forEach((r) => {
@@ -63,9 +63,9 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
     const monthRef = useRef<HTMLButtonElement | null>(null);
     const yearRef = useRef<HTMLButtonElement | null>(null);
     const typeRef = useRef<HTMLButtonElement | null>(null);
-    const months = [
+    const months = useMemo(() => [
         'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
-    ];
+    ], []);
     const years = (() => {
         const y = new Date().getFullYear();
         const range = 6; // current year and previous 5 years
@@ -93,13 +93,13 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
                     if (yearStr !== selectedYear) return false;
                 }
                 if (selectedType !== 'All Types') {
-                    if ((item as any).type !== selectedType) return false;
+                    if (item.type !== selectedType) return false;
                 }
                 return true;
             });
             return { ...group, items: filteredItems, count: filteredItems.length };
         }).filter(g => g.items.length > 0);
-    }, [reports, query, selectedMonth, selectedYear, selectedType]);
+    }, [reports, query, selectedMonth, selectedYear, selectedType, months]);
 
     // (removed dynamic width measuring — using fixed minWidth values for menu content)
 
@@ -128,9 +128,9 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
                     el.setAttribute('tabindex', '-1');
                     // restore tabindex shortly after so keyboard users can still tab to it later
                     setTimeout(() => {
-                        try { el.removeAttribute('tabindex'); } catch (e) { /* ignore */ }
+                        try { el.removeAttribute('tabindex'); } catch { /* ignore */ }
                     }, 350);
-                } catch (e) {
+                } catch {
                     /* ignore */
                 }
             }, 180);
@@ -146,7 +146,7 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
         } else {
             setVisible(false);
             const t = setTimeout(() => setMounted(false), ANIM_MS);
-            const t2 = setTimeout(() => { try { resetFilters(); } catch (e) { } }, ANIM_MS + 10);
+            const t2 = setTimeout(() => { try { resetFilters(); } catch { /* Ignore filter reset errors */ } }, ANIM_MS + 10);
             return () => { clearTimeout(t); clearTimeout(t2); };
         }
         return;
@@ -163,7 +163,7 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
 
     if (!mounted) return null;
 
-    const baseStyle: any = {
+    const baseStyle: React.CSSProperties = {
         width: 'min(780px, 96%)',
         height: '85vh', // fixed height so modal doesn't resize when content collapses
         minHeight: 80,
@@ -176,11 +176,11 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
         flexDirection: 'column',
     };
 
-    const modalStyle: any = center
+    const modalStyle: React.CSSProperties = center
         ? { ...baseStyle, position: 'fixed', left: center.x, top: center.y, transform: 'translate(-50%, -50%)', background: '#171717' }
         : { ...baseStyle, position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#171717' };
 
-    const overlayStyle: any = {
+    const overlayStyle: React.CSSProperties = {
         position: 'fixed', inset: 0,
         background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
         zIndex: 'var(--z-popover)',
@@ -188,7 +188,7 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
         pointerEvents: visible ? 'auto' : 'none',
     };
 
-    const animatedModalStyle: any = {
+    const animatedModalStyle: React.CSSProperties = {
         ...modalStyle,
         opacity: visible ? 1 : 0,
         transform: center
@@ -225,14 +225,14 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
                     focalPersonName: selected.focalPersonName || '',
                     focalPersonAddress: (() => {
                         // If address is a JSON string/object, extract only the address field
-                        let addr = selected.focalPersonAddress;
+                        const addr = selected.focalPersonAddress;
                         if (addr && typeof addr === 'string') {
                             try {
                                 const parsed = JSON.parse(addr);
                                 if (parsed && typeof parsed === 'object' && parsed.address) {
                                     return parsed.address;
                                 }
-                            } catch { }
+                            } catch { /* Ignore URL revoke errors */ }
                         }
                         return addr || '';
                     })(),
@@ -274,8 +274,8 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
             };
             await exportToPdf(exportData);
             console.log('PDF opened in new tab.');
-        } catch (err) {
-            console.error('PDF export failed:', err);
+        } catch {
+            // PDF export failed
         }
         setPdfExporting(false);
     };

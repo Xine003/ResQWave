@@ -17,12 +17,12 @@ export default function SettingsPopover({ isActive = false, isMobile = false }: 
   // Safely get auth context - may throw if outside provider
   let logout: (() => Promise<void>) | null = null;
   let user: { name?: string; id?: string } | null = null;
-  
+
   try {
     const auth = useAuth();
     logout = auth.logout;
     user = auth.user;
-  } catch (error) {
+  } catch {
     // Outside provider, fallback to localStorage
     const storedUser = localStorage.getItem('resqwave_user');
     if (storedUser) {
@@ -49,13 +49,11 @@ export default function SettingsPopover({ isActive = false, isMobile = false }: 
     }
   };
 
-  const buttonClass = isMobile 
-    ? `flex flex-col items-center justify-center transition-colors ${
-        isActive ? "text-black bg-white" : "text-white/60 hover:text-white"
-      }`
-    : `w-[50px] h-[50px] flex items-center justify-center gap-2.5 flex-shrink-0 aspect-square rounded-[5px] border-[1.5px] border-[#404040] transition-colors ${
-        isActive ? "bg-white text-black" : "bg-[#171717] text-white/60 hover:bg-[#302F2F] hover:text-white"
-      }`;
+  const buttonClass = isMobile
+    ? `flex flex-col items-center justify-center transition-colors ${isActive ? "text-black bg-white" : "text-white/60 hover:text-white"
+    }`
+    : `w-[50px] h-[50px] flex items-center justify-center gap-2.5 flex-shrink-0 aspect-square rounded-[5px] border-[1.5px] border-[#404040] transition-colors ${isActive ? "bg-white text-black" : "bg-[#171717] text-white/60 hover:bg-[#302F2F] hover:text-white"
+    }`;
 
   const tooltipSide = isMobile ? "top" : "right";
   const popoverSide = isMobile ? "top" : "right";
@@ -80,9 +78,9 @@ export default function SettingsPopover({ isActive = false, isMobile = false }: 
           Settings
         </TooltipContent>
       </Tooltip>
-      <PopoverContent 
-        align={popoverAlign} 
-        side={popoverSide} 
+      <PopoverContent
+        align={popoverAlign}
+        side={popoverSide}
         sideOffset={8}
         className="rounded-[5px]"
       >
@@ -104,9 +102,9 @@ export default function SettingsPopover({ isActive = false, isMobile = false }: 
         <PopoverItem icon={<BookOpen size={16} />} onClick={handleClose}>
           Logs
         </PopoverItem>
-        <PopoverItem 
-          destructive 
-          icon={<LogOut size={16} />} 
+        <PopoverItem
+          destructive
+          icon={<LogOut size={16} />}
           onClick={handleLogout}
         >
           Logout

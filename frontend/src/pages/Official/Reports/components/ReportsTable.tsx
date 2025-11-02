@@ -12,6 +12,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
+  type CellContext,
   type ColumnDef,
 } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
@@ -75,8 +76,8 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
       accessorKey: "alertType",
       header: "Alert Type",
       cell: ({ row }) => (
-        <Badge 
-          variant="secondary" 
+        <Badge
+          variant="secondary"
           className="bg-yellow-500/20 text-yellow-600 hover:bg-yellow-500/20 border-yellow-500/30"
         >
           {row.getValue("alertType")}
@@ -100,7 +101,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
     ...(isCompleted ? [{
       accessorKey: "accomplishedOn",
       header: "Accomplished on",
-      cell: ({ row }: { row: any }) => (
+      cell: ({ row }: CellContext<ReportData, unknown>) => (
         <div className="text-foreground">{(row.original as CompletedReport).accomplishedOn}</div>
       ),
     }] : []),
@@ -130,8 +131,8 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             className="bg-blue-600 hover:bg-blue-700 rounded-[5px] text-white font-medium"
             onClick={() => handleCreateReport(row.original)}
           >
@@ -180,18 +181,16 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
                     {headerGroup.headers.map((header, index) => {
                       const isFirst = index === 0
                       const isLast = index === headerGroup.headers.length - 1
-                      
+
                       return (
-                        <TableHead 
-                          key={header.id} 
-                          className={`text-black font-medium px-3 py-2 ${
-                            isFirst ? 'rounded-tl-[5px]' : ''
-                          } ${
-                            isLast ? 'rounded-tr-[5px]' : ''
-                          }`}
+                        <TableHead
+                          key={header.id}
+                          className={`text-black font-medium px-3 py-2 ${isFirst ? 'rounded-tl-[5px]' : ''
+                            } ${isLast ? 'rounded-tr-[5px]' : ''
+                            }`}
                         >
                           {header.isPlaceholder ? null : (
-                            typeof header.column.columnDef.header === 'function' 
+                            typeof header.column.columnDef.header === 'function'
                               ? header.column.columnDef.header(header.getContext())
                               : header.column.columnDef.header
                           )}
@@ -204,7 +203,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
             </table>
           </div>
         </div>
-        
+
         {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0 reports-table-scrollable">
           <table className="w-full caption-bottom text-sm table-fixed">
@@ -227,7 +226,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="px-3 py-2">
-                        {typeof cell.column.columnDef.cell === 'function' 
+                        {typeof cell.column.columnDef.cell === 'function'
                           ? cell.column.columnDef.cell(cell.getContext())
                           : cell.getValue()
                         }
@@ -285,7 +284,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </Button>
-            
+
             {Array.from({ length: Math.min(3, table.getPageCount()) }, (_, i) => {
               const pageNumber = i + 1
               const isCurrentPage = table.getState().pagination.pageIndex + 1 === pageNumber
@@ -304,7 +303,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
                 </Button>
               )
             })}
-            
+
             <Button
               variant="outline"
               className="h-8 px-2 lg:px-3 bg-transparent border-[#404040] text-[#a1a1a1] hover:bg-[#262626] hover:text-white"
@@ -319,7 +318,7 @@ export function ReportsTable({ type, data }: ReportsTableProps) {
           </div>
         </div>
       </div>
-      
+
       {/* Rescue Completion Form */}
       <RescueCompletionForm
         isOpen={isFormOpen}

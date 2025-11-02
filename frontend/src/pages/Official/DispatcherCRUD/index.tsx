@@ -16,9 +16,9 @@ const makeArchivedColumns = (
   onMoreInfo: (d: Dispatcher) => void,
   onRestore?: (d: Dispatcher) => void,
   onDeletePermanent?: (d: Dispatcher) => void
-) => 
-  createColumns({ 
-    onMoreInfo, 
+) =>
+  createColumns({
+    onMoreInfo,
     onEdit: undefined, // No edit for archived items
     onArchive: undefined // No archive for already archived items
   }).map(column => {
@@ -26,7 +26,7 @@ const makeArchivedColumns = (
       return {
         id: "actions",
         enableHiding: false,
-        cell: ({ row }: any) => (
+        cell: ({ row }: { row: { original: Dispatcher } }) => (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0 text-[#a1a1a1] hover:text-white hover:bg-[#262626]">
@@ -41,33 +41,33 @@ const makeArchivedColumns = (
                 </svg>
               </Button>
             </DropdownMenuTrigger>
-           <DropdownMenuContent
-            align="start" side="left" sideOffset={2}
-            className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-35 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
-          >
-            <DropdownMenuItem
-              onClick={(e) => { e.stopPropagation(); onMoreInfo(row.original) }}
-              className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+            <DropdownMenuContent
+              align="start" side="left" sideOffset={2}
+              className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-35 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
             >
-              <Info className="mr-2 h-4 w-4 text-white" />
-              <span className="text-sm">More Info</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={(e) => { e.stopPropagation(); onRestore && onRestore(row.original) }}
-              className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
-            >
-              <ArchiveRestore className="mr-2 h-4 w-4 text-white" />
-              <span className="text-sm">Restore</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-[#404040]" />
-            <DropdownMenuItem
-              onClick={(e) => { e.stopPropagation(); onDeletePermanent && onDeletePermanent(row.original) }}
-              className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000] text-sm"
-            >
-              <Trash2 className="mr-2 h-4 w-4 text-[#FF0000]" />
-              <span>Delete Permanently</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); onMoreInfo(row.original); }}
+                className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+              >
+                <Info className="mr-2 h-4 w-4 text-white" />
+                <span className="text-sm">More Info</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); onRestore?.(row.original); }}
+                className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+              >
+                <ArchiveRestore className="mr-2 h-4 w-4 text-white" />
+                <span className="text-sm">Restore</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-[#404040]" />
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); onDeletePermanent?.(row.original); }}
+                className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000] text-sm"
+              >
+                <Trash2 className="mr-2 h-4 w-4 text-[#FF0000]" />
+                <span>Delete Permanently</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
           </DropdownMenu>
         ),
       }
@@ -78,7 +78,7 @@ const makeArchivedColumns = (
 export function Dispatchers() {
   // Alerts ref
   const alertsRef = useRef<DispatcherAlertsHandle>(null)
-  
+
   // Use the custom hook for dispatcher data
   const {
     activeDispatchers,
@@ -131,7 +131,7 @@ export function Dispatchers() {
         createdAt: dispatcher.createdAt,
       })
     }
-    
+
     setInfoOpen(true)
   }, [fetchDispatcherDetails])
 
@@ -139,10 +139,10 @@ export function Dispatchers() {
     try {
       // Call the backend API to archive the dispatcher
       await archiveDispatcherById(dispatcher.id)
-      
+
       // Switch to archive tab to show the archived dispatcher
       setActiveTab("archived")
-      
+
       // Show success alert
       alertsRef.current?.showArchiveSuccess(dispatcher.name)
     } catch (error) {
@@ -156,10 +156,10 @@ export function Dispatchers() {
     try {
       // Call the backend API to restore the dispatcher
       await restoreDispatcherById(dispatcher.id)
-      
+
       // Show success alert
       alertsRef.current?.showRestoreSuccess(dispatcher.name)
-      
+
       // Switch to active tab to show the restored dispatcher
       setActiveTab("active")
     } catch (error) {
@@ -178,7 +178,7 @@ export function Dispatchers() {
         try {
           // Call the backend API to permanently delete the dispatcher
           await deleteDispatcherPermanentlyById(dispatcher.id)
-          
+
           // Show success alert
           alertsRef.current?.showDeleteSuccess(dispatcher.name)
         } catch (error) {
@@ -192,7 +192,7 @@ export function Dispatchers() {
 
   const handleEdit = useCallback((dispatcher: Dispatcher) => {
     setEditingDispatcher(dispatcher)
-    
+
     // Get the detailed info for this dispatcher, or create default data
     const detailed = infoById[dispatcher.id] || {
       id: dispatcher.id,
@@ -201,7 +201,7 @@ export function Dispatchers() {
       email: dispatcher.email,
       createdAt: dispatcher.createdAt,
     }
-    
+
     setEditData(detailed)
     setServerErrors({}) // Clear server errors when editing
     setDrawerOpen(true)
@@ -213,7 +213,7 @@ export function Dispatchers() {
   // Filter function for search
   const filterDispatchers = (dispatchers: Dispatcher[]) => {
     if (!searchQuery.trim()) return dispatchers
-    
+
     return dispatchers.filter((dispatcher) =>
       dispatcher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       dispatcher.contactNumber.includes(searchQuery) ||
@@ -231,14 +231,14 @@ export function Dispatchers() {
   const handleSaveDispatcher = useCallback(async (dispatcherData: DispatcherDetails, formData?: DispatcherFormData): Promise<boolean> => {
     setSaving(true)
     setServerErrors({}) // Clear previous server errors
-    
+
     try {
       if (editingDispatcher) {
         // Update existing dispatcher
         if (!formData) {
           throw new Error('Form data is required for updating dispatcher')
         }
-        
+
         // Prepare update data
         const updateData: {
           name?: string
@@ -265,13 +265,13 @@ export function Dispatchers() {
           // If no photo in dispatcherData, it means the photo was removed
           updateData.removePhoto = true
         }
-        
+
         await updateDispatcherById(editingDispatcher.id, updateData)
-        
+
         // Clear edit state
         setEditingDispatcher(null)
         setEditData(undefined)
-        
+
         // Show success alert
         alertsRef.current?.showUpdateSuccess(dispatcherData.name)
         return true // Success
@@ -280,7 +280,7 @@ export function Dispatchers() {
         if (!formData) {
           throw new Error('Form data is required for creating a new dispatcher')
         }
-        
+
         const result = await createNewDispatcher({
           name: formData.name,
           email: formData.email,
@@ -288,18 +288,18 @@ export function Dispatchers() {
           password: formData.password, // Pass the password if provided
           photo: formData.photo
         })
-        
+
         // Show success alert with or without temporary password
         alertsRef.current?.showCreateSuccess(formData.name, result.temporaryPassword)
         return true // Success
       }
     } catch (err) {
       console.error('Error saving dispatcher:', err)
-      
+
       // Parse specific backend validation errors
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       const newServerErrors: Record<string, string> = {}
-      
+
       // Map backend error messages to specific form fields
       if (errorMessage.includes('Email Already Used') || errorMessage.includes('Email already in use')) {
         newServerErrors.email = 'This email address is already registered'
@@ -309,13 +309,13 @@ export function Dispatchers() {
         // For other errors (network, server errors, etc.), show via alerts
         alertsRef.current?.showError(errorMessage)
       }
-      
+
       // Set field-specific errors to display under input fields
       if (Object.keys(newServerErrors).length > 0) {
         setServerErrors(newServerErrors)
         return false // Keep form open to show field errors
       }
-      
+
       return false // Failure
     } finally {
       setSaving(false)
@@ -352,20 +352,18 @@ export function Dispatchers() {
             <div className="flex items-center gap-1 bg-[#262626] rounded-[5px] p-1">
               <button
                 onClick={() => setActiveTab("active")}
-                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
-                  activeTab === "active" ? "bg-[#404040] text-white" : "bg-transparent text-[#a1a1a1] hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${activeTab === "active" ? "bg-[#404040] text-white" : "bg-transparent text-[#a1a1a1] hover:text-white"
+                  }`}
               >
                 Active
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{activeDispatchers.length}</span>
               </button>
               <button
                 onClick={() => setActiveTab("archived")}
-                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${
-                  activeTab === "archived"
+                className={`px-4 py-2 rounded-[5px] text-sm font-medium transition-colors ${activeTab === "archived"
                     ? "bg-[#404040] text-white"
                     : "bg-transparent text-[#a1a1a1] hover:text-white"
-                }`}
+                  }`}
               >
                 Archived
                 <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">{archivedDispatchers.length}</span>
@@ -373,9 +371,8 @@ export function Dispatchers() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              searchVisible ? 'w-64 opacity-100' : 'w-0 opacity-0'
-            }`}>
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${searchVisible ? 'w-64 opacity-100' : 'w-0 opacity-0'
+              }`}>
               <Input
                 type="text"
                 placeholder="Search dispatchers..."
@@ -385,9 +382,9 @@ export function Dispatchers() {
                 autoFocus={searchVisible}
               />
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className={`text-[#a1a1a1] hover:text-white hover:bg-[#262626] transition-all duration-200 ${searchVisible ? 'bg-[#262626] text-white' : ''}`}
               onClick={() => {
                 setSearchVisible(!searchVisible)
@@ -405,9 +402,9 @@ export function Dispatchers() {
                 />
               </svg>
             </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="text-[#a1a1a1] hover:text-white hover:bg-[#262626]"
               onClick={refreshData}
               title="Refresh data"
@@ -421,13 +418,13 @@ export function Dispatchers() {
                 />
               </svg>
             </Button>
-            <Button 
+            <Button
               onClick={() => {
                 setEditingDispatcher(null)
                 setEditData(undefined)
                 setServerErrors({}) // Clear server errors when creating new
                 setDrawerOpen(true)
-              }} 
+              }}
               className="bg-[#4285f4] hover:bg-[#3367d6] text-white px-4 py-2 rounded-[5px] flex items-center gap-2"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

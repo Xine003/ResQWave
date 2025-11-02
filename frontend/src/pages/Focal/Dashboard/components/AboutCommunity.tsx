@@ -70,7 +70,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         return () => {
             revoked = true;
             if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
-                try { URL.revokeObjectURL(altPhotoUrl); } catch (e) { }
+                try { URL.revokeObjectURL(altPhotoUrl); } catch { /* Ignore revoke errors */ }
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -79,15 +79,14 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
     // Fetch focal person photo as blob from backend
     const [focalPhotoUrl, setFocalPhotoUrl] = useState<string | null>(null);
     useEffect(() => {
-        const id = data?.focal?.id || focalId;
-        if (!open || !id) {
+        if (!open || !focalId) {
             setFocalPhotoUrl(null);
             return;
         }
         let revoked = false;
         const fetchFocalPhoto = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/focalperson/${id}/photo`, {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/focalperson/${focalId}/photo`, {
                     credentials: 'include',
                     headers: token ? { Authorization: `Bearer ${token}` } : {},
                 });
@@ -102,7 +101,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
                 } else {
                     setFocalPhotoUrl(null);
                 }
-            } catch (e) {
+            } catch {
                 setFocalPhotoUrl(null);
             }
         };
@@ -110,11 +109,11 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         return () => {
             revoked = true;
             if (focalPhotoUrl && focalPhotoUrl.startsWith('blob:')) {
-                try { URL.revokeObjectURL(focalPhotoUrl); } catch (e) { }
+                try { URL.revokeObjectURL(focalPhotoUrl); } catch { /* Ignore revoke errors */ }
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, data?.focal?.id, focalId, token]);
+    }, [open, focalId, token]);
 
     if (!mounted) return null;
     if (loading) {
@@ -157,7 +156,7 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
     }
 
 
-    const baseStyle: any = {
+    const baseStyle: React.CSSProperties = {
         width: 'min(780px, 92%)',
         maxHeight: 'calc(85vh)',
         minHeight: 80,
@@ -178,19 +177,19 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
     // And in your CSS file:
     // .about-modal-content::-webkit-scrollbar { display: none; }
 
-    const modalStyle: any = center
+    const modalStyle: React.CSSProperties = center
         ? { ...baseStyle, position: 'fixed', left: center.x, top: center.y, transform: 'translate(-50%, -50%)', background: '#171717' }
         : { ...baseStyle, position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#171717' };
 
-    const overlayStyle: any = {
+    const overlayStyle: React.CSSProperties = {
         position: 'fixed', inset: 0,
         background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
         zIndex: 'var(--z-popover)',
         transition: `background ${ANIM_MS}ms ease`,
         pointerEvents: visible ? 'auto' : 'none',
-    };
+    } as React.CSSProperties;
 
-    const animatedModalStyle: any = {
+    const animatedModalStyle: React.CSSProperties = {
         ...modalStyle,
         opacity: visible ? 1 : 0,
         transform: center

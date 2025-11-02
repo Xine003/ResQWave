@@ -1,8 +1,9 @@
 // utils/flyingEffects.ts
 // Utility functions for map flyTo animations and cinematic entrance
 import type { Signal } from '../types/signals';
+import type * as mapboxgl from 'mapbox-gl';
 
-export function flyToSignal(map: any, coord: Signal['coordinates']) {
+export function flyToSignal(map: mapboxgl.Map, coord: Signal['coordinates']) {
     map.flyTo({
         center: coord,
         zoom: 17,

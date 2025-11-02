@@ -1,34 +1,7 @@
 import type React from 'react';
+import type { Signal } from '../types/signals';
 
-export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommunitySignal: any) {
-    // Helper to create a GeoJSON circle polygon from center and radius (meters)
-    function createGeoJSONCircle(center: [number, number], radiusInMeters: number, points = 64): GeoJSON.Feature<GeoJSON.Polygon> {
-        const coords: [number, number][] = [];
-        const earthRadius = 6378137;
-        const lat = center[1] * Math.PI / 180;
-        const lon = center[0] * Math.PI / 180;
-        for (let i = 0; i < points; i++) {
-            const angle = (i * 360 / points) * Math.PI / 180;
-            const dx = Math.cos(angle) * radiusInMeters / earthRadius;
-            const dy = Math.sin(angle) * radiusInMeters / earthRadius;
-            const latOffset = lat + dy;
-            const lonOffset = lon + dx / Math.cos(lat);
-            coords.push([
-                lonOffset * 180 / Math.PI,
-                latOffset * 180 / Math.PI
-            ]);
-        }
-        coords.push(coords[0]);
-        return {
-            type: "Feature",
-            geometry: {
-                type: "Polygon",
-                coordinates: [coords]
-            },
-            properties: {}
-        };
-    }
-
+export function addCustomLayers(map: mapboxgl.Map, otherSignals: Signal[], OwnCommunitySignal: Signal) {
     // const getPinColor = (alertType: string) => {
     //     const colors: Record<string, string> = {
     //         'critical': '#ef4444',
@@ -72,13 +45,13 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
         });
     } else {
         const s = map.getSource("all-signals") as mapboxgl.GeoJSONSource;
-        s.setData({ 
-            type: "FeatureCollection", 
-            features: allSignals.map((s2) => ({ 
-                type: "Feature", 
-                properties: s2.properties, 
-                geometry: { type: "Point", coordinates: s2.coordinates } 
-            })) 
+        s.setData({
+            type: "FeatureCollection",
+            features: allSignals.map((s2) => ({
+                type: "Feature",
+                properties: s2.properties,
+                geometry: { type: "Point", coordinates: s2.coordinates }
+            }))
         });
     }
 
@@ -92,7 +65,7 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
                 "circle-color": [
                     "case",
                     ["==", ["get", "alertType"], "CRITICAL"], "#ef4444",
-                    ["==", ["get", "alertType"], "USER-INITIATED"], "#eab308", 
+                    ["==", ["get", "alertType"], "USER-INITIATED"], "#eab308",
                     ["==", ["get", "alertType"], "DISPATCHED"], "#10b981",
                     ["==", ["get", "alertType"], "ONLINE"], "#22c55e",
                     ["==", ["get", "alertType"], "OFFLINE"], "#6b7280",
@@ -111,9 +84,6 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
     if (map.getLayer("distress-core")) map.removeLayer("distress-core");
     if (map.getSource("offline-signals")) map.removeSource("offline-signals");
     if (map.getSource("distress-signal")) map.removeSource("distress-signal");
-    
-    // Expose helper for click handler
-    (map as any).createGeoJSONCircle = createGeoJSONCircle;
 }
 
 // Helper to create a GeoJSON circle polygon from center and radius (meters)

@@ -14,7 +14,7 @@ export type TerminalAlertsHandle = {
 	hideAll: () => void
 }
 
-export default forwardRef<TerminalAlertsHandle, {}>(function TerminalAlerts(_props, ref) {
+export default forwardRef<TerminalAlertsHandle>(function TerminalAlerts(_props, ref) {
 	// Create success alert (bottom left)
 	const [showCreate, setShowCreate] = useState(false)
 	const [createMessage, setCreateMessage] = useState("")

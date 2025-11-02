@@ -33,8 +33,8 @@ export const createColumns = (opts: LiveReportColumnsOptions): ColumnDef<LiveRep
             alertType === "CRITICAL"
               ? "bg-red-500/20 text-red-500 border-red-500 hover:bg-red-500/30 h-7"
               : alertType === "USER-INITIATED"
-              ? "bg-yellow-500/20 text-yellow-500 border-yellow-500 hover:bg-yellow-500/30 h-7"
-              : "bg-transparent text-white border-[#414141] h-7"
+                ? "bg-yellow-500/20 text-yellow-500 border-yellow-500 hover:bg-yellow-500/30 h-7"
+                : "bg-transparent text-white border-[#414141] h-7"
           }
         >
           {alertType}
@@ -79,8 +79,8 @@ export const createColumns = (opts: LiveReportColumnsOptions): ColumnDef<LiveRep
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          align="start" 
-          side="left" 
+          align="start"
+          side="left"
           sideOffset={2}
           className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-35 p-3 rounded-[5px] shadow-lg flex flex-col space-y-1"
         >
@@ -91,22 +91,22 @@ export const createColumns = (opts: LiveReportColumnsOptions): ColumnDef<LiveRep
             <Info className="mr-2 h-4 w-4 text-white" />
             <span className="text-sm">More Info</span>
           </DropdownMenuItem>
-          
+
           {opts.onAssign && (
-            <DropdownMenuItem 
-              onClick={(e) => { e.stopPropagation(); opts.onAssign && opts.onAssign(row.original) }}
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); opts.onAssign?.(row.original); }}
               className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
             >
               <UserCheck className="mr-2 h-4 w-4 text-white" />
               <span className="text-sm">Assign</span>
             </DropdownMenuItem>
           )}
-          
+
           {opts.onDispatch && (
             <>
               <DropdownMenuSeparator className="bg-[#404040]" />
               <DropdownMenuItem
-                onClick={(e) => { e.stopPropagation(); opts.onDispatch && opts.onDispatch(row.original) }}
+                onClick={(e) => { e.stopPropagation(); opts.onDispatch?.(row.original); }}
                 className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
               >
                 <Send className="mr-2 h-4 w-4 text-white" />

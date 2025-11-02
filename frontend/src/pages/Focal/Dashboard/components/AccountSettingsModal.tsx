@@ -13,7 +13,14 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     const refreshProfile = async () => {
         if (!focalId) return;
         try {
-            const data = await apiFetch(`/focalperson/${focalId}`);
+            const data = await apiFetch<{
+                firstName?: string;
+                lastName?: string;
+                contactNumber?: string;
+                email?: string;
+                updatedAt?: string;
+                approvedBy?: string;
+            }>(`/focalperson/${focalId}`);
             setFirstName(data.firstName || '');
             setLastName(data.lastName || '');
             setPhoneNumber(data.contactNumber || '');
@@ -84,7 +91,14 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
 
     useEffect(() => {
         if (open && focalId) {
-            apiFetch(`/focalperson/${focalId}`)
+            apiFetch<{
+                firstName?: string;
+                lastName?: string;
+                contactNumber?: string;
+                email?: string;
+                updatedAt?: string;
+                approvedBy?: string;
+            }>(`/focalperson/${focalId}`)
                 .then((data) => {
                     setFirstName(data.firstName || '');
                     setLastName(data.lastName || '');
@@ -185,12 +199,13 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
             setNewPassword('');
             setConfirmPassword('');
             if (onSaved) onSaved();
-        } catch (err: any) {
+        } catch (err: unknown) {
             // Show error below password field if incorrect password
-            if (err.message && err.message.toLowerCase().includes('current password is incorrect')) {
+            const error = err as Error;
+            if (error.message && error.message.toLowerCase().includes('current password is incorrect')) {
                 setPasswordError('Current password is incorrect.');
             } else {
-                alert(err.message || 'Failed to change password.');
+                alert(error.message || 'Failed to change password.');
             }
         }
     };
@@ -301,7 +316,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
 
     // match History modal sizing: fixed height (85vh) and inner scroll area
     // Dynamic height for Profile Information view, fixed for Change Password
-    const baseStyle: any = {
+    const baseStyle: React.CSSProperties = {
         width: 'min(780px, 96%)',
         minHeight: 80,
         background: '#0d0d0d',
@@ -313,7 +328,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     };
 
     // If profile view, allow height to grow with content, else use fixed height for password view
-    const modalStyle: any = center
+    const modalStyle: React.CSSProperties = center
         ? {
             ...baseStyle,
             position: 'fixed',
@@ -335,21 +350,22 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
 
     const allRulesSatisfied = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial && passwordsMatch;
 
-    const overlayStyle: any = {
+    const overlayStyle: React.CSSProperties = {
         position: 'fixed', inset: 0, zIndex: 99,
         background: visible ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0)',
         transition: `background ${ANIM_MS}ms ease`,
         display: 'flex', alignItems: 'center', justifyContent: 'center'
     };
 
-    const animatedModalStyle = {
+    const animatedModalStyle: React.CSSProperties = {
         ...modalStyle,
         zIndex: 99,
         transition: `transform ${ANIM_MS}ms cubic-bezier(.2,.9,.3,1), opacity ${ANIM_MS}ms ease`,
         transform: visible ? modalStyle.transform + ' scale(1)' : (modalStyle.transform + ' translateY(-8px) scale(0.98)'),
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? 'auto' : 'none',
-    };
+    } as React.CSSProperties;
+
 
     // Helper to format "time ago" for last password change
     function timeAgo(date: Date): string {
@@ -413,7 +429,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                             </AlertDialogCancel>
                             <AlertDialogAction onClick={() => {
                                 setConfirmExitOpen(false);
-                                try { onClose && onClose(); } catch (e) { }
+                                try { onClose?.(); } catch { /* Ignore callback errors */ }
                             }} className="px-4 py-2 mt-3 bg-[#fff] text-black hover:bg-[#e2e2e2] rounded cursor-pointer transition duration-175" style={{ borderRadius: 8, fontSize: 15 }}>
                                 Continue
                             </AlertDialogAction>
@@ -672,12 +688,12 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                                     // Wait for confirmation modal to close before closing parent
                                                     setTimeout(() => {
                                                         if (onClose) onClose();
-                                                        try { onSaved && onSaved(); } catch (e) { }
+                                                        try { onSaved?.(); } catch { /* Ignore callback errors */ }
                                                         if (photoFile || photoUpdated) {
                                                             window.dispatchEvent(new Event('focal-profile-photo-updated'));
                                                         }
                                                     }, 200);
-                                                } catch (err) {
+                                                } catch {
                                                     alert('Failed to save changes.');
                                                 }
                                             }}

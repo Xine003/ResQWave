@@ -6,20 +6,19 @@ const PizZip = require("pizzip");
 const {
   getCache,
   setCache,
-  deleteCache
 } = require("../config/cache");
 const { AppDataSource } = require("../config/dataSource");
 const alertRepo = AppDataSource.getRepository("Alert");
 const rescueFormRepo = AppDataSource.getRepository("RescueForm");
 const postRescueRepo = AppDataSource.getRepository("PostRescueForm");
-const communityRepo = AppDataSource.getRepository("CommunityGroup");
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const focalRepo = AppDataSource.getRepository("FocalPerson");
+// removed unused deleteCache and communityRepo variables
 
 const generateRescueReport = async (req, res) => {
   try {
     const { alertID } = req.params;
-    if (!alertID) return res.status(400).json({message: "AlertID Required"});
+    if (!alertID) return res.status(400).json({ message: "AlertID Required" });
 
     const cacheKey = `report:alert:${alertID}`;
 
@@ -78,14 +77,14 @@ const generateRescueReport = async (req, res) => {
 
     const focalName = focalPerson
       ? ([focalPerson.firstName, focalPerson.lastName].filter(Boolean).join(" ").trim() ||
-         focalPerson.name || "")
+        focalPerson.name || "")
       : "";
 
     const data = {
       neighborhood_id: neighborhood.id,
-      terminal_name: terminalName,          
+      terminal_name: terminalName,
       focal_person_name: focalName,
-      focal_person_address: focalPerson?.address || "", 
+      focal_person_address: focalPerson?.address || "",
       focal_person_number: focalPerson?.contactNumber || "",
       alert_id: alert.id,
       water_level: rescueForm.waterLevel || "",
@@ -115,7 +114,7 @@ const generateRescueReport = async (req, res) => {
     const buffer = await createReport({
       template,
       data,
-      ...(usesDouble ? { cmdDelimiter: ["{{","}}"] } : {}),
+      ...(usesDouble ? { cmdDelimiter: ["{{", "}}"] } : {}),
       nullGetter: () => ""
     });
 

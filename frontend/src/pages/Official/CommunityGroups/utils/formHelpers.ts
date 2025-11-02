@@ -11,7 +11,7 @@ export const convertFormToInfoData = (
   // Derive address, coordinates array, and boundary object for frontend-only persistence
   const address = formData.focalPersonAddress || ""
   let coordinatesArr: number[] = []
-  
+
   if (formData.focalPersonCoordinates && formData.focalPersonCoordinates.includes(",")) {
     const [lngStr, latStr] = formData.focalPersonCoordinates.split(",")
     const lng = Number(lngStr)
@@ -20,11 +20,10 @@ export const convertFormToInfoData = (
       coordinatesArr = [lng, lat]
     }
   }
-  
-  let boundaryObj: any = undefined
+
   try {
-    if (formData.boundaryGeoJSON) boundaryObj = JSON.parse(formData.boundaryGeoJSON)
-  } catch {}
+    if (formData.boundaryGeoJSON) JSON.parse(formData.boundaryGeoJSON)
+  } catch { /* Ignore JSON parse errors */ }
 
   return {
     name: formData.communityGroupName || "Untitled Community",
@@ -32,14 +31,10 @@ export const convertFormToInfoData = (
     communityId: "",
     individuals: typeof formData.totalIndividuals === 'string' ? parseInt(formData.totalIndividuals) || 0 : formData.totalIndividuals,
     families: typeof formData.totalFamilies === 'string' ? parseInt(formData.totalFamilies) || 0 : formData.totalFamilies,
-    kids: formData.totalKids,
-    seniors: formData.totalSeniorCitizen,
-    pwds: formData.totalPWDs,
-    pregnantWomen: formData.totalPregnantWomen,
     notableInfo: notableInfoInputs.filter((s) => s && s.trim().length > 0),
+    hazards: formData.floodHazards,
     address: address || undefined,
-    coordinates: coordinatesArr.length === 2 ? coordinatesArr : undefined,
-    boundary: boundaryObj,
+    coordinates: coordinatesArr.length === 2 ? coordinatesArr.join(",") : undefined,
     focalPerson: {
       name: `${formData.focalPersonFirstName || ''} ${formData.focalPersonLastName || ''}`.trim() || formData.focalPersonName,
       photo: formData.focalPersonPhoto ? URL.createObjectURL(formData.focalPersonPhoto) : undefined,

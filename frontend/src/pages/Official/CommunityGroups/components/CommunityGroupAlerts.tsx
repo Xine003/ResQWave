@@ -14,7 +14,7 @@ export type CommunityGroupAlertsHandle = {
 	hideAll: () => void
 }
 
-export default forwardRef<CommunityGroupAlertsHandle, {}>(function CommunityGroupAlerts(_props, ref) {
+export default forwardRef<CommunityGroupAlertsHandle>(function CommunityGroupAlerts(_props, ref) {
 	// Create success alert (bottom left)
 	const [showCreate, setShowCreate] = useState(false)
 	const [createMessage, setCreateMessage] = useState("")

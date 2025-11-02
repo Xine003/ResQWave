@@ -37,7 +37,7 @@ export interface MapSignal {
  */
 export function parseCoordinates(addressJson: string): [number, number] | null {
     if (!addressJson) return null;
-    
+
     try {
         const parsed = JSON.parse(addressJson);
         if (parsed && parsed.coordinates) {
@@ -46,7 +46,8 @@ export function parseCoordinates(addressJson: string): [number, number] | null {
                 return [coords[0], coords[1]];
             }
         }
-    } catch (e) {
+    } catch {
+        // Parsing failed, try regex fallback
         const match = addressJson.match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
         if (match) {
             const first = parseFloat(match[1]);
@@ -56,7 +57,7 @@ export function parseCoordinates(addressJson: string): [number, number] | null {
             }
         }
     }
-    
+
     return null;
 }
 
@@ -65,17 +66,17 @@ export function parseCoordinates(addressJson: string): [number, number] | null {
  */
 export function extractAddress(addressJson: string): string {
     if (!addressJson) return 'N/A';
-    
+
     try {
         const parsed = JSON.parse(addressJson);
         if (parsed && parsed.address) {
             return parsed.address;
         }
-    } catch (e) {
+    } catch {
         // Return raw string if not JSON
         return addressJson;
     }
-    
+
     return addressJson;
 }
 
@@ -90,7 +91,8 @@ export function formatTime(timestamp: string): string {
             minute: '2-digit',
             hour12: true
         });
-    } catch (e) {
+    } catch {
+        // Return original timestamp if formatting fails
         return timestamp;
     }
 }
@@ -100,9 +102,9 @@ export function formatTime(timestamp: string): string {
  */
 export function transformToMapSignal(alert: MapAlertResponse): MapSignal | null {
     const coordinates = parseCoordinates(alert.focalAddress);
-    
+
     if (!coordinates) return null;
-    
+
     return {
         alertId: alert.alertId,
         deviceId: alert.terminalId,
@@ -124,7 +126,7 @@ export function transformToMapSignal(alert: MapAlertResponse): MapSignal | null 
 export async function fetchUnassignedMapAlerts(): Promise<MapSignal[]> {
     try {
         const response = await apiFetch<MapAlertResponse[]>('/alerts/map/unassigned');
-        
+
         return response
             .map(transformToMapSignal)
             .filter((signal): signal is MapSignal => signal !== null);
@@ -140,7 +142,7 @@ export async function fetchUnassignedMapAlerts(): Promise<MapSignal[]> {
 export async function fetchWaitlistedMapAlerts(): Promise<MapSignal[]> {
     try {
         const response = await apiFetch<MapAlertResponse[]>('/alerts/map/waitlisted');
-        
+
         return response
             .map(transformToMapSignal)
             .filter((signal): signal is MapSignal => signal !== null);
@@ -159,7 +161,7 @@ export async function fetchAllMapAlerts(): Promise<MapSignal[]> {
             fetchUnassignedMapAlerts(),
             fetchWaitlistedMapAlerts()
         ]);
-        
+
         return [...unassigned, ...waitlisted];
     } catch (error) {
         console.error('[MAP] Error fetching all alerts:', error);

@@ -15,7 +15,35 @@ export default function useCommunityData() {
         try {
             const headers: Record<string, string> = {};
             if (token) headers['Authorization'] = `Bearer ${token}`;
-            const res = await apiFetch<any>('/neighborhood/own', { headers });
+            const res = await apiFetch<{
+                neighborhoodID?: string;
+                address?: string | { address?: string; lat?: number; lng?: number };
+                households?: number | string;
+                residents?: number | string;
+                noOfHouseholds?: number | string;
+                noOfResidents?: number | string;
+                floodwaterRange?: string;
+                floodwaterSubsidenceDuration?: number | string;
+                boundaryGeoJSON?: string;
+                terminalID?: string;
+                createdDate?: string;
+                updatedDate?: string;
+                hazards?: string[];
+                otherInformation?: string;
+                focalPerson?: {
+                    name?: string;
+                    contact?: string;
+                    number?: string;
+                    email?: string;
+                    image?: string;
+                    photo?: string;
+                    alternativeFPFirstName?: string;
+                    alternativeFPLastName?: string;
+                    alternativeFPNumber?: string;
+                    alternativeFPEmail?: string;
+                    alternativeFPImage?: string;
+                };
+            }>('/neighborhood/own', { headers });
             // Map backend response to CommunityData shape
             let addressString = '';
             let coordsString = '';
@@ -63,7 +91,7 @@ export default function useCommunityData() {
                 },
             };
             setData(mapped);
-        } catch (e: any) {
+        } catch {
             setError('Failed to load community data');
             setData(null);
         } finally {

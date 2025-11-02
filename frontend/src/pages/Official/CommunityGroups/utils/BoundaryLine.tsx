@@ -5,7 +5,7 @@ const BLUE = "#3B82F6" // tailwind blue-500
 // Custom styles for Mapbox GL Draw used in boundary (line) phase
 // - Dashed blue line
 // - Square blue vertices (using symbol with square-11; falls back to circle if sprite missing)
-export function getDrawStyles(): any[] {
+export function getDrawStyles(): Record<string, unknown>[] {
   return [
     // Inactive line dashed blue
     {
@@ -63,7 +63,7 @@ export function getDrawStyles(): any[] {
 // Ensure a blue square sprite exists for point rendering
 export function ensureSquareBlueImage(map: Map) {
   try {
-    if ((map as any).hasImage && (map as any).hasImage("square-blue")) return
+    if ('hasImage' in map && typeof map.hasImage === 'function' && map.hasImage("square-blue")) return
   } catch {
     // continue
   }
@@ -82,7 +82,9 @@ export function ensureSquareBlueImage(map: Map) {
   ctx.strokeRect(0, 0, size, size)
   const imageData = ctx.getImageData(0, 0, size, size)
   try {
-    ;(map as any).addImage("square-blue", imageData, { pixelRatio: 2 })
+    if ('addImage' in map && typeof map.addImage === 'function') {
+      map.addImage("square-blue", imageData, { pixelRatio: 2 })
+    }
   } catch {
     // ignore add failures
   }
@@ -98,8 +100,8 @@ export function updateBoundaryFill(
 
   // remove existing when clearing
   if (!coords || coords.length < 3) {
-    try { if (map.getLayer(layerId)) map.removeLayer(layerId) } catch {}
-    try { if (map.getSource(sourceId)) map.removeSource(sourceId) } catch {}
+    try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch { /* Ignore layer removal errors */ }
+    try { if (map.getSource(sourceId)) map.removeSource(sourceId); } catch { /* Ignore source removal errors */ }
     return
   }
 
@@ -116,9 +118,9 @@ export function updateBoundaryFill(
 
   if (map.getSource(sourceId)) {
     const s = map.getSource(sourceId) as GeoJSONSource
-    s.setData(geojson as any)
+    s.setData(geojson)
   } else {
-    map.addSource(sourceId, { type: "geojson", data: geojson as any })
+    map.addSource(sourceId, { type: "geojson", data: geojson })
   }
 
   if (!map.getLayer(layerId)) {
@@ -144,18 +146,18 @@ export function updateBoundaryVertices(
 
   // clear when no coordinates
   if (!coords || coords.length === 0) {
-    try { if (map.getLayer(layerId)) map.removeLayer(layerId) } catch {}
-    try { if (map.getSource(sourceId)) map.removeSource(sourceId) } catch {}
+    try { if (map.getLayer(layerId)) map.removeLayer(layerId); } catch { /* Ignore layer removal errors */ }
+    try { if (map.getSource(sourceId)) map.removeSource(sourceId); } catch { /* Ignore source removal errors */ }
     return
   }
 
   // ensure the square icon exists; if sprite not ready yet, bail and retry on next call
-  try { ensureSquareBlueImage(map) } catch {}
+  try { ensureSquareBlueImage(map); } catch { /* Ignore image load errors */ }
   try {
-    if ((map as any).hasImage && !(map as any).hasImage("square-blue")) {
+    if ('hasImage' in map && typeof map.hasImage === 'function' && !map.hasImage("square-blue")) {
       return
     }
-  } catch {}
+  } catch { /* Ignore image check errors */ }
 
   // Avoid duplicating the closing point if present
   const pts: GeoJSON.Feature<GeoJSON.Point>[] = []
@@ -171,9 +173,9 @@ export function updateBoundaryVertices(
 
   if (map.getSource(sourceId)) {
     const s = map.getSource(sourceId) as GeoJSONSource
-    s.setData(fc as any)
+    s.setData(fc)
   } else {
-    map.addSource(sourceId, { type: "geojson", data: fc as any })
+    map.addSource(sourceId, { type: "geojson", data: fc })
   }
 
   if (!map.getLayer(layerId)) {

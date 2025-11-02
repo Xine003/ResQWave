@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Eye, EyeOff, RefreshCcw, Trash, Upload } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, useMemo } from "react"
 import type { DispatcherDetails, DispatcherFormData } from "../types"
 import { CloseCreateDialog } from "./CloseCreateDialog"
 
@@ -38,11 +38,11 @@ interface DispatcherDrawerProps {
   onClearServerError?: (fieldName: string) => void // Add callback to clear specific server errors
 }
 
-export function CreateDispatcherSheet({ 
-  open, 
-  onOpenChange, 
-  onSave, 
-  editData, 
+export function CreateDispatcherSheet({
+  open,
+  onOpenChange,
+  onSave,
+  editData,
   isEditing = false,
   saving = false,
   serverErrors = {},
@@ -57,7 +57,7 @@ export function CreateDispatcherSheet({
     password: "",
     confirmPassword: "",
   })
-  
+
   const [localErrors, setLocalErrors] = useState<FormErrors>({})
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
@@ -66,7 +66,7 @@ export function CreateDispatcherSheet({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Merge local errors with server errors, with server errors taking precedence
-  const errors = { ...localErrors, ...serverErrors }
+  const errors = useMemo(() => ({ ...localErrors, ...serverErrors }), [localErrors, serverErrors])
 
   // Clear local errors when server errors change (to allow fresh start)
   useEffect(() => {
@@ -76,52 +76,52 @@ export function CreateDispatcherSheet({
   }, [serverErrors])
 
   // Validation functions
-  const validateName = (name: string, field: string): string | undefined => {
+  const validateName = useCallback((name: string, field: string): string | undefined => {
     if (!name.trim()) return `${field} is required`
     if (/\d/.test(name)) return `${field} should not contain numbers`
     if (name.trim().length < 2) return `${field} must be at least 2 characters long`
     return undefined
-  }
+  }, [])
 
-  const validateContactNumber = (contact: string): string | undefined => {
+  const validateContactNumber = useCallback((contact: string): string | undefined => {
     if (!contact.trim()) return "Contact number is required"
     const cleanContact = contact.replace(/\D/g, '') // Remove non-digits
     if (cleanContact.length !== 11) return "Contact number must be exactly 11 digits"
     if (!cleanContact.startsWith('09')) return "Contact number must start with 09"
     return undefined
-  }
+  }, [])
 
-  const validateEmail = (email: string): string | undefined => {
+  const validateEmail = useCallback((email: string): string | undefined => {
     if (!email.trim()) return "Email is required"
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) return "Please enter a valid email address"
     return undefined
-  }
+  }, [])
 
-  const validatePassword = (password: string): string | undefined => {
+  const validatePassword = useCallback((password: string): string | undefined => {
     if (!isEditing && !password.trim()) return "Password is required"
     if (!isEditing && password.length < 8) return "Password must be at least 8 characters long"
-    
+
     if (!isEditing) {
       const hasUppercase = /[A-Z]/.test(password)
       const hasLowercase = /[a-z]/.test(password)
       const hasNumber = /\d/.test(password)
       const hasSpecialChar = /[@$!%*?&_]/.test(password)
-      
+
       if (!hasUppercase) return "Password must include at least one uppercase letter"
       if (!hasLowercase) return "Password must include at least one lowercase letter"
       if (!hasNumber) return "Password must include at least one number"
       if (!hasSpecialChar) return "Password must include at least one special character (@, $, !, %, *, ?, &, _)"
     }
-    
-    return undefined
-  }
 
-  const validateConfirmPassword = (confirmPassword: string, password: string): string | undefined => {
+    return undefined
+  }, [isEditing])
+
+  const validateConfirmPassword = useCallback((confirmPassword: string, password: string): string | undefined => {
     if (!isEditing && !confirmPassword.trim()) return "Please confirm your password"
     if (!isEditing && confirmPassword !== password) return "Passwords do not match"
     return undefined
-  }
+  }, [isEditing])
 
   // Check if form is valid
   const isFormValid = (): boolean => {
@@ -131,7 +131,7 @@ export function CreateDispatcherSheet({
     const hasValidEmail = !validateEmail(formData.email)
     const hasValidPassword = isEditing || !validatePassword(formData.password)
     const hasValidConfirmPassword = isEditing || !validateConfirmPassword(formData.confirmPassword, formData.password)
-    
+
     return hasValidFirstName && hasValidLastName && hasValidContact && hasValidEmail && hasValidPassword && hasValidConfirmPassword
   }
 
@@ -142,7 +142,7 @@ export function CreateDispatcherSheet({
       const nameParts = editData.name.split(" ")
       const firstName = nameParts[0] || ""
       const lastName = nameParts.slice(1).join(" ") || ""
-      
+
       setFormData({
         photo: null,
         firstName,
@@ -181,12 +181,12 @@ export function CreateDispatcherSheet({
   const handleNameChange = useCallback((field: 'firstName' | 'lastName', value: string) => {
     // Remove any numbers from the input
     const filteredValue = value.replace(/\d/g, '')
-    
+
     setFormData(prev => ({
       ...prev,
       [field]: filteredValue
     }))
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setLocalErrors(prev => ({
@@ -194,26 +194,26 @@ export function CreateDispatcherSheet({
         [field]: undefined
       }))
     }
-    
+
     // Real-time validation
     const fieldName = field === 'firstName' ? 'First name' : 'Last name'
     const error = validateName(filteredValue, fieldName)
     setLocalErrors(prev => ({ ...prev, [field]: error }))
     setIsDirty(true)
-  }, [errors.firstName, errors.lastName, validateName])
+  }, [errors, validateName])
 
   // Special handler for contact number with digit limiting
   const handleContactNumberChange = useCallback((value: string) => {
     // Remove all non-digits
     const digitsOnly = value.replace(/\D/g, '')
-    
+
     // Limit to 11 digits maximum
     if (digitsOnly.length <= 11) {
       setFormData(prev => ({
         ...prev,
         contactNumber: digitsOnly
       }))
-      
+
       // Clear local error when user starts typing
       if (localErrors.contactNumber) {
         setLocalErrors(prev => ({
@@ -221,12 +221,12 @@ export function CreateDispatcherSheet({
           contactNumber: undefined
         }))
       }
-      
+
       // Clear server error when user starts typing
       if (serverErrors.contactNumber && onClearServerError) {
         onClearServerError('contactNumber')
       }
-      
+
       // Real-time validation
       const error = validateContactNumber(digitsOnly)
       setLocalErrors(prev => ({ ...prev, contactNumber: error }))
@@ -239,7 +239,7 @@ export function CreateDispatcherSheet({
       ...prev,
       [field]: value
     }))
-    
+
     // Clear local error for this field when user starts typing
     if (localErrors[field as keyof FormErrors]) {
       setLocalErrors(prev => ({
@@ -247,12 +247,12 @@ export function CreateDispatcherSheet({
         [field]: undefined
       }))
     }
-    
+
     // Clear server error for this field when user starts typing
     if (serverErrors[field as keyof FormErrors] && onClearServerError) {
       onClearServerError(field as string)
     }
-    
+
     // Real-time validation for specific fields
     if (field === 'email' && typeof value === 'string') {
       const error = validateEmail(value)
@@ -269,7 +269,7 @@ export function CreateDispatcherSheet({
       const error = validateConfirmPassword(value, formData.password)
       setLocalErrors(prev => ({ ...prev, confirmPassword: error }))
     }
-    
+
     setIsDirty(true)
   }, [localErrors, serverErrors, onClearServerError, formData.password, formData.confirmPassword, validateEmail, validatePassword, validateConfirmPassword])
 
@@ -280,14 +280,14 @@ export function CreateDispatcherSheet({
         alert("File size must be less than 10MB")
         return
       }
-      
+
       if (!file.type.match(/^image\/(jpeg|png)$/)) {
         alert("Only JPG and PNG files are allowed")
         return
       }
 
       handleInputChange("photo", file)
-      
+
       // Create preview
       const reader = new FileReader()
       reader.onload = (e) => {
@@ -305,14 +305,14 @@ export function CreateDispatcherSheet({
         alert("File size must be less than 10MB")
         return
       }
-      
+
       if (!file.type.match(/^image\/(jpeg|png)$/)) {
         alert("Only JPG and PNG files are allowed")
         return
       }
 
       handleInputChange("photo", file)
-      
+
       // Create preview
       const reader = new FileReader()
       reader.onload = (e) => {
@@ -329,39 +329,39 @@ export function CreateDispatcherSheet({
   const handleSave = useCallback(async () => {
     // Validate all fields
     const newErrors: FormErrors = {}
-    
+
     const firstNameError = validateName(formData.firstName, "First name")
     if (firstNameError) {
       newErrors.firstName = firstNameError
     }
-    
+
     const lastNameError = validateName(formData.lastName, "Last name")
     if (lastNameError) {
       newErrors.lastName = lastNameError
     }
-    
+
     const contactError = validateContactNumber(formData.contactNumber)
     if (contactError) {
       newErrors.contactNumber = contactError
     }
-    
+
     const emailError = validateEmail(formData.email)
     if (emailError) {
       newErrors.email = emailError
     }
-    
+
     if (!isEditing) {
       const passwordError = validatePassword(formData.password)
       if (passwordError) {
         newErrors.password = passwordError
       }
-      
+
       const confirmPasswordError = validateConfirmPassword(formData.confirmPassword, formData.password)
       if (confirmPasswordError) {
         newErrors.confirmPassword = confirmPasswordError
       }
     }
-    
+
     // If there are errors, show them and return
     if (Object.keys(newErrors).length > 0) {
       setLocalErrors(newErrors)
@@ -380,7 +380,7 @@ export function CreateDispatcherSheet({
       email: formData.email.trim(),
       createdAt: isEditing && editData ? editData.createdAt : new Date().toLocaleDateString('en-US', {
         year: 'numeric',
-        month: 'long', 
+        month: 'long',
         day: 'numeric'
       }),
       createdBy: isEditing && editData ? editData.createdBy : "Franxine Orias",
@@ -400,7 +400,7 @@ export function CreateDispatcherSheet({
     // Call the parent's save handler and wait for result
     if (onSave) {
       const success = await onSave(dispatcherData, rawFormData)
-      
+
       // Only close the sheet if save was successful
       if (success) {
         setIsDirty(false)
@@ -426,8 +426,8 @@ export function CreateDispatcherSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={handleClose}>
-        <SheetContent 
-          side="right" 
+        <SheetContent
+          side="right"
           className="w-[400px] sm:w-[540px] bg-[#171717] border-l border-[#2a2a2a] text-white p-0 flex flex-col"
         >
           <SheetHeader className="px-6 py-4 border-b border-[#2a2a2a] flex flex-row items-center justify-between">
@@ -534,11 +534,10 @@ export function CreateDispatcherSheet({
                   id="firstName"
                   value={formData.firstName}
                   onChange={(e) => handleNameChange("firstName", e.target.value)}
-                  className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
-                    errors.firstName 
-                      ? "border-red-500 focus:border-red-500" 
+                  className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${errors.firstName
+                      ? "border-red-500 focus:border-red-500"
                       : "border-[#2a2a2a] focus:border-gray-600"
-                  }`}
+                    }`}
                 />
                 {errors.firstName && (
                   <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
@@ -552,11 +551,10 @@ export function CreateDispatcherSheet({
                   id="lastName"
                   value={formData.lastName}
                   onChange={(e) => handleNameChange("lastName", e.target.value)}
-                  className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
-                    errors.lastName 
-                      ? "border-red-500 focus:border-red-500" 
+                  className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${errors.lastName
+                      ? "border-red-500 focus:border-red-500"
                       : "border-[#2a2a2a] focus:border-gray-600"
-                  }`}
+                    }`}
                 />
                 {errors.lastName && (
                   <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
@@ -575,11 +573,10 @@ export function CreateDispatcherSheet({
                 value={formData.contactNumber}
                 onChange={(e) => handleContactNumberChange(e.target.value)}
                 maxLength={11}
-                className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
-                  errors.contactNumber 
-                    ? "border-red-500 focus:border-red-500" 
+                className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${errors.contactNumber
+                    ? "border-red-500 focus:border-red-500"
                     : "border-[#2a2a2a] focus:border-gray-600"
-                }`}
+                  }`}
               />
               {errors.contactNumber && (
                 <p className="text-red-500 text-xs mt-1">{errors.contactNumber}</p>
@@ -596,11 +593,10 @@ export function CreateDispatcherSheet({
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
-                className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
-                  errors.email 
-                    ? "border-red-500 focus:border-red-500" 
+                className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${errors.email
+                    ? "border-red-500 focus:border-red-500"
                     : "border-[#2a2a2a] focus:border-gray-600"
-                }`}
+                  }`}
               />
               {errors.email && (
                 <p className="text-red-500 text-xs mt-1">{errors.email}</p>
@@ -620,11 +616,10 @@ export function CreateDispatcherSheet({
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) => handleInputChange("password", e.target.value)}
-                      className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 pr-10 ${
-                        errors.password 
-                          ? "border-red-500 focus:border-red-500" 
+                      className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 pr-10 ${errors.password
+                          ? "border-red-500 focus:border-red-500"
                           : "border-[#2a2a2a] focus:border-gray-600"
-                      }`}
+                        }`}
                     />
                     <Button
                       type="button"
@@ -656,11 +651,10 @@ export function CreateDispatcherSheet({
                       type={showConfirmPassword ? "text" : "password"}
                       value={formData.confirmPassword}
                       onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                      className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 pr-10 ${
-                        errors.confirmPassword 
-                          ? "border-red-500 focus:border-red-500" 
+                      className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 pr-10 ${errors.confirmPassword
+                          ? "border-red-500 focus:border-red-500"
                           : "border-[#2a2a2a] focus:border-gray-600"
-                      }`}
+                        }`}
                     />
                     <Button
                       type="button"
@@ -698,11 +692,10 @@ export function CreateDispatcherSheet({
               <Button
                 onClick={handleSave}
                 disabled={!isFormValid() || saving}
-                className={`flex-1 text-white rounded-[5px] transition-colors flex items-center gap-2 ${
-                  isFormValid() && !saving
-                    ? "bg-[#4285f4] hover:bg-[#3367d6] cursor-pointer" 
+                className={`flex-1 text-white rounded-[5px] transition-colors flex items-center gap-2 ${isFormValid() && !saving
+                    ? "bg-[#4285f4] hover:bg-[#3367d6] cursor-pointer"
                     : "bg-gray-500 cursor-not-allowed opacity-50"
-                }`}
+                  }`}
               >
                 {saving && (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

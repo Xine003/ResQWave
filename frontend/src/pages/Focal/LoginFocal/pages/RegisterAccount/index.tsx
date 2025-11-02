@@ -19,7 +19,7 @@ export function RegisterAccount() {
   const formatPhoneNumber = (value: string): string => {
     // Remove all non-digits
     const digits = value.replace(/\D/g, '');
-    
+
     // Format as XXX XXX XXXX
     if (digits.length <= 3) {
       return digits;
@@ -33,12 +33,12 @@ export function RegisterAccount() {
   // Phone number validation function
   const validatePhoneNumber = (phone: string): boolean => {
     // Remove any spaces, dashes, or parentheses
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-    
+    const cleanPhone = phone.replace(/[\s\-()]/g, '');
+
     // Check if it's a valid Philippine mobile number
     // Should be 10 digits (after +63) starting with 9
     const phoneRegex = /^9\d{9}$/;
-    
+
     return phoneRegex.test(cleanPhone);
   };
 
@@ -50,7 +50,7 @@ export function RegisterAccount() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+
     // Reset error state
     setError("");
 
@@ -107,8 +107,8 @@ export function RegisterAccount() {
       <FocalHeader />
       <main className="flex flex-1 flex-col items-center w-full" style={{ marginTop: '120px', zIndex: 20, position: 'relative' }}>
         <div className="flex flex-col items-center gap-4 mb-7">
-            <h1 className="text-[43px] font-medium leading-snug text-white mb-3 max-w-[500px] text-center break-words">Be your Community's Focal Person</h1>
-            <p className="text-[#BABABA] text-center mb-2 max-w-[400px] leading-[30px]">
+          <h1 className="text-[43px] font-medium leading-snug text-white mb-3 max-w-[500px] text-center break-words">Be your Community's Focal Person</h1>
+          <p className="text-[#BABABA] text-center mb-2 max-w-[400px] leading-[30px]">
             To start, please provide your {inputMode === "phone" ? "primary phone number" : "primary email address"} or{' '}
             <button
               type="button"
@@ -121,7 +121,7 @@ export function RegisterAccount() {
               {inputMode === "phone" ? "use email instead" : "use phone number instead"}
             </button>
             .
-            </p>
+          </p>
         </div>
 
         {/* Error Alert UI - Similar to Sign In page */}
@@ -130,9 +130,9 @@ export function RegisterAccount() {
             <CircleAlert className="text-[#F92626]" size={22} />
             <div>
               <span className="font-bold text-[#F92626]">
-                {error.includes("valid Philippine") ? "Invalid phone number" : 
-                 error.includes("valid email") ? "Invalid email address" :
-                 "Missing input"}
+                {error.includes("valid Philippine") ? "Invalid phone number" :
+                  error.includes("valid email") ? "Invalid email address" :
+                    "Missing input"}
               </span><br />
               <span className="text-[#F92626] text-[14px]">{error}</span>
             </div>
@@ -161,9 +161,8 @@ export function RegisterAccount() {
                     if (error) setError("");
                   }}
                   aria-invalid={!!error && (error.includes("phone") || error.includes("valid Philippine"))}
-                  className={`bg-[#171717] border rounded-lg px-4 py-7 text-white flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    !!error && (error.includes("phone") || error.includes("valid Philippine")) ? "border-red-500" : "border-[#404040]"
-                  }`}
+                  className={`bg-[#171717] border rounded-lg px-4 py-7 text-white flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${!!error && (error.includes("phone") || error.includes("valid Philippine")) ? "border-red-500" : "border-[#404040]"
+                    }`}
                   style={{ fontSize: "16px", height: "48px" }}
                   placeholder="9XX XXX XXXX"
                   maxLength={12}
@@ -178,53 +177,51 @@ export function RegisterAccount() {
                   if (error) setError("");
                 }}
                 aria-invalid={!!error && (error.includes("email") || error.includes("valid email"))}
-                className={`bg-[#171717] border rounded-lg px-4 py-7 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  !!error && (error.includes("email") || error.includes("valid email")) ? "border-red-500" : "border-[#404040]"
-                }`}
+                className={`bg-[#171717] border rounded-lg px-4 py-7 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${!!error && (error.includes("email") || error.includes("valid email")) ? "border-red-500" : "border-[#404040]"
+                  }`}
                 style={{ fontSize: "16px", height: "48px" }}
                 placeholder="name@domain.com"
               />
             )}
-    
+
           </div>
 
-            <div className="flex items-center gap-4 mt-3 mb-1">
+          <div className="flex items-center gap-4 mt-3 mb-1">
             <Checkbox
               id="terms"
               checked={agreeToTerms}
               onCheckedChange={(checked) => {
-              setAgreeToTerms(checked as boolean);
-              if (error) setError("");
+                setAgreeToTerms(checked as boolean);
+                if (error) setError("");
               }}
-              className={`mt-[-5px] bg-[#414141] data-[state=checked]:bg-blue-500 w-4 h-4 rounded data-[state=checked]:text-white ${
-                !!error && error.includes("agree to") ? "border border-red-500" : "border-none"
-              }`}
-              />
+              className={`mt-[-5px] bg-[#414141] data-[state=checked]:bg-blue-500 w-4 h-4 rounded data-[state=checked]:text-white ${!!error && error.includes("agree to") ? "border border-red-500" : "border-none"
+                }`}
+            />
             <label htmlFor="terms" className="text-white text-[13.4px] leading-relaxed">
               I have read and I agree to the{' '}
               <button
-              type="button"
-              className="text-[#3B82F6] hover:text-blue-500 bg-transparent border-none cursor-pointer underline"
+                type="button"
+                className="text-[#3B82F6] hover:text-blue-500 bg-transparent border-none cursor-pointer underline"
               >
-              ResQWave Terms & Conditions
+                ResQWave Terms & Conditions
               </button>
               {' '}and{' '}
               <button
-              type="button"
-              className="text-[#3B82F6] hover:text-blue-500 bg-transparent border-none cursor-pointer underline"
+                type="button"
+                className="text-[#3B82F6] hover:text-blue-500 bg-transparent border-none cursor-pointer underline"
               >
-              Privacy Policy
+                Privacy Policy
               </button>
               .
             </label>
-            </div>
-            
-            {/* Helper text for terms validation */}
-            {error && error.includes("agree to") && (
-              <p className="text-[#F92626] text-[13px] ml-8">
-                Please agree to the Terms & Conditions and Privacy Policy to continue.
-              </p>
-            )}
+          </div>
+
+          {/* Helper text for terms validation */}
+          {error && error.includes("agree to") && (
+            <p className="text-[#F92626] text-[13px] ml-8">
+              Please agree to the Terms & Conditions and Privacy Policy to continue.
+            </p>
+          )}
 
           <Button
             type="submit"

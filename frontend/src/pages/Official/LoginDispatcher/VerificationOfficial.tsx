@@ -16,15 +16,16 @@ export function VerificationOfficial() {
             setError("Please enter the complete verification code.");
             return;
         }
-        
+
         setIsVerifying(true);
         try {
             const success = await verifyLogin(code);
             if (success) {
                 navigate("/visualization");
             }
-        } catch (error: any) {
-            setError(error.message || "Invalid verification code. Please try again.");
+        } catch (error: unknown) {
+            const err = error as { message?: string };
+            setError(err.message || "Invalid verification code. Please try again.");
         } finally {
             setIsVerifying(false);
         }

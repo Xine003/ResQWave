@@ -3,15 +3,20 @@ import { Button } from "@/components/ui/button"
 import { Clock, FileText, Send, X } from "lucide-react"
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
 
+type DispatchFormData = {
+	focalPerson?: string;
+	[key: string]: unknown;
+}
+
 export type RescueFormAlertsHandle = {
 	showWaitlistSuccess: (focalPerson: string) => void
 	showDispatchSuccess: (focalPerson: string) => void
 	showError: (message: string) => void
-	showDispatchConfirmation: (formData: any, onConfirm: () => void) => void
+	showDispatchConfirmation: (formData: unknown, onConfirm: () => void) => void
 	hideAll: () => void
 }
 
-export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(_props, ref) {
+export default forwardRef<RescueFormAlertsHandle>(function RescueFormAlerts(_props, ref) {
 	// Waitlist success alert (bottom left)
 	const [showWaitlist, setShowWaitlist] = useState(false)
 	const [waitlistMessage, setWaitlistMessage] = useState("")
@@ -29,7 +34,7 @@ export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(
 
 	// Dispatch confirmation dialog (center)
 	const [showDispatchConfirm, setShowDispatchConfirm] = useState(false)
-	const [dispatchConfirmData, setDispatchConfirmData] = useState<any>(null)
+	const [dispatchConfirmData, setDispatchConfirmData] = useState<DispatchFormData | null>(null)
 	const [dispatchConfirmCallback, setDispatchConfirmCallback] = useState<(() => void) | null>(null)
 
 	// Clear timers on unmount
@@ -88,8 +93,8 @@ export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(
 				errorTimer.current = null
 			}, 5000)
 		},
-		showDispatchConfirmation: (formData: any, onConfirm: () => void) => {
-			setDispatchConfirmData(formData)
+		showDispatchConfirmation: (formData: unknown, onConfirm: () => void) => {
+			setDispatchConfirmData(formData as DispatchFormData)
 			setDispatchConfirmCallback(() => onConfirm)
 			setShowDispatchConfirm(true)
 		},
@@ -107,7 +112,7 @@ export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(
 							<Clock className="absolute -top-1 -right-1 size-3 text-[#eab308]" />
 						</div>
 					</div>
-						<AlertDescription className="text-[13px] leading-tight">
+					<AlertDescription className="text-[13px] leading-tight">
 						{waitlistMessage}
 					</AlertDescription>
 				</Alert>
@@ -129,7 +134,7 @@ export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(
 			</div>
 
 			{/* Error Alert - Bottom Left */}
-						{/* Error Alert - Bottom Left */}
+			{/* Error Alert - Bottom Left */}
 			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showError ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
 				<Alert className="min-w-[280px] max-w-[600px] bg-[#171717] border border-red-600/50 text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
 					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-red-600/25">
@@ -145,19 +150,19 @@ export default forwardRef<RescueFormAlertsHandle, {}>(function RescueFormAlerts(
 			</div>
 
 			{/* Dispatch Confirmation Dialog - Center */}
-				<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showError ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
-					<Alert className="min-w-[280px] max-w-[600px] bg-[#171717] border border-red-600/50 text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
-						<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-red-600/25">
-							<div className="relative">
-								<FileText className="size-5 text-[#ef4444]" />
-								<X className="absolute -top-1 -right-1 size-3 text-[#ef4444]" />
-							</div>
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showError ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
+				<Alert className="min-w-[280px] max-w-[600px] bg-[#171717] border border-red-600/50 text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-red-600/25">
+						<div className="relative">
+							<FileText className="size-5 text-[#ef4444]" />
+							<X className="absolute -top-1 -right-1 size-3 text-[#ef4444]" />
 						</div>
-						<AlertDescription className="text-[13px] leading-tight text-red-200">
-							<span className="font-medium">Error:</span> {errorMessage}
-						</AlertDescription>
-					</Alert>
-				</div>
+					</div>
+					<AlertDescription className="text-[13px] leading-tight text-red-200">
+						<span className="font-medium">Error:</span> {errorMessage}
+					</AlertDescription>
+				</Alert>
+			</div>
 
 			{/* Dispatch Confirmation Dialog - Center */}
 			{showDispatchConfirm && dispatchConfirmData && (

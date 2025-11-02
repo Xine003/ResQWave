@@ -164,13 +164,13 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                     // If account settings modal is open, ask parent to confirm/cancel before changing tabs
                     if (accountSettingsOpen && onRequestCloseAccountSettings) {
                         onRequestCloseAccountSettings(() => {
-                            onTabChange && onTabChange(v);
-                            if (v === 'about') onAboutClick && onAboutClick();
+                            onTabChange?.(v);
+                            if (v === 'about') onAboutClick?.();
                         });
                         return;
                     }
-                    onTabChange && onTabChange(v);
-                    if (v === 'about') onAboutClick && onAboutClick();
+                    onTabChange?.(v);
+                    if (v === 'about') onAboutClick?.();
                 }}>
                     <TabsList>
                         <TabsTrigger

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { getNeighborhoodByTerminalId } from '../../CommunityGroups/api/communityGroupApi';
 import { CommunityGroupInfoSheet } from '../../CommunityGroups/components/CommunityGroupInfoSheet';
 import type { CommunityGroupDetails } from '../../CommunityGroups/types';
-import { useRescueWaitlist } from '../contexts/RescueWaitlistContext';
+import { useRescueWaitlist, type RescueFormData } from '../contexts/RescueWaitlistContext';
 import type { SignalPopupProps } from '../types/popup';
 import RescueFormSheet from './RescueFormSheet';
 
@@ -26,12 +26,12 @@ const PopoverRow = ({ label, value, isWide = false }: { label: string; value: Re
     </div>
 );
 
-export default function SignalPopover({ 
-    popover, 
-    setPopover, 
-    onClose, 
-    onDispatchRescue, 
-    onRemoveSignal, 
+export default function SignalPopover({
+    popover,
+    setPopover,
+    onClose,
+    onDispatchRescue,
+    onRemoveSignal,
     onShowWaitlistAlert,
     onShowDispatchAlert,
     onShowErrorAlert,
@@ -40,52 +40,52 @@ export default function SignalPopover({
     const { isRescueFormOpen, setIsRescueFormOpen } = useRescueForm();
     const { setIsLiveReportOpen } = useLiveReport();
     const { addToWaitlist } = useRescueWaitlist();
-    
+
     // Community info sheet state
     const [communityInfoOpen, setCommunityInfoOpen] = useState(false);
     const [communityData, setCommunityData] = useState<CommunityGroupDetails | undefined>(undefined);
     const [loadingCommunityData, setLoadingCommunityData] = useState(false);
-    
-    const handleWaitlist = (formData: any) => {
+
+    const handleWaitlist = (formData: unknown) => {
         if (!popover) return;
-        
+
         const waitlistData = {
-            ...formData,
+            ...(formData as Record<string, unknown>),
             alertId: popover.alertId, // Include alertId for backend operations and map updates
             deviceId: popover.deviceId,
             address: popover.address,
             date: popover.timeSent || popover.date, // Use formatted timeSent, fallback to date
             alertType: (popover.alertType as 'CRITICAL' | 'USER-INITIATED') || 'USER-INITIATED'
         };
-        
-        addToWaitlist(waitlistData);
+
+        addToWaitlist(waitlistData as RescueFormData);
         setIsLiveReportOpen(true);
         setIsRescueFormOpen(false);
         // Close the popover after adding to waitlist
         setPopover(null);
-        
+
         // Show success alert
         onShowWaitlistAlert?.(popover.focalPerson || 'Unknown');
     };
 
-    const handleDispatch = (formData?: any) => {
+    const handleDispatch = (formData?: unknown) => {
         if (!popover || !popover.alertId) {
             console.error('[SignalPopover] Cannot dispatch: missing alertId');
             onShowErrorAlert?.('Cannot dispatch: missing alert information');
             return;
         }
-        
+
         // Show confirmation dialog with backend call as callback
-        if (formData && formData.dispatchCallback) {
+        if (formData && (formData as Record<string, unknown>).dispatchCallback) {
             onShowDispatchConfirmation?.(formData, async () => {
                 try {
                     // Execute the backend dispatch call
-                    await formData.dispatchCallback();
-                    
+                    await ((formData as Record<string, unknown>).dispatchCallback as () => Promise<void>)();
+
                     setIsRescueFormOpen(false);
                     setPopover(null); // Close the popover
                     onDispatchRescue?.(); // Show dispatch confirmation dialog
-                    
+
                     // Show success alert
                     onShowDispatchAlert?.(popover.focalPerson || 'Unknown');
                 } catch (error) {
@@ -100,11 +100,11 @@ export default function SignalPopover({
                 if (onRemoveSignal && popover.alertId) {
                     onRemoveSignal(popover.alertId);
                 }
-                
+
                 setIsRescueFormOpen(false);
                 setPopover(null); // Close the popover
                 onDispatchRescue?.(); // Show dispatch confirmation dialog
-                
+
                 // Show success alert
                 onShowDispatchAlert?.(popover.focalPerson || 'Unknown');
             });
@@ -113,21 +113,21 @@ export default function SignalPopover({
             if (onRemoveSignal && popover.alertId) {
                 onRemoveSignal(popover.alertId);
             }
-            
+
             setIsRescueFormOpen(false);
             setPopover(null);
             onDispatchRescue?.();
-            
+
             onShowDispatchAlert?.(popover.focalPerson || 'Unknown');
         }
     };
-    
+
     const handleMoreInfo = async () => {
         if (!popover?.deviceId) {
             console.error('[SignalPopover] No device ID available for More Info');
             return;
         }
-        
+
         setLoadingCommunityData(true);
         try {
             const data = await getNeighborhoodByTerminalId(popover.deviceId);
@@ -145,7 +145,7 @@ export default function SignalPopover({
             setLoadingCommunityData(false);
         }
     };
-    
+
     if (!popover) return null;
 
     // Check if rescue form is needed for this alert type (not for dispatched or offline/online terminals)
@@ -178,45 +178,45 @@ export default function SignalPopover({
 
                         {/* Information rows */}
                         <div className={styles.popoverContainer}>
-                            <PopoverRow 
-                                label="Device ID" 
-                                value={popover.deviceId || 'N/A'} 
+                            <PopoverRow
+                                label="Device ID"
+                                value={popover.deviceId || 'N/A'}
                             />
-                            <PopoverRow 
-                                label="Alert Type" 
+                            <PopoverRow
+                                label="Alert Type"
                                 value={
                                     popover.alertType === 'CRITICAL' ? 'Critical' :
-                                    popover.alertType === 'USER-INITIATED' ? 'User-Initiated' :
-                                    popover.alertType === 'DISPATCHED' ? 'Rescue Completed' :
-                                    popover.alertType === 'ONLINE' ? 'No Alert' :
-                                    popover.alertType === 'OFFLINE' ? 'No Alert' :
-                                    !popover.alertType || popover.alertType === null ? 'No Alert' :
-                                    'N/A'
-                                } 
+                                        popover.alertType === 'USER-INITIATED' ? 'User-Initiated' :
+                                            popover.alertType === 'DISPATCHED' ? 'Rescue Completed' :
+                                                popover.alertType === 'ONLINE' ? 'No Alert' :
+                                                    popover.alertType === 'OFFLINE' ? 'No Alert' :
+                                                        !popover.alertType || popover.alertType === null ? 'No Alert' :
+                                                            'N/A'
+                                }
                             />
-                            <PopoverRow 
-                                label="Terminal Status" 
+                            <PopoverRow
+                                label="Terminal Status"
                                 value={
                                     popover.status === 'ONLINE' ? 'Online' :
-                                    popover.status === 'OFFLINE' ? 'Offline' :
-                                    popover.status || 'N/A'
-                                } 
+                                        popover.status === 'OFFLINE' ? 'Offline' :
+                                            popover.status || 'N/A'
+                                }
                             />
-                            <PopoverRow 
-                                label="Time Sent" 
-                                value={popover.timeSent || 'N/A'} 
+                            <PopoverRow
+                                label="Time Sent"
+                                value={popover.timeSent || 'N/A'}
                             />
-                            <PopoverRow 
-                                label="Focal Person" 
-                                value={popover.focalPerson || 'N/A'} 
+                            <PopoverRow
+                                label="Focal Person"
+                                value={popover.focalPerson || 'N/A'}
                             />
-                            <PopoverRow 
-                                label="House Address" 
-                                value={popover.address || 'N/A'} 
+                            <PopoverRow
+                                label="House Address"
+                                value={popover.address || 'N/A'}
                             />
-                            <PopoverRow 
-                                label="Contact Number" 
-                                value={popover.contactNumber || 'N/A'} 
+                            <PopoverRow
+                                label="Contact Number"
+                                value={popover.contactNumber || 'N/A'}
                             />
                         </div>
                         {/* Action Buttons */}
@@ -235,11 +235,10 @@ export default function SignalPopover({
                                     }
                                 }}
                                 disabled={!isRescueNeeded}
-                                className={`flex-1 px-4 py-2 rounded text-sm font-medium transition-colors ${
-                                    isRescueNeeded 
-                                        ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer' 
-                                        : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
-                                }`}
+                                className={`flex-1 px-4 py-2 rounded text-sm font-medium transition-colors ${isRescueNeeded
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                                    : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                                    }`}
                                 title={!isRescueNeeded ? 'Rescue form only available for Critical and User-Initiated alerts' : 'Open rescue form'}
                             >
                                 Rescue Form
@@ -254,7 +253,7 @@ export default function SignalPopover({
 
             {/* Rescue Form Sheet - Rendered separately at root level */}
             {isRescueNeeded && (
-                <RescueFormSheet 
+                <RescueFormSheet
                     isOpen={isRescueFormOpen}
                     onClose={() => setIsRescueFormOpen(false)}
                     focalPerson={popover.focalPerson || 'N/A'}

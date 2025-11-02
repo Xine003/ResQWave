@@ -1,6 +1,6 @@
 const { AppDataSource } = require("../config/dataSource");
 const terminalRepo = AppDataSource.getRepository("Terminal");
-const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
+// removed unused communityGroupRepo variable
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const {
     getCache,
@@ -311,10 +311,10 @@ const archivedTerminal = async (req, res) => {
         }
 
         // Check if terminal is linked to an ACTIVE (non-archived) neighborhood
-        const activeNeighborhood = await neighborhoodRepo.findOne({ 
-            where: { terminalID: id, archived: false } 
+        const activeNeighborhood = await neighborhoodRepo.findOne({
+            where: { terminalID: id, archived: false }
         });
-        
+
         if (activeNeighborhood) {
             return res.status(400).json({
                 message: "Cannot archive: Terminal is currently assigned to an active neighborhood. Please archive the neighborhood first or detach the terminal."
@@ -327,8 +327,8 @@ const archivedTerminal = async (req, res) => {
         await terminalRepo.save(terminal);
 
         // If terminal is linked to an archived neighborhood, detach it
-        const archivedNeighborhood = await neighborhoodRepo.findOne({ 
-            where: { terminalID: id, archived: true } 
+        const archivedNeighborhood = await neighborhoodRepo.findOne({
+            where: { terminalID: id, archived: true }
         });
         if (archivedNeighborhood) {
             archivedNeighborhood.terminalID = null; // Detach terminal
@@ -419,10 +419,10 @@ const permanentDeleteTerminal = async (req, res) => {
         }
 
         // Check if terminal is linked to an ACTIVE (non-archived) neighborhood
-        const activeNeighborhood = await neighborhoodRepo.findOne({ 
-            where: { terminalID: id, archived: false } 
+        const activeNeighborhood = await neighborhoodRepo.findOne({
+            where: { terminalID: id, archived: false }
         });
-        
+
         if (activeNeighborhood) {
             return res.status(400).json({
                 message: "Cannot permanently delete: Terminal is currently assigned to an active neighborhood. Please archive the neighborhood first or detach the terminal."
@@ -433,7 +433,7 @@ const permanentDeleteTerminal = async (req, res) => {
         const alertRepo = AppDataSource.getRepository("Alert");
         const relatedAlerts = await alertRepo.find({ where: { terminalID: id } });
         let deletedAlertsCount = 0;
-        
+
         if (relatedAlerts.length > 0) {
             await alertRepo.remove(relatedAlerts);
             deletedAlertsCount = relatedAlerts.length;
@@ -441,8 +441,8 @@ const permanentDeleteTerminal = async (req, res) => {
         }
 
         // If terminal is linked to an archived neighborhood, detach it
-        const archivedNeighborhood = await neighborhoodRepo.findOne({ 
-            where: { terminalID: id, archived: true } 
+        const archivedNeighborhood = await neighborhoodRepo.findOne({
+            where: { terminalID: id, archived: true }
         });
         if (archivedNeighborhood) {
             archivedNeighborhood.terminalID = null; // Detach terminal
@@ -458,13 +458,13 @@ const permanentDeleteTerminal = async (req, res) => {
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
 
-        res.json({ 
+        res.json({
             message: "Terminal Permanently Deleted",
             deletedAlerts: deletedAlertsCount
         });
     } catch (err) {
         console.error("Error in permanentDeleteTerminal:", err);
-        res.status(500).json({ 
+        res.status(500).json({
             message: "Server Error - PERMANENT DELETE Terminal",
             error: err.message
         });

@@ -47,34 +47,37 @@ export default function SettingLocationPage() {
 
     // Resize guards
     map.on("load", () => {
-      try { ensureSquareBlueImage(map) } catch { }
-      try { map.resize() } catch { }
-      setTimeout(() => { try { map.resize() } catch { } }, 100)
+      try { ensureSquareBlueImage(map) } catch { /* Ignore image errors */ }
+      try { map.resize() } catch { /* Ignore resize errors */ }
+      setTimeout(() => { try { map.resize() } catch { /* Ignore resize errors */ } }, 100)
     })
     let ro: ResizeObserver | null = null
     try {
-      ro = new ResizeObserver(() => { try { map.resize() } catch { } })
+      ro = new ResizeObserver(() => { try { map.resize() } catch { /* Ignore resize errors */ } })
       if (mapContainerRef.current) ro.observe(mapContainerRef.current)
-    } catch { }
+    } catch { /* Ignore ResizeObserver errors */ }
 
     return () => {
-      try { ro && mapContainerRef.current && ro.unobserve(mapContainerRef.current) } catch { }
-      try { map.remove() } catch { }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const currentContainer = mapContainerRef.current
+      try { if (ro && currentContainer) ro.unobserve(currentContainer); } catch { /* Ignore cleanup errors */ }
+      try { map.remove(); } catch { /* Ignore remove errors */ }
       mapRef.current = null
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // When base style changes, update map style
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    try { map.setStyle(`mapbox://styles/mapbox/${baseStyle}`) } catch { }
+    try { map.setStyle(`mapbox://styles/mapbox/${baseStyle}`) } catch { /* Ignore style errors */ }
     // After style change, the sprite resets. Re-add custom icon soon after style data is available.
     try {
       map.once("styledata", () => {
-        try { ensureSquareBlueImage(map) } catch { }
+        try { ensureSquareBlueImage(map) } catch { /* Ignore image errors */ }
       })
-    } catch { }
+    } catch { /* Ignore styledata errors */ }
   }, [baseStyle])
 
   // Phase handling: only terminal phase (pin placement)
@@ -83,25 +86,25 @@ export default function SettingLocationPage() {
     const m = mapRef.current as mapboxgl.Map
 
     // Clear existing listeners
-    try { m.off("click", onMapClick as any) } catch {}
-    
+    try { m.off("click", onMapClick); } catch { /* Ignore listener removal errors */ }
+
     // Only terminal phase - pin placement
     m.on("click", onMapClick)
     // Use crosshair cursor for pin placement
-    try { m.getCanvas().style.cursor = "crosshair" } catch {}
+    try { m.getCanvas().style.cursor = "crosshair"; } catch { /* Ignore cursor style errors */ }
 
-    function onMapClick(e: any) {
+    function onMapClick(e: mapboxgl.MapMouseEvent) {
       const { lng, lat } = e.lngLat
-      
+
       console.log(`📍 Map clicked at: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`)
-      
+
       // set marker
       if (markerRef.current) {
         markerRef.current.setLngLat([lng, lat])
       } else {
         markerRef.current = new mapboxgl.Marker({ color: "#3b82f6" }).setLngLat([lng, lat]).addTo(m)
       }
-      
+
       // reverse geocode for address
       reverseGeocode(lng, lat).then((address) => {
         console.log(`✅ Address found: ${address}`)
@@ -116,9 +119,9 @@ export default function SettingLocationPage() {
     }
 
     return () => {
-      try { m.off("click", onMapClick as any) } catch {}
+      try { m.off("click", onMapClick); } catch { /* Ignore listener removal errors */ }
       // Cleanup cursor override
-      try { m.getCanvas().style.cursor = "" } catch {}
+      try { m.getCanvas().style.cursor = ""; } catch { /* Ignore cursor reset errors */ }
     }
   }, [])
 
@@ -128,24 +131,24 @@ export default function SettingLocationPage() {
     if (!selectedPoint) return
     // Hide the persistent pin alert and go directly to confirmation
     alertsRef.current?.hidePinAlert?.()
-    
+
     // Save the location data and return to the form
     sessionStorage.setItem("cg_pick_result", JSON.stringify({
       type: "point",
       data: selectedPoint
     }))
-    try { sessionStorage.setItem("cg_reopen_sheet", "1") } catch {}
-    
+    try { sessionStorage.setItem("cg_reopen_sheet", "1"); } catch { /* Ignore session storage errors */ }
+
     // Return to the form
     setTimeout(() => navigate(-1), 200)
   }
 
   // Controls helpers
   const makeTooltip = (text: string) => <span>{text}</span>
-  const addCustomLayers = (_m: mapboxgl.Map) => {
+  const addCustomLayers = () => {
     // Re-add any custom layers after base style changes if needed
     if (mapRef.current) {
-      try { ensureSquareBlueImage(mapRef.current) } catch {}
+      try { ensureSquareBlueImage(mapRef.current); } catch { /* Ignore image load errors */ }
     }
   }
 
@@ -180,7 +183,7 @@ export default function SettingLocationPage() {
         addCustomLayers={addCustomLayers}
         onUndo={() => {
           // Terminal phase undo: remove pin and selection
-          try { markerRef.current?.remove() } catch {}
+          try { markerRef.current?.remove(); } catch { /* Ignore marker removal errors */ }
           markerRef.current = null
           setSelectedPoint(null)
           setTerminalSaved(false)

@@ -3,16 +3,12 @@ import { ExpandIcon, Minus, Plus, ZoomOut } from "lucide-react"
 import { useState } from "react"
 import type { DispatcherInfoSheetProps } from "../types"
 
-export function DispatcherInfoSheet({ 
-  open, 
-  onOpenChange, 
-  dispatcherData 
+export function DispatcherInfoSheet({
+  open,
+  onOpenChange,
+  dispatcherData
 }: DispatcherInfoSheetProps) {
-  // Safety check - don't render if no data
-  if (!dispatcherData) {
-    return null
-  }
-  // Image viewer state
+  // Image viewer state - always call hooks before any returns
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewerUrl, setViewerUrl] = useState<string | null>(null)
 
@@ -20,6 +16,11 @@ export function DispatcherInfoSheet({
   const zoomSteps = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3] as const
   type Zoom = (typeof zoomSteps)[number]
   const [viewerZoom, setViewerZoom] = useState<Zoom>(1)
+
+  // Safety check - don't render if no data
+  if (!dispatcherData) {
+    return null
+  }
   const zoomClassMap: Record<Zoom, string> = {
     0.5: "scale-[0.5]",
     0.75: "scale-[0.75]",
@@ -237,7 +238,7 @@ export function DispatcherInfoSheet({
                   className="bg-white text-black min-w-12 h-12 px-4 flex items-center justify-center border-x border-gray-200 hover:bg-gray-50 text-sm font-medium"
                   aria-label="Reset zoom and close"
                 >
-                <ZoomOut className="w-5 h-5" />
+                  <ZoomOut className="w-5 h-5" />
                 </button>
                 <button
                   onClick={(e) => {

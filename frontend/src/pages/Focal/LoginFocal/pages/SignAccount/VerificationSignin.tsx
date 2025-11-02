@@ -27,7 +27,7 @@ export default function VerificationSignin() {
         }
         setLockoutMsg(null);
         setLockoutUntil(null);
-        apiFetch('/focal/login', {
+        apiFetch<{ locked?: boolean; message?: string; lockUntil?: string | number }>('/focal/login', {
             method: 'POST',
             body: JSON.stringify({ emailOrNumber, password: 'dummy' }),
         })
@@ -36,7 +36,7 @@ export default function VerificationSignin() {
                     setLockoutMsg(res.message);
                     // Try to get lockUntil from backend response (should be ms or ISO string)
                     if (res.lockUntil) {
-                        let until = res.lockUntil;
+                        const until = res.lockUntil;
                         if (typeof until === 'string') {
                             // Try to parse as ISO or number string
                             const parsed = Date.parse(until);
@@ -100,24 +100,25 @@ export default function VerificationSignin() {
                     if (payload.id) {
                         localStorage.setItem('focalId', payload.id);
                     }
-                } catch { }
+                } catch { /* Ignore storage errors */ }
                 navigate('/focal-dashboard');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             setIsVerifying(false);
-            let msg = err?.message || 'Verification failed';
-            let status = err?.status || err?.response?.status;
+            const error = err as { message?: string; status?: number; response?: { status?: number }; lockUntil?: string | number };
+            let msg = error?.message || 'Verification failed';
+            const status = error?.status || error?.response?.status;
             // Try to parse JSON error
             try {
                 const parsed = JSON.parse(msg);
                 msg = parsed.message || msg;
-            } catch { }
+            } catch { /* Ignore JSON parse errors */ }
             // If forbidden, show lockout UI but do NOT block entry to this page
             if (msg && (msg.toLowerCase().includes('locked') || status === 403)) {
                 setLockoutMsg(msg);
                 // Try to get lockUntil from error response if present
-                if (err?.lockUntil) {
-                    let until = err.lockUntil;
+                if (error?.lockUntil) {
+                    const until = error.lockUntil;
                     if (typeof until === 'string') {
                         const parsed = Date.parse(until);
                         if (!isNaN(parsed)) setLockoutUntil(parsed);

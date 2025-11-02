@@ -510,7 +510,7 @@ const getCurrentUser = async (req, res) => {
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (err) {
+    } catch {
       return res.status(401).json({ message: "Invalid or Expired Token" });
     }
 

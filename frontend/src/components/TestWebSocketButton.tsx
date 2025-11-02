@@ -18,7 +18,7 @@ export function TestWebSocketButton() {
 
     console.log('[TEST] Sending test alert:', testPayload);
 
-    socket.emit('alert:simulate', testPayload, (ack: any) => {
+    socket.emit('alert:simulate', testPayload, (ack: { ok?: boolean; alertId?: string; error?: string }) => {
       console.log('[TEST] Server response:', ack);
       if (ack?.ok) {
         alert(`Test alert sent! Alert ID: ${ack.alertId}`);
@@ -29,11 +29,11 @@ export function TestWebSocketButton() {
   };
 
   return (
-    <Button 
+    <Button
       onClick={handleTestAlert}
       disabled={!isConnected}
       variant={isConnected ? 'default' : 'secondary'}
-      
+
     >
       {isConnected ? '🚨 Send Test Alert' : '⚠️ Socket Disconnected'}
     </Button>

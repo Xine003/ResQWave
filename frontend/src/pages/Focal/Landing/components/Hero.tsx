@@ -12,7 +12,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
     lat: number;
     screen: { x: number; y: number };
   } | null>(null);
-  const [mapFeatures, setMapFeatures] = useState<any[]>([]);
+  const [mapFeatures, setMapFeatures] = useState<GeoJSON.Feature<GeoJSON.Point>[]>([]);
 
   // Fetch terminals data for map
   useEffect(() => {
@@ -48,9 +48,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
     // Enable perspective rotation with right-click + drag
     map.dragRotate.enable();
     // Enable two-finger touch rotate/pitch on touch devices
-    // @ts-ignore - method exists at runtime
-    if (map.touchZoomRotate && map.touchZoomRotate.enableRotation) {
-      // @ts-ignore
+    if (map.touchZoomRotate && 'enableRotation' in map.touchZoomRotate && typeof map.touchZoomRotate.enableRotation === 'function') {
       map.touchZoomRotate.enableRotation();
     }
 
@@ -114,7 +112,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
       //     labelLayerId
       //   );
       // }
-      const statusColorExpr: any = [
+      const statusColorExpr: mapboxgl.Expression = [
         "case",
         ["==", ["get", "status"], "online"],
         "#22c55e",
@@ -123,7 +121,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
 
       map.addSource("signals", {
         type: "geojson",
-        data: { type: "FeatureCollection", features } as any,
+        data: { type: "FeatureCollection", features } as GeoJSON.FeatureCollection,
       });
 
       // Pulsing ring for distress (online only)
@@ -136,13 +134,13 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
           "circle-radius": 22,
           "circle-opacity": 0,
           "circle-blur": 0.3,
-        } as any,
+        },
       });
 
       // Remove heavy 3D drop shadow to match flat app design
 
       // Concentric rings (outer to inner) using circle layers for stability
-      const ringPaint = (opacity: number): any => ({
+      const ringPaint = (opacity: number): mapboxgl.CirclePaint => ({
         "circle-color": statusColorExpr,
         "circle-opacity": opacity,
       });
@@ -151,19 +149,19 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
         id: "signals-ring-3",
         type: "circle",
         source: "signals",
-        paint: { ...ringPaint(0.12), "circle-radius": 34 } as any,
+        paint: { ...ringPaint(0.12), "circle-radius": 34 },
       });
       map.addLayer({
         id: "signals-ring-2",
         type: "circle",
         source: "signals",
-        paint: { ...ringPaint(0.18), "circle-radius": 24 } as any,
+        paint: { ...ringPaint(0.18), "circle-radius": 24 },
       });
       map.addLayer({
         id: "signals-ring-1",
         type: "circle",
         source: "signals",
-        paint: { ...ringPaint(0.26), "circle-radius": 16 } as any,
+        paint: { ...ringPaint(0.26), "circle-radius": 16 },
       });
 
       // Clean white ring around core for definition
@@ -175,7 +173,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
           "circle-color": "#ffffff",
           "circle-radius": 12,
           "circle-opacity": 1,
-        } as any,
+        },
       });
 
       // Core dot (20px diameter -> radius 10)
@@ -188,16 +186,16 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
           "circle-radius": 10,
           "circle-opacity": 1,
           "circle-blur": 0,
-        } as any,
+        },
       });
 
       // Fit bounds to include all points
       const bounds = new mapboxgl.LngLatBounds();
-      features.forEach((f: any) => bounds.extend(f.geometry.coordinates as [number, number]));
+      features.forEach((f: GeoJSON.Feature<GeoJSON.Point>) => bounds.extend(f.geometry.coordinates as [number, number]));
       if (!bounds.isEmpty()) {
         // After cinematic finishes naturally, gently fit to all markers
         const onEnd = () => {
-          map.fitBounds(bounds, { padding: 80, maxZoom: 17, duration: 1400, easing: cinematicEasing as any });
+          map.fitBounds(bounds, { padding: 80, maxZoom: 17, duration: 1400, easing: cinematicEasing as (t: number) => number });
           map.off('moveend', onEnd);
         };
         map.on('moveend', onEnd);
@@ -221,13 +219,13 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
         const o2 = 0.18 + 0.10 * Math.max(0, Math.sin(twoPi * (t - 0.15)));
         const o3 = 0.12 + 0.08 * Math.max(0, Math.sin(twoPi * (t - 0.3)));
 
-        map.setPaintProperty("signals-ring-1", "circle-radius", r1 as any);
-        map.setPaintProperty("signals-ring-2", "circle-radius", r2 as any);
-        map.setPaintProperty("signals-ring-3", "circle-radius", r3 as any);
+        map.setPaintProperty("signals-ring-1", "circle-radius", r1);
+        map.setPaintProperty("signals-ring-2", "circle-radius", r2);
+        map.setPaintProperty("signals-ring-3", "circle-radius", r3);
 
-        map.setPaintProperty("signals-ring-1", "circle-opacity", o1 as any);
-        map.setPaintProperty("signals-ring-2", "circle-opacity", o2 as any);
-        map.setPaintProperty("signals-ring-3", "circle-opacity", o3 as any);
+        map.setPaintProperty("signals-ring-1", "circle-opacity", o1);
+        map.setPaintProperty("signals-ring-2", "circle-opacity", o2);
+        map.setPaintProperty("signals-ring-3", "circle-opacity", o3);
 
         raf = requestAnimationFrame(tick);
       };
@@ -242,10 +240,11 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
       // Click interactions to open popover
       const clickableLayers = ["signals-core", "signals-core-stroke", "signals-ring-1", "signals-ring-2", "signals-ring-3"];
       clickableLayers.forEach((layerId) => {
-        map.on('click', layerId, (e: any) => {
+        map.on('click', layerId, (e: mapboxgl.MapLayerMouseEvent) => {
           const f = e.features?.[0];
           if (!f) return;
-          const coord = (f.geometry?.coordinates as [number, number]) || [e.lngLat.lng, e.lngLat.lat];
+          const geom = f.geometry as GeoJSON.Point;
+          const coord = (geom?.coordinates as [number, number]) || [e.lngLat.lng, e.lngLat.lat];
           // Center the map to the clicked signal with cinematic animation
           map.flyTo({
             center: coord,
@@ -272,7 +271,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
             if (titleEl) titleEl.textContent = String(name);
             if (addrEl) addrEl.textContent = String(address);
             if (dateEl) dateEl.textContent = String(date);
-          } catch { }
+          } catch { /* Ignore animation errors */ }
         });
         map.on('mouseenter', layerId, () => (map.getCanvas().style.cursor = 'pointer'));
         map.on('mouseleave', layerId, () => (map.getCanvas().style.cursor = ''));

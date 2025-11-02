@@ -98,10 +98,10 @@ export function ForgotPasswordVerification({
         setResendLoading(true);
         setResendMsg(null);
         try {
-            const body: any = {};
+            const body: Record<string, string> = {};
             if (tempToken) body.tempToken = tempToken;
             else if (emailOrNumber) body.emailOrNumber = emailOrNumber;
-            const res = await apiFetch('/focal/resend', {
+            const res = await apiFetch<{ tempToken?: string; message?: string }>('/focal/resend', {
                 method: 'POST',
                 body: JSON.stringify(body),
             });
@@ -117,12 +117,13 @@ export function ForgotPasswordVerification({
             // Set new expiry timestamp for OTP (5 minutes from now)
             const newExpiry = Date.now() + 5 * 60 * 1000;
             localStorage.setItem('focalOtpExpiry', newExpiry.toString());
-        } catch (err: any) {
-            let msg = err?.message || 'Failed to resend code';
+        } catch (err: unknown) {
+            const error = err as { message?: string };
+            let msg = error?.message || 'Failed to resend code';
             try {
                 const parsed = JSON.parse(msg);
                 msg = parsed.message || msg;
-            } catch { }
+            } catch { /* Ignore validation errors */ }
             setResendMsg(msg);
         } finally {
             setResendLoading(false);

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import { flyToSignal, cinematicMapEntrance } from './utils/flyingEffects';
 import Header from "./components/Header";
@@ -11,7 +11,7 @@ import ActivityLogModal from "./components/ActivityLogModal";
 import MapControls from './components/MapControls';
 import SignalPopover from './components/SignalPopover';
 import useSignals from './hooks/useSignals';
-import type { DashboardSignals } from './types/signals';
+import type { DashboardSignals, Signal } from './types/signals';
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { createDraw, ensureSquareGreenImage, changeToDrawPolygon, makeUpdateCanSave } from './utils/drawMapBoundary';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
@@ -145,7 +145,13 @@ export default function Dashboard() {
     // }, [OwnCommunitySignal, mapLoaded, otherSignals]);
 
     // Dashboard alerts are now handled by DashboardAlerts component
-    const alertsRef = useRef<any>(null);
+    const alertsRef = useRef<{
+        showSaved?: (msg: string) => void;
+        showValidAlert?: (msg: string) => void;
+        hideValidAlert?: () => void;
+        hideEditAlert?: () => void;
+        hideSavedAlert?: () => void;
+    } | null>(null);
     const [savedTrigger, setSavedTrigger] = useState<number | null>(null);
     const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
@@ -175,7 +181,7 @@ export default function Dashboard() {
                     canvas.tabIndex = 0;
                     canvas.style.touchAction = 'auto';
                 }
-            } catch (e) { }
+            } catch { /* Ignore cleanup errors */ }
 
             addCustomLayers(map, otherSignals, OwnCommunitySignal);
             // Add flood polygons source + layer
@@ -253,16 +259,17 @@ export default function Dashboard() {
 
             const bindLayerClicks = (layerIds: string[]) => {
                 layerIds.forEach((layerId) => {
-                    map.on('click', layerId, (e: any) => {
+                    map.on('click', layerId, (e: mapboxgl.MapMouseEvent & { features?: GeoJSON.Feature[] }) => {
                         const f = e.features?.[0];
-                        const coord = (f?.geometry?.coordinates as [number, number]) || [e.lngLat.lng, e.lngLat.lat];
+                        const geom = f?.geometry as GeoJSON.Point | undefined;
+                        const coord = (geom?.coordinates as [number, number]) || [e.lngLat.lng, e.lngLat.lat];
                         // Remove previous radius overlay
                         if (map.getLayer('signal-radius')) map.removeLayer('signal-radius');
                         if (map.getSource('signal-radius')) map.removeSource('signal-radius');
 
                         // Show radius overlay for clicked signal
                         const deviceId = f?.properties?.deviceId;
-                        let radius = 70; // Always use hardcoded value
+                        const radius = 70; // Always use hardcoded value
                         let color = '#22c55e';
                         if (deviceId) {
                             if (deviceId === OwnCommunitySignal.properties.deviceId) {
@@ -275,11 +282,15 @@ export default function Dashboard() {
                             }
                         }
                         // Animated pulsing wave effect
-                        if (typeof (map as any).createGeoJSONCircle === 'function') {
+                        const extendedMap = map as mapboxgl.Map & {
+                            createGeoJSONCircle?: (center: [number, number], radius: number, points?: number) => GeoJSON.Feature;
+                            _pulseFrame?: number;
+                        };
+                        if (typeof extendedMap.createGeoJSONCircle === 'function') {
                             // Remove any previous animation frame
-                            if ((map as any)._pulseFrame) {
-                                cancelAnimationFrame((map as any)._pulseFrame);
-                                (map as any)._pulseFrame = null;
+                            if (extendedMap._pulseFrame) {
+                                cancelAnimationFrame(extendedMap._pulseFrame);
+                                extendedMap._pulseFrame = undefined;
                             }
                             // Animation config
                             interface PulseConfig {
@@ -301,7 +312,7 @@ export default function Dashboard() {
                             if (map.getSource('signal-radius')) map.removeSource('signal-radius');
                             map.addSource('signal-radius', {
                                 type: 'geojson',
-                                data: (map as any).createGeoJSONCircle(coord, pulseConfig.minRadius)
+                                data: extendedMap.createGeoJSONCircle(coord, pulseConfig.minRadius)
                             });
                             map.addLayer({
                                 id: 'signal-radius',
@@ -323,22 +334,22 @@ export default function Dashboard() {
                                 const currentOpacity = pulseConfig.opacity;
                                 // Update source data and layer opacity
                                 const source = map.getSource('signal-radius') as mapboxgl.GeoJSONSource;
-                                if (source) {
-                                    source.setData((map as any).createGeoJSONCircle(coord, currentRadius));
+                                if (source && extendedMap.createGeoJSONCircle) {
+                                    source.setData(extendedMap.createGeoJSONCircle(coord, currentRadius));
                                 }
                                 map.setPaintProperty('signal-radius', 'fill-opacity', currentOpacity);
                                 if (t < 1) {
-                                    (map as any)._pulseFrame = requestAnimationFrame(() => animatePulse(startTime));
+                                    extendedMap._pulseFrame = requestAnimationFrame(() => animatePulse(startTime));
                                 } else {
                                     // Animation done: show static circle at max radius, full opacity
-                                    if (source) {
-                                        source.setData((map as any).createGeoJSONCircle(coord, pulseConfig.maxRadius));
+                                    if (source && extendedMap.createGeoJSONCircle) {
+                                        source.setData(extendedMap.createGeoJSONCircle(coord, pulseConfig.maxRadius));
                                     }
                                     map.setPaintProperty('signal-radius', 'fill-opacity', pulseConfig.opacity);
-                                    (map as any)._pulseFrame = null;
+                                    extendedMap._pulseFrame = undefined;
                                 }
                             }
-                            (map as any)._pulseFrame = requestAnimationFrame(() => animatePulse(performance.now()));
+                            extendedMap._pulseFrame = requestAnimationFrame(() => animatePulse(performance.now()));
                         }
 
                         try {
@@ -362,7 +373,7 @@ export default function Dashboard() {
                                 focalPerson: props.focalPerson || undefined,
                                 altFocalPerson: props.altFocalPerson || undefined
                             });
-                        } catch (err) {
+                        } catch {
                             // fallback: if anything goes wrong, keep previous behavior
                             flyToSignal(map, coord);
                             const pt = map.project(coord);
@@ -404,7 +415,7 @@ export default function Dashboard() {
                     const absX = (rect?.left ?? 0) + pt.x;
                     const absY = (rect?.top ?? 0) + pt.y;
                     setPopover({ ...current, screen: { x: absX, y: absY } });
-                } catch (e) {
+                } catch {
                     // ignore
                 }
             });
@@ -416,6 +427,7 @@ export default function Dashboard() {
             mapRef.current = null;
             map.remove();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Flyover animation: only trigger when map is loaded and distressCoord is valid (not [0,0])
@@ -453,7 +465,7 @@ export default function Dashboard() {
         if (!editBoundaryOpen) {
             if (drawRef.current) {
                 try {
-                    map.removeControl(drawRef.current as any);
+                    map.removeControl(drawRef.current as MapboxDraw);
                 } catch (e) {
                     console.error("Error removing MapboxDraw control:", e);
                 }
@@ -469,7 +481,7 @@ export default function Dashboard() {
         drawRef.current = createDraw();
         ensureSquareGreenImage(map);
 
-        map.addControl(drawRef.current as any);
+        map.addControl(drawRef.current as MapboxDraw);
 
         // immediately switch into draw polygon mode and focus the canvas
         setTimeout(() => {
@@ -490,13 +502,14 @@ export default function Dashboard() {
             map.off("draw.delete", updateCanSave);
             if (drawRef.current) {
                 try {
-                    map.removeControl(drawRef.current as any);
+                    map.removeControl(drawRef.current as MapboxDraw);
                 } catch (e) {
                     console.error("Error removing MapboxDraw control:", e);
                 }
                 drawRef.current = null;
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editBoundaryOpen]);
 
 
@@ -512,7 +525,7 @@ export default function Dashboard() {
         }
 
         const polygons = data.features.filter(
-            (f: any) => f.geometry && f.geometry.type === "Polygon"
+            (f: GeoJSON.Feature) => f.geometry && f.geometry.type === "Polygon"
         );
         if (polygons.length === 0) {
             alert("Please draw a closed polygon as your boundary.");
@@ -523,9 +536,9 @@ export default function Dashboard() {
         let newBoundary: [number, number][] | undefined = undefined;
         if (polygons[0] && polygons[0].geometry && polygons[0].geometry.type === "Polygon" && Array.isArray(polygons[0].geometry.coordinates)) {
             // Filter to ensure each coordinate is a [number, number] pair
-            newBoundary = (polygons[0].geometry.coordinates[0] as any[])
-                .filter((pt: any) => Array.isArray(pt) && pt.length === 2 && typeof pt[0] === 'number' && typeof pt[1] === 'number')
-                .map((pt: any) => [pt[0], pt[1]] as [number, number]);
+            newBoundary = (polygons[0].geometry.coordinates[0] as [number, number][])
+                .filter((pt: [number, number]) => Array.isArray(pt) && pt.length === 2 && typeof pt[0] === 'number' && typeof pt[1] === 'number')
+                .map((pt: [number, number]) => [pt[0], pt[1]] as [number, number]);
         }
         // Update the boundary for the currently edited signal
         // We'll assume the last clicked signal is stored in popover
@@ -549,14 +562,14 @@ export default function Dashboard() {
                 // determine the actual signal point coordinate (use the edited signal's point)
                 let signalCoord: [number, number] | null = null;
                 const targetDeviceId = popover?.deviceId ?? OwnCommunitySignal.properties.deviceId;
-                let sourceSignalFeature: any = null;
+                let sourceSignalFeature: Signal | null = null;
                 if (targetDeviceId === OwnCommunitySignal.properties.deviceId) {
-                    sourceSignalFeature = OwnCommunitySignal as any;
+                    sourceSignalFeature = OwnCommunitySignal;
                     if (OwnCommunitySignal?.coordinates) {
                         signalCoord = OwnCommunitySignal.coordinates as [number, number];
                     }
                 } else {
-                    const found = otherSignals.find((s: any) => s.properties?.deviceId === targetDeviceId);
+                    const found = otherSignals.find((s: Signal) => s.properties?.deviceId === targetDeviceId);
                     if (found) {
                         sourceSignalFeature = found;
                         if (found.coordinates) signalCoord = found.coordinates as [number, number];
@@ -614,7 +627,7 @@ export default function Dashboard() {
                     coord = [cx, cy];
                 }
 
-                try { flyToSignal(map, coord); } catch (e) { }
+                try { flyToSignal(map, coord); } catch { /* Ignore flyTo errors */ }
 
                 const rect = mapContainer.current?.getBoundingClientRect();
                 const pt = map.project(coord);
@@ -623,7 +636,7 @@ export default function Dashboard() {
 
                 // Build popover props using the actual signal feature when possible
                 const deviceId = targetDeviceId;
-                const propsFromSignal = sourceSignalFeature?.properties || {};
+                const propsFromSignal = (sourceSignalFeature?.properties || {}) as Signal['properties'];
                 setPopover({
                     lng: coord[0],
                     lat: coord[1],
@@ -664,7 +677,7 @@ export default function Dashboard() {
                 const canvas = map.getCanvas();
                 if (canvas) canvas.focus();
             }
-        } catch (e) { }
+        } catch { /* Ignore canvas focus errors */ }
     };
 
     // handleEditCommunityMarkers removed (replaced by direct UI flow that sets editBoundaryOpen)
@@ -690,12 +703,12 @@ export default function Dashboard() {
     const accountSettingsIsDirtyRef = useRef<() => boolean>(() => false);
     const [confirmAccountOpen, setConfirmAccountOpen] = useState(false);
     const pendingAccountContinueRef = useRef<(() => void) | null>(null);
-    const editAboutRef = useRef<any>(null);
+    const editAboutRef = useRef<{ openDiscardConfirm: (onContinue?: () => void) => void } | null>(null);
     const [activeTab, setActiveTab] = useState('community');
     // Store a pending modal open action if confirmation is needed
     const pendingModalContinueRef = useRef<(() => void) | null>(null);
 
-    const handleModalSwitchWithDirtyCheck = (openModalFn: () => void) => {
+    const handleModalSwitchWithDirtyCheck = useCallback((openModalFn: () => void) => {
         if (accountSettingsOpen && (accountSettingsIsDirtyRef.current?.() ?? false)) {
             // If AccountSettingsModal is open and dirty, show confirmation and store the action
             pendingModalContinueRef.current = () => {
@@ -706,7 +719,7 @@ export default function Dashboard() {
         } else {
             openModalFn();
         }
-    };
+    }, [accountSettingsOpen]);
 
     const openAbout = () => handleModalSwitchWithDirtyCheck(() => {
         setActivityLogOpen(false);
@@ -718,25 +731,25 @@ export default function Dashboard() {
             } else {
                 setAboutCenter(null);
             }
-        } catch (e) {
+        } catch {
             setAboutCenter(null);
         }
         setAboutOpen(true);
         setActiveTab('about');
     });
-    const openHistory = () => handleModalSwitchWithDirtyCheck(() => {
+    const openHistory = useCallback(() => handleModalSwitchWithDirtyCheck(() => {
         setActivityLogOpen(false);
         try {
             const rect = mapContainer.current?.getBoundingClientRect();
             if (rect) setHistoryCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
             else setHistoryCenter(null);
-        } catch (e) {
+        } catch {
             setHistoryCenter(null);
         }
         setAboutOpen(false);
         setHistoryOpen(true);
         setActiveTab('history');
-    });
+    }), [handleModalSwitchWithDirtyCheck]);
     const closeAbout = () => { setAboutOpen(false); setActiveTab('community'); };
     const handleTabChange = (value: string) => {
         setActiveTab(value);
@@ -746,7 +759,7 @@ export default function Dashboard() {
     // ensure when history tab is chosen we open the modal (tab component uses onTabChange)
     useEffect(() => {
         if (activeTab === 'history') openHistory();
-    }, [activeTab]);
+    }, [activeTab, openHistory]);
 
     // close history modal when About or Community tab becomes active
     useEffect(() => {
@@ -798,7 +811,7 @@ export default function Dashboard() {
                         const rect = mapContainer.current?.getBoundingClientRect();
                         if (rect) setAccountSettingsCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
                         else setAccountSettingsCenter(null);
-                    } catch (e) { setAccountSettingsCenter(null); }
+                    } catch { setAccountSettingsCenter(null); }
                     setAccountSettingsOpen(true);
                 }}
                 accountSettingsOpen={accountSettingsOpen}
@@ -814,7 +827,7 @@ export default function Dashboard() {
                         // store the continuation and open the shared AlertDialog
                         pendingAccountContinueRef.current = continueNavigation;
                         setConfirmAccountOpen(true);
-                    } catch (e) {
+                    } catch {
                         // safe fallback: just close and continue
                         setAccountSettingsOpen(false);
                         continueNavigation();
@@ -835,7 +848,7 @@ export default function Dashboard() {
                         const rect = mapContainer.current?.getBoundingClientRect();
                         if (rect) setActivityLogCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
                         else setActivityLogCenter(null);
-                    } catch (e) { setActivityLogCenter(null); }
+                    } catch { setActivityLogCenter(null); }
                     setActivityLogOpen(true);
                 })}
             />
@@ -854,7 +867,7 @@ export default function Dashboard() {
                     try {
                         if (map.getLayer('signal-radius')) map.removeLayer('signal-radius');
                         if (map.getSource('signal-radius')) map.removeSource('signal-radius');
-                    } catch (e) { /* ignore */ }
+                    } catch { /* ignore */ }
                 }}
             />
 
@@ -864,9 +877,9 @@ export default function Dashboard() {
 
             <CommunityDataProvider>
                 <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
-                <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(_data: any) => {
+                <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={() => {
                     // show the centered success alert with a custom message
-                    try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch (e) { }
+                    try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch { /* Ignore alert errors */ }
                 }} center={aboutCenter} />
             </CommunityDataProvider>
 
@@ -903,12 +916,12 @@ export default function Dashboard() {
                                     pendingModalContinueRef.current = null;
                                 } else if (pendingAccountContinueRef.current) {
                                     setAccountSettingsOpen(false);
-                                    try { pendingAccountContinueRef.current(); } catch (e) { }
+                                    try { pendingAccountContinueRef.current(); } catch { /* Ignore callback errors */ }
                                     pendingAccountContinueRef.current = null;
                                 } else {
                                     setAccountSettingsOpen(false);
                                 }
-                            } catch (e) {
+                            } catch {
                                 setAccountSettingsOpen(false);
                             }
                         }} className="px-4 py-2 mt-3 bg-[#fff] text-black hover:bg-[#e2e2e2] rounded cursor-pointer transition duration-175" style={{ borderRadius: 8, fontSize: 15 }}>

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { setGlobalLogoutCallback } from '@/lib/api'
 import type { LoginRequest, UnifiedVerificationRequest } from '@/pages/Official/LoginDispatcher/api'
 import { ApiException, logout as apiLogout, getCurrentUser, unifiedLogin, unifiedVerifyLogin } from '@/pages/Official/LoginDispatcher/api'
@@ -41,19 +42,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const validateToken = async () => {
       // Skip token validation for focal routes (they have their own auth system)
-      const isFocalRoute = location.pathname.startsWith('/focal') || 
-                          location.pathname.startsWith('/login-focal') || 
-                          location.pathname.startsWith('/verification-signin-focal') ||
-                          location.pathname.startsWith('/forgot-password-focal') ||
-                          location.pathname.startsWith('/register')
-      
+      const isFocalRoute = location.pathname.startsWith('/focal') ||
+        location.pathname.startsWith('/login-focal') ||
+        location.pathname.startsWith('/verification-signin-focal') ||
+        location.pathname.startsWith('/forgot-password-focal') ||
+        location.pathname.startsWith('/register')
+
       if (isFocalRoute) {
         setIsLoading(false)
         return
       }
 
       const storedToken = localStorage.getItem('resqwave_token')
-      
+
       if (!storedToken) {
         setIsLoading(false)
         return
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // Validate token with backend
         const userData = await getCurrentUser()
-        
+
         // Update user state with validated data
         const user: User = {
           id: userData.id,
@@ -70,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: userData.name || userData.id,
           email: userData.email
         }
-        
+
         setUser(user)
         localStorage.setItem('resqwave_user', JSON.stringify(user))
       } catch (error) {
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Token validation failed:', error)
         localStorage.removeItem('resqwave_token')
         localStorage.removeItem('resqwave_user')
-        
+
         // Only redirect to login if user is on a protected route
         const publicRoutes = ['/login-official', '/verification-official', '/']
         if (!publicRoutes.includes(location.pathname)) {
@@ -99,11 +100,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const loginData: LoginRequest = { ID: id, password }
       const response = await unifiedLogin(loginData)
-      
+
       // Both admin and dispatcher need 2FA verification
       sessionStorage.setItem('tempToken', response.tempToken)
       sessionStorage.setItem('userType', response.userType)
-      
+
       setIsLoading(false)
       return true
     } catch (error) {
@@ -120,35 +121,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     try {
       const tempToken = sessionStorage.getItem('tempToken')
-      
+
       if (!tempToken) {
         throw new Error('Session expired. Please login again.')
       }
 
-      const verificationData: UnifiedVerificationRequest = { 
-        tempToken, 
-        code: verificationCode 
+      const verificationData: UnifiedVerificationRequest = {
+        tempToken,
+        code: verificationCode
       }
-      
+
       const response = await unifiedVerifyLogin(verificationData)
-      
+
       // Store token and user data
       localStorage.setItem('resqwave_token', response.token)
-      
+
       const userData: User = {
         id: response.user.id,
         role: response.user.role,
         name: response.user.name || response.user.id,
         email: response.user.email
       }
-      
+
       setUser(userData)
       localStorage.setItem('resqwave_user', JSON.stringify(userData))
-      
+
       // Clear temporary data
       sessionStorage.removeItem('tempToken')
       sessionStorage.removeItem('userType')
-      
+
       setIsLoading(false)
       return true
     } catch (error) {
@@ -165,10 +166,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Call backend logout (which also clears local storage)
       await apiLogout()
-      
+
       // Clear user state
       setUser(null)
-      
+
       // Navigate to login
       navigate('/login-official', { replace: true })
     } catch (error) {
@@ -186,13 +187,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
+    <AuthContext.Provider value={{
+      user,
+      login,
       verifyLogin,
-      logout, 
-      isAdmin, 
-      isLoading 
+      logout,
+      isAdmin,
+      isLoading
     }}>
       {children}
     </AuthContext.Provider>
