@@ -8,7 +8,7 @@ import { useFocalAuth } from '../../context/focalAuthContext';
 import type { AccountSettingsModalProps } from '../types/accountSettings';
 import { isAccountFormDirty, validatePassword } from '../utils/passwordUtils';
 
-export default function AccountSettingsModal({ open, onClose, onSaved, center = null, isDirtyRef = null, onRefetchSignals }: AccountSettingsModalProps) {
+export default function AccountSettingsModal({ open, onClose, onSaved, onSaveProfile, center = null, isDirtyRef = null }: AccountSettingsModalProps) {
     // Helper to refresh profile data from backend
     const refreshProfile = async () => {
         if (!focalId) {
@@ -94,6 +94,65 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     const [email, setEmail] = useState('');
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
     const [isVerified, setIsVerified] = useState(false);
+
+    // Validation errors
+    const [firstNameError, setFirstNameError] = useState('');
+    const [lastNameError, setLastNameError] = useState('');
+    const [phoneError, setPhoneError] = useState('');
+    const [emailError, setEmailError] = useState('');
+
+    // Validation functions
+    const validateFirstName = (value: string): string => {
+        if (!value.trim()) return 'First name is required';
+        if (value.trim().length < 2) return 'First name must be at least 2 characters';
+        if (!/^[a-zA-Z\s]+$/.test(value)) return 'First name can only contain letters';
+        return '';
+    };
+
+    const validateLastName = (value: string): string => {
+        if (!value.trim()) return 'Last name is required';
+        if (value.trim().length < 2) return 'Last name must be at least 2 characters';
+        if (!/^[a-zA-Z\s]+$/.test(value)) return 'Last name can only contain letters';
+        return '';
+    };
+
+    const validatePhoneNumber = (value: string): string => {
+        if (!value.trim()) return 'Phone number is required';
+        // Philippine phone number: must start with 09 and have 11 digits
+        const cleaned = value.replace(/\s/g, '');
+        if (!/^09\d{9}$/.test(cleaned)) {
+            return 'Phone number must be in format: 09XXXXXXXXX (11 digits)';
+        }
+        return '';
+    };
+
+    const validateEmailAddress = (value: string): string => {
+        if (!value.trim()) return 'Email is required';
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) return 'Please enter a valid email address';
+        return '';
+    };
+
+    // Handle input changes with validation
+    const handleFirstNameChange = (value: string) => {
+        setFirstName(value);
+        setFirstNameError(validateFirstName(value));
+    };
+
+    const handleLastNameChange = (value: string) => {
+        setLastName(value);
+        setLastNameError(validateLastName(value));
+    };
+
+    const handlePhoneNumberChange = (value: string) => {
+        setPhoneNumber(value);
+        setPhoneError(validatePhoneNumber(value));
+    };
+
+    const handleEmailChange = (value: string) => {
+        setEmail(value);
+        setEmailError(validateEmailAddress(value));
+    };
 
     // Track initial values for dirty check
     const [initialProfile, setInitialProfile] = useState({
@@ -265,6 +324,10 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
         setLastName('');
         setPhoneNumber('');
         setEmail('');
+        setFirstNameError('');
+        setLastNameError('');
+        setPhoneError('');
+        setEmailError('');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
@@ -560,10 +623,10 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                     <Input
                                         type="text"
                                         value={firstName}
-                                        onChange={(e) => setFirstName((e.target as HTMLInputElement).value)}
+                                        onChange={(e) => handleFirstNameChange((e.target as HTMLInputElement).value)}
                                         style={{
                                             padding: '24px 17px',
-                                            border: '1px solid #404040',
+                                            border: `1px solid ${firstNameError ? '#ef4444' : '#404040'}`,
                                             borderRadius: 6,
                                             background: 'transparent',
                                             color: '#fff',
@@ -572,16 +635,19 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                         }}
                                         className="bg-input/10 text-white"
                                     />
+                                    {firstNameError && (
+                                        <div style={{ color: '#ef4444', fontSize: 13, marginTop: 4 }}>{firstNameError}</div>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ fontSize: 14, color: '#FFFFFF', display: 'block', marginBottom: 8 }}>Last Name</label>
                                     <Input
                                         type="text"
                                         value={lastName}
-                                        onChange={(e) => setLastName((e.target as HTMLInputElement).value)}
+                                        onChange={(e) => handleLastNameChange((e.target as HTMLInputElement).value)}
                                         style={{
                                             padding: '24px 17px',
-                                            border: '1px solid #404040',
+                                            border: `1px solid ${lastNameError ? '#ef4444' : '#404040'}`,
                                             borderRadius: 6,
                                             background: 'transparent',
                                             color: '#fff',
@@ -590,6 +656,9 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                         }}
                                         className="bg-input/10 text-white"
                                     />
+                                    {lastNameError && (
+                                        <div style={{ color: '#ef4444', fontSize: 13, marginTop: 4 }}>{lastNameError}</div>
+                                    )}
                                 </div>
                             </div>
 
@@ -605,11 +674,11 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                         <Input
                                             type="text"
                                             value={phoneNumber}
-                                            onChange={(e) => setPhoneNumber((e.target as HTMLInputElement).value)}
+                                            onChange={(e) => handlePhoneNumberChange((e.target as HTMLInputElement).value)}
                                             placeholder="Phone Number"
                                             style={{
                                                 padding: '24px 17px',
-                                                border: '1px solid #404040',
+                                                border: `1px solid ${phoneError ? '#ef4444' : '#404040'}`,
                                                 borderRadius: 6,
                                                 background: 'transparent',
                                                 color: '#fff',
@@ -630,6 +699,9 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                         }}>{isVerified ? 'VERIFIED' : 'NOT VERIFIED'}</span>
                                     </div>
                                 </div>
+                                {phoneError && (
+                                    <div style={{ color: '#ef4444', fontSize: 13, marginTop: 4 }}>{phoneError}</div>
+                                )}
                             </div>
 
                             {/* Email */}
@@ -638,11 +710,11 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                 <Input
                                     type="email"
                                     value={email}
-                                    onChange={(e) => setEmail((e.target as HTMLInputElement).value)}
+                                    onChange={(e) => handleEmailChange((e.target as HTMLInputElement).value)}
                                     placeholder="Email"
                                     style={{
                                         padding: '24px 17px',
-                                        border: '1px solid #404040',
+                                        border: `1px solid ${emailError ? '#ef4444' : '#404040'}`,
                                         borderRadius: 6,
                                         background: 'transparent',
                                         color: '#fff',
@@ -651,29 +723,32 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                     }}
                                     className="bg-input/10 text-white"
                                 />
+                                {emailError && (
+                                    <div style={{ color: '#ef4444', fontSize: 13, marginTop: 4 }}>{emailError}</div>
+                                )}
                             </div>
 
                             {/* Save Changes Button */}
                             <button
                                 onClick={() => setConfirmSaveOpen(true)}
-                                disabled={!isAnyDirty()}
+                                disabled={!isAnyDirty() || firstNameError !== '' || lastNameError !== '' || phoneError !== '' || emailError !== ''}
                                 style={{
                                     padding: '8px 24px',
                                     borderRadius: 6,
-                                    background: isAnyDirty() ? '#ffffff' : '#414141',
-                                    color: isAnyDirty() ? '#000' : '#171717',
+                                    background: (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError) ? '#ffffff' : '#414141',
+                                    color: (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError) ? '#000' : '#171717',
                                     border: 'none',
                                     fontSize: 14,
                                     fontWeight: 600,
-                                    cursor: isAnyDirty() ? 'pointer' : 'not-allowed',
+                                    cursor: (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError) ? 'pointer' : 'not-allowed',
                                     transition: 'background 0.15s',
                                     marginBottom: 24,
                                     width: 145,
                                     height: 40,
                                     alignSelf: 'flex-end'
                                 }}
-                                onMouseEnter={e => { if (isAnyDirty()) e.currentTarget.style.background = '#e5e5e5'; }}
-                                onMouseLeave={e => { if (isAnyDirty()) e.currentTarget.style.background = '#ffffff'; }}
+                                onMouseEnter={e => { if (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError) e.currentTarget.style.background = '#e5e5e5'; }}
+                                onMouseLeave={e => { if (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError) e.currentTarget.style.background = '#ffffff'; }}
                             >
                                 Save Changes
                             </button>
@@ -717,8 +792,10 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                                         photoUpdated = true;
                                                     }
                                                     setConfirmSaveOpen(false);
-                                                    // Refetch signals data to update popover
-                                                    try { onRefetchSignals?.(); } catch { /* Ignore refetch errors */ }
+
+                                                    // Call onSaveProfile to update popover instantly with new name
+                                                    onSaveProfile?.({ firstName, lastName });
+
                                                     // Wait for confirmation modal to close before closing parent
                                                     setTimeout(() => {
                                                         if (onClose) onClose();

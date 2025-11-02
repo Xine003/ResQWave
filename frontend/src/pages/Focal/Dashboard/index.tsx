@@ -944,11 +944,15 @@ export default function Dashboard() {
 
             <CommunityDataProvider>
                 <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
-                <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={() => {
-                    // show the centered success alert with a custom message
-                    try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch { /* Ignore alert errors */ }
-                    // Refetch signals to update popover with new data
-                    refetchSignals();
+                <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(updatedData: any) => {
+                    // Update popover instantly with the new data (if popover is open and showing own community)
+                    if (popover && popover.deviceId === OwnCommunitySignal.properties.deviceId) {
+                        const altName = [updatedData.altFirstName, updatedData.altLastName].filter(Boolean).join(' ');
+                        setPopover({
+                            ...popover,
+                            altFocalPerson: altName || popover.altFocalPerson,
+                        });
+                    }
                 }} center={aboutCenter} />
             </CommunityDataProvider>
 
@@ -959,7 +963,16 @@ export default function Dashboard() {
                 setAccountSettingsOpen(false);
                 setSavedMessage('Password Updated Successfully!');
                 setSavedTrigger(prev => (prev == null ? 1 : prev + 1));
-            }} isDirtyRef={accountSettingsIsDirtyRef} onRefetchSignals={refetchSignals} />
+            }} onSaveProfile={(data) => {
+                // Update popover instantly with the new focal person name (if popover is open and showing own community)
+                if (popover && popover.deviceId === OwnCommunitySignal.properties.deviceId) {
+                    const fullName = [data.firstName, data.lastName].filter(Boolean).join(' ');
+                    setPopover({
+                        ...popover,
+                        focalPerson: fullName || popover.focalPerson,
+                    });
+                }
+            }} isDirtyRef={accountSettingsIsDirtyRef} />
 
             <ActivityLogModal open={activityLogOpen} onClose={() => { setActivityLogOpen(false); setActiveTab('community'); }} center={activityLogCenter} />
 

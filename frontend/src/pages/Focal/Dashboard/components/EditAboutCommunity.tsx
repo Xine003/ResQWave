@@ -116,6 +116,51 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     // New state for alt focal email (renamed for clarity)
     const [altFocalEmail, setAltFocalEmail] = useState('');
 
+    // Validation errors
+    const [nameError, setNameError] = useState('');
+    const [contactError, setContactError] = useState('');
+    const [emailError, setEmailError] = useState('');
+
+    // Validation functions
+    const validateName = (value: string): string => {
+        if (!value.trim()) return '';
+        if (value.trim().length < 2) return 'Name must be at least 2 characters';
+        if (!/^[a-zA-Z\s]+$/.test(value)) return 'Name can only contain letters and spaces';
+        return '';
+    };
+
+    const validateContact = (value: string): string => {
+        if (!value.trim()) return '';
+        // Philippine phone number: must start with 09 and have 11 digits, or +63 format
+        if (!/^(09|\+639)\d{9}$/.test(value.replace(/\s/g, ''))) {
+            return 'Invalid phone number format (e.g., 09123456789)';
+        }
+        return '';
+    };
+
+    const validateEmail = (value: string): string => {
+        if (!value.trim()) return '';
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) return 'Invalid email format';
+        return '';
+    };
+
+    // Handle input changes with validation
+    const handleNameChange = (value: string) => {
+        setAltFocalName(value);
+        setNameError(validateName(value));
+    };
+
+    const handleContactChange = (value: string) => {
+        setAltFocalContact(value);
+        setContactError(validateContact(value));
+    };
+
+    const handleEmailChange = (value: string) => {
+        setAltFocalEmail(value);
+        setEmailError(validateEmail(value));
+    };
+
     const [floodwaterRange, setFloodwaterRange] = useState("");
     const [floodwaterDropdownOpen, setFloodwaterDropdownOpen] = useState(false);
     const householdsDropdownRef = useRef<HTMLDivElement>(null);
@@ -187,6 +232,12 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
         setAltFocalContact(data?.altFocal?.contact ?? '');
         setAltFocalEmail(data?.altFocal?.email ?? '');
         setPhotoUrl(data?.focal?.photo ?? null);
+
+        // Clear validation errors when modal opens
+        setNameError('');
+        setContactError('');
+        setEmailError('');
+
         // Fetch alt focal photo from backend if available
         if (data?.groupName) {
             fetchAltFocalPhoto(data.groupName);
@@ -478,10 +529,22 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                     <div style={{ flex: 1, marginTop: 2 }}>
                         <Input
                             value={altFocalName}
-                            style={{ padding: '22px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }}
-                            onChange={e => setAltFocalName(e.target.value)}
+                            style={{
+                                padding: '22px 17px',
+                                border: nameError ? '1px solid #ef4444' : '1px solid #404040',
+                                borderRadius: 6,
+                                background: 'transparent',
+                                color: '#fff',
+                                fontSize: 14
+                            }}
+                            onChange={e => handleNameChange(e.target.value)}
                             className="bg-input/10 text-white"
                         />
+                        {nameError && (
+                            <div style={{ color: '#ef4444', fontSize: 12, marginTop: 6 }}>
+                                {nameError}
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -489,19 +552,43 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                         <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 17 }}>Contact Number</div>
                         <Input
                             value={altFocalContact}
-                            style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }}
-                            onChange={e => setAltFocalContact(e.target.value)}
+                            style={{
+                                padding: '21px 17px',
+                                border: contactError ? '1px solid #ef4444' : '1px solid #404040',
+                                borderRadius: 6,
+                                background: 'transparent',
+                                color: '#fff',
+                                fontSize: 14
+                            }}
+                            onChange={e => handleContactChange(e.target.value)}
                             className="bg-input/10 text-white"
                         />
+                        {contactError && (
+                            <div style={{ color: '#ef4444', fontSize: 12, marginTop: 6 }}>
+                                {contactError}
+                            </div>
+                        )}
                     </div>
                     <div style={{ flex: 1, marginTop: 2 }}>
                         <div style={{ padding: '0 0 6px 0', color: '#fff', fontSize: 14, fontWeight: 400, marginTop: 17 }}>Email</div>
                         <Input
                             value={altFocalEmail}
-                            style={{ padding: '21px 17px', border: '1px solid #404040', borderRadius: 6, background: 'transparent', color: '#fff', fontSize: 14 }}
-                            onChange={e => setAltFocalEmail(e.target.value)}
+                            style={{
+                                padding: '21px 17px',
+                                border: emailError ? '1px solid #ef4444' : '1px solid #404040',
+                                borderRadius: 6,
+                                background: 'transparent',
+                                color: '#fff',
+                                fontSize: 14
+                            }}
+                            onChange={e => handleEmailChange(e.target.value)}
                             className="bg-input/10 text-white"
                         />
+                        {emailError && (
+                            <div style={{ color: '#ef4444', fontSize: 12, marginTop: 6 }}>
+                                {emailError}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -509,8 +596,23 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
 
                 <div style={{ marginTop: 30, display: 'flex', gap: 12, width: '100%' }}>
                     <button
-                        onClick={() => setConfirmSaveOpen(true)}
-                        className="w-full bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] transition-colors duration-150 cursor-pointer hover:from-[#2563eb] hover:to-[#60a5fa] text-white py-3 px-4.5 rounded-md font-medium text-[15px] tracking-[0.6px] border-0"
+                        onClick={() => {
+                            // Validate all fields before opening save confirmation
+                            const nameErr = validateName(altFocalName);
+                            const contactErr = validateContact(altFocalContact);
+                            const emailErr = validateEmail(altFocalEmail);
+
+                            setNameError(nameErr);
+                            setContactError(contactErr);
+                            setEmailError(emailErr);
+
+                            // Only open save dialog if no errors
+                            if (!nameErr && !contactErr && !emailErr) {
+                                setConfirmSaveOpen(true);
+                            }
+                        }}
+                        disabled={!!(nameError || contactError || emailError)}
+                        className="w-full bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] transition-colors duration-150 cursor-pointer hover:from-[#2563eb] hover:to-[#60a5fa] text-white py-3 px-4.5 rounded-md font-medium text-[15px] tracking-[0.6px] border-0 disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ width: '100%' }}
                     >
                         SAVE CHANGES
@@ -594,8 +696,13 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                                 body: formData,
                                             });
                                         }
-                                        if (refetch) await refetch();
+
+                                        // Call onSave callback with the updated data to update popover instantly
                                         onSave?.(payload);
+
+                                        // Refetch community data context so AboutCommunity and EditAboutCommunity modals show fresh data
+                                        if (refetch) await refetch();
+
                                         setConfirmSaveOpen(false);
                                         onClose();
                                     } catch {
