@@ -186,13 +186,12 @@ export default function SignalPopover({
                                 label="Alert Type"
                                 value={
                                     popover.alertType === 'CRITICAL' ? 'Critical' :
-                                        popover.alertType === 'USER-INITIATED' ? 'User-Initiated' :
-                                            popover.alertType === 'DISPATCHED' ? 'Rescue Completed' :
-                                                popover.alertType === 'ONLINE' ? 'No Alert' :
-                                                    popover.alertType === 'OFFLINE' ? 'No Alert' :
-                                                        !popover.alertType || popover.alertType === null ? 'No Alert' :
-                                                            'N/A'
-                                }
+                                    popover.alertType === 'USER-INITIATED' ? 'User-Initiated' :
+                                    popover.alertType === 'ONLINE' ? 'No Alert' :
+                                    popover.alertType === 'OFFLINE' ? 'No Alert' :
+                                    !popover.alertType || popover.alertType === null ? 'No Alert' :
+                                    'N/A'
+                                } 
                             />
                             <PopoverRow
                                 label="Terminal Status"

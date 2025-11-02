@@ -27,6 +27,10 @@ const createRescueForm = async (req, res) => {
             return res.status(404).json({ message: "Alert Not Found" });
         }
 
+        // Capture the original alert type BEFORE it gets modified for dispatch
+        const originalAlertType = alert.alertType;
+        console.log('[RescueForm] Captured original alert type:', originalAlertType);
+
         // Prevent Duplicate Form
         const existing = await rescueFormRepo.findOne({ where: { emergencyID: alertID } });
         if (existing) {
@@ -128,6 +132,7 @@ const createRescueForm = async (req, res) => {
             dispatcherID: finalDispatcherID,
             focalPersonID,
             focalUnreachable,
+            originalAlertType, // Store the original alert type here
             waterLevel: waterLevelCombined || null,
             urgencyOfEvacuation: urgencyCombined || null,
             hazardPresent: hazardCombined || null,
@@ -318,6 +323,13 @@ const updateRescueFormStatus = async (req, res) => {
         const form = await rescueFormRepo.findOne({ where: { emergencyID: alertID } });
         if (!form) {
             return res.status(404).json({ message: "Rescue Form Not Found" });
+        }
+
+        // Get the alert to capture original alert type if not already captured
+        const alert = await alertRepo.findOne({ where: { id: alertID } });
+        if (alert && !form.originalAlertType && alert.alertType) {
+            form.originalAlertType = alert.alertType;
+            console.log('[RescueForm] Captured original alert type during update:', alert.alertType);
         }
 
         // Update status

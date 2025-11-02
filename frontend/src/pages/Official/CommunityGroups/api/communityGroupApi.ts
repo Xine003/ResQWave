@@ -1,4 +1,4 @@
-import { API_BASE_URL, apiFetch } from "@/lib/api"
+import { API_BASE_URL, apiFetch } from "@/pages/Official/Reports/api/api"
 import type { CommunityFormData } from "../types/forms"
 /**
  * Archive a neighborhood (move from active to archived)

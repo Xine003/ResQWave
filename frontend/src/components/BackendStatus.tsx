@@ -1,6 +1,6 @@
 // Example usage of apiFetch utility
 import { useEffect, useState } from 'react';
-import { API_BASE_URL } from '../lib/api';
+import { API_BASE_URL } from '../pages/Official/Reports/api/api';
 
 export default function BackendStatus() {
   const [status, setStatus] = useState<string>('');

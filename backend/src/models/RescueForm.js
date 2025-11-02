@@ -27,6 +27,12 @@ module.exports = new EntitySchema ({
             type: "boolean",
             default: false
         },
+        originalAlertType: {
+            type: "varchar",
+            length: 50,
+            nullable: true,
+            comment: "Preserves the original alert type before dispatch to display in reports page"
+        },
         waterLevel: {
             type: "varchar",
             length: 255,
@@ -59,7 +65,7 @@ module.exports = new EntitySchema ({
         },
         status: {
             type: "enum",
-            enum: ["Waitlisted", "Dispatched"],
+            enum: ["Waitlisted", "Dispatched", "Completed"],
             default: "Waitlisted"
         }
     },
