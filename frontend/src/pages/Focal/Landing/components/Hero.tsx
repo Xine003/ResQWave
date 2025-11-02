@@ -52,14 +52,53 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
       map.touchZoomRotate.enableRotation();
     }
 
-    // Prepare data and layers once the style is loaded
-    map.on("load", () => {
-      const cinematicEasing = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      // Prepare data and layers once the style is loaded
+      map.on("load", () => {
+        const cinematicEasing = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-      // Use fetched features from backend
-      const features = mapFeatures;
+        // Add flood heatmap layer (same as dashboard)
+        try {
+          const floodFiles = [
+            { id: "metro-manila", url: "/MetroManila_Flood.geojson" },
+          ];
+          floodFiles.forEach(file => {
+            const sourceId = `floods-${file.id}`;
+            const polygonLayerId = `flood-polygons-${file.id}`;
 
-      // Calculate center point from all terminal coordinates
+            // Add GeoJSON source
+            if (!map.getSource(sourceId)) {
+              map.addSource(sourceId, {
+                type: "geojson",
+                data: file.url
+              });
+            }
+
+            // Add polygon fill layer
+            if (!map.getLayer(polygonLayerId)) {
+              map.addLayer({
+                id: polygonLayerId,
+                type: "fill",
+                source: sourceId,
+                paint: {
+                  "fill-color": [
+                    "match",
+                    ["get", "Var"],
+                    1, "#ffff00",   // Low hazard → Yellow
+                    2, "#ff9900",   // Medium hazard → Orange
+                    3, "#ff0000",   // High hazard → Red
+                    "#000000"       // fallback → Black
+                  ],
+                  "fill-opacity": 0.5
+                }
+              }, "waterway-label");
+            }
+          });
+        } catch (e) {
+          console.warn("[LandingHero] could not add flood polygons", e);
+        }
+
+        // Use fetched features from backend
+        const features = mapFeatures;      // Calculate center point from all terminal coordinates
       let centerPoint: [number, number] = [121.056764, 14.756603]; // Default fallback
       if (features.length > 0) {
         const avgLng = features.reduce((sum, f) => sum + f.geometry.coordinates[0], 0) / features.length;
@@ -70,7 +109,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
       const runCinematic = () => {
         map.flyTo({
           center: centerPoint,
-          zoom: 16,
+          zoom: 15,
           pitch: 55,
           bearing: -17.6,
           duration: 4500,
@@ -195,7 +234,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
       if (!bounds.isEmpty()) {
         // After cinematic finishes naturally, gently fit to all markers
         const onEnd = () => {
-          map.fitBounds(bounds, { padding: 80, maxZoom: 17, duration: 1400, easing: cinematicEasing as (t: number) => number });
+          map.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 1400, easing: cinematicEasing as (t: number) => number });
           map.off('moveend', onEnd);
         };
         map.on('moveend', onEnd);
