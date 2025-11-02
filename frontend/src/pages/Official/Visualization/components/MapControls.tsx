@@ -4,7 +4,7 @@ import { Layers, Minus, PanelRight, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { MapControlsProps } from '../types/controls';
 
-export default function MapControls({ mapRef, mapLoaded, addCustomLayers, onToggleLiveReport, isLiveReportOpen }: MapControlsProps) {
+export default function MapControls({ mapRef, addCustomLayers, onToggleLiveReport, isLiveReportOpen }: MapControlsProps) {
     const [layersOpen, setLayersOpen] = useState(false);
     const [selectedLayer, setSelectedLayer] = useState<'terrain' | 'satellite'>('terrain');
 

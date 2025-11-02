@@ -10,7 +10,7 @@ interface Step5AlternativeProfilePictureProps {
   isLoading?: boolean;
 }
 
-export function Step5AlternativeProfilePicture({ onNext, onBack, isLoading = false }: Step5AlternativeProfilePictureProps) {
+export function Step5AlternativeProfilePicture({ onNext, onBack }: Step5AlternativeProfilePictureProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 

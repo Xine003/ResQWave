@@ -21,7 +21,7 @@ const PopoverRow = ({ label, value, isWide = false }: { label: string; value: Re
     </div>
 );
 
-export default function SignalPopup({ popover, setPopover, setEditBoundaryOpen, onClose, infoBubble, infoBubbleVisible }: SignalPopupProps) {
+export default function SignalPopup({ popover, setPopover, onClose, infoBubble, infoBubbleVisible }: Omit<SignalPopupProps, 'setEditBoundaryOpen'>) {
     // Render the info bubble when there is no popover open
     if (!popover && infoBubble && infoBubbleVisible) {
         return (

@@ -10,7 +10,6 @@ export default function VerificationSignin() {
     const [isVerifying, setIsVerifying] = useState(false);
     const [lockoutMsg, setLockoutMsg] = useState<string | null>(null);
     const [lockoutUntil, setLockoutUntil] = useState<number | null>(null); // timestamp in ms
-    const [checkingLock, setCheckingLock] = useState(true);
     const navigate = useNavigate();
 
     // Retrieve tempToken from navigation state (preferred), fallback to sessionStorage
@@ -24,12 +23,10 @@ export default function VerificationSignin() {
         // Debug: show what emailOrNumber is
         console.log('VerificationSignin: emailOrNumber =', emailOrNumber);
         if (!emailOrNumber) {
-            setCheckingLock(false);
             return;
         }
         setLockoutMsg(null);
         setLockoutUntil(null);
-        setCheckingLock(true);
         apiFetch('/focal/login', {
             method: 'POST',
             body: JSON.stringify({ emailOrNumber, password: 'dummy' }),
@@ -53,9 +50,8 @@ export default function VerificationSignin() {
                     setLockoutMsg(null);
                     setLockoutUntil(null);
                 }
-                setCheckingLock(false);
             })
-            .catch(() => { setCheckingLock(false); });
+            .catch(() => { });
         // Only run on mount
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

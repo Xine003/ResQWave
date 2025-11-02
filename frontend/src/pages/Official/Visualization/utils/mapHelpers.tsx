@@ -29,15 +29,15 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommu
         };
     }
 
-    const getPinColor = (alertType: string) => {
-        const colors: Record<string, string> = {
-            'critical': '#ef4444',
-            'user-initiated': '#eab308',
-            'online': '#22c55e',
-            'offline': '#6b7280'
-        };
-        return colors[alertType?.toLowerCase()] || '#6b7280';
-    };
+    // const getPinColor = (alertType: string) => {
+    //     const colors: Record<string, string> = {
+    //         'critical': '#ef4444',
+    //         'user-initiated': '#eab308',
+    //         'online': '#22c55e',
+    //         'offline': '#6b7280'
+    //     };
+    //     return colors[alertType?.toLowerCase()] || '#6b7280';
+    // };
 
     // Create unified signals source for pins
     const allSignals = [

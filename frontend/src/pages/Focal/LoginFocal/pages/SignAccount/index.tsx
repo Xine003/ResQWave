@@ -5,7 +5,6 @@ import { useState } from "react";
 import { apiFetch } from '@/lib/api';
 import { FocalHeader } from '@/pages/Focal/LoginFocal/components/FocalHeader';
 import { Eye, EyeOff, CircleAlert } from 'lucide-react';
-import resqwave_logo from '/Landing/resqwave_logo.png';
 
 export function LoginFocal() {
   const navigate = useNavigate();

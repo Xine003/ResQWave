@@ -15,7 +15,6 @@ import type { DashboardSignals } from './types/signals';
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { createDraw, ensureSquareGreenImage, changeToDrawPolygon, makeUpdateCanSave } from './utils/drawMapBoundary';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
-import { apiFetch } from '../../../lib/api';
 import { HazardLegend } from './components/HazardLegend';
 
 import DashboardAlerts from './components/DashboardAlerts';
@@ -42,7 +41,7 @@ export default function Dashboard() {
     const [mapLoaded, setMapLoaded] = useState(false);
     // signal & UI state provided by the useSignals hook (centralized)
     const signals = useSignals();
-    const { otherSignals, ownCommunitySignal: OwnCommunitySignal, editBoundaryOpen, setEditBoundaryOpen, popover, setPopover, infoBubble, setInfoBubble, infoBubbleVisible, setInfoBubbleVisible, setSavedGeoJson, canSave, setCanSave, getDistressCoord } = signals as unknown as DashboardSignals;
+    const { otherSignals, ownCommunitySignal: OwnCommunitySignal, editBoundaryOpen, setEditBoundaryOpen, popover, setPopover, infoBubble, infoBubbleVisible, setInfoBubbleVisible, setSavedGeoJson, canSave, setCanSave, getDistressCoord } = signals as unknown as DashboardSignals;
     const distressCoord: [number, number] = getDistressCoord();
 
 
@@ -846,7 +845,6 @@ export default function Dashboard() {
             <SignalPopover
                 popover={popover}
                 setPopover={setPopover}
-                setEditBoundaryOpen={setEditBoundaryOpen}
                 infoBubble={infoBubble}
                 infoBubbleVisible={infoBubbleVisible}
                 onClose={() => {

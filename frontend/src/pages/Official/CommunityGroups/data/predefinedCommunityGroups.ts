@@ -35,7 +35,7 @@ export const predefinedCommunityGroups: CommunityGroup[] = [
         status: "ONLINE",
         focalPerson: "Gwyneth Uy",
         contactNumber: "+63 912 345 6792",
-        address: "Block 1, Lot 17, Paraiso Rd, 1400",
+        address: "Block 1, Lot 17, Paraiso Rd, 1400", // Corrected address format
         registeredAt: "September 9, 2025"
     }
 ];
@@ -48,31 +48,18 @@ export const predefinedCommunityGroupDetails: { [key: string]: CommunityGroupDet
         communityId: "CGP-001",
         individuals: 156,
         families: 42,
-        kids: 38,
-        seniors: 12,
-        pwds: 8,
-        pregnantWomen: 3,
         notableInfo: [
             "Prone to flooding during heavy rains",
             "Limited access road during peak hours",
             "Community center available for emergency gathering"
         ],
         address: "Block 2, Lot 5, Rizal St.",
-        coordinates: [121.03197820799186, 14.772888009898285],
-        boundary: {
-            type: "Feature",
-            properties: {},
-            geometry: {
-                type: "LineString",
-                coordinates: [
-                    [121.0315, 14.7732],
-                    [121.0325, 14.7732],
-                    [121.0325, 14.7725],
-                    [121.0315, 14.7725],
-                    [121.0315, 14.7732]
-                ]
-            }
-        },
+        coordinates: "14.772888, 121.031978",
+        hazards: [
+            "Prone to flooding during heavy rains",
+            "Limited access road during peak hours",
+            "Community center available for emergency gathering"
+        ],
         focalPerson: {
             name: "Marites Dela Cruz",
             photo: "/images/focal-persons/marites.jpg",
@@ -93,31 +80,18 @@ export const predefinedCommunityGroupDetails: { [key: string]: CommunityGroupDet
         communityId: "CGP-002",
         individuals: 284,
         families: 78,
-        kids: 67,
-        seniors: 23,
-        pwds: 15,
-        pregnantWomen: 6,
         notableInfo: [
             "Active homeowners association",
             "Well-maintained community facilities",
             "Regular community drills conducted"
         ],
         address: "Lot 11, Paraiso Rd.",
-        coordinates: [121.04440528679821, 14.776897515717772],
-        boundary: {
-            type: "Feature",
-            properties: {},
-            geometry: {
-                type: "LineString",
-                coordinates: [
-                    [121.0440, 14.7772],
-                    [121.0450, 14.7772],
-                    [121.0450, 14.7765],
-                    [121.0440, 14.7765],
-                    [121.0440, 14.7772]
-                ]
-            }
-        },
+        coordinates: "14.776898, 121.044405",
+        hazards: [
+            "Active homeowners association",
+            "Well-maintained community facilities",
+            "Regular community drills conducted"
+        ],
         focalPerson: {
             name: "Gwen Uy",
             photo: "/images/focal-persons/gwen.jpg",
@@ -138,31 +112,18 @@ export const predefinedCommunityGroupDetails: { [key: string]: CommunityGroupDet
         communityId: "CGP-003",
         individuals: 198,
         families: 54,
-        kids: 45,
-        seniors: 18,
-        pwds: 12,
-        pregnantWomen: 4,
         notableInfo: [
             "Historic community with cultural significance",
             "Near main commercial district",
             "Good access to medical facilities"
         ],
         address: "Corner Gen. Luna & Mabini",
-        coordinates: [121.039008311252, 14.768014818600191],
-        boundary: {
-            type: "Feature",
-            properties: {},
-            geometry: {
-                type: "LineString",
-                coordinates: [
-                    [121.0385, 14.7684],
-                    [121.0395, 14.7684],
-                    [121.0395, 14.7677],
-                    [121.0385, 14.7677],
-                    [121.0385, 14.7684]
-                ]
-            }
-        },
+        coordinates: "14.768015, 121.039008",
+        hazards: [
+            "Historic community with cultural significance",
+            "Near main commercial district",
+            "Good access to medical facilities"
+        ],
         focalPerson: {
             name: "Ana Santos",
             photo: "/images/focal-persons/ana.jpg",
@@ -183,31 +144,18 @@ export const predefinedCommunityGroupDetails: { [key: string]: CommunityGroupDet
         communityId: "CGP-004",
         individuals: 320,
         families: 89,
-        kids: 78,
-        seniors: 28,
-        pwds: 18,
-        pregnantWomen: 7,
         notableInfo: [
             "Main community with emergency coordination center",
             "Primary evacuation site for surrounding areas",
             "Advanced warning system installed"
         ],
         address: "Block 1, Lot 17, Paraiso Rd, 1400",
-        coordinates: [121.04040046802031, 14.7721611560019],
-        boundary: {
-            type: "Feature",
-            properties: {},
-            geometry: {
-                type: "LineString",
-                coordinates: [
-                    [121.0400, 14.7725],
-                    [121.0410, 14.7725],
-                    [121.0410, 14.7718],
-                    [121.0400, 14.7718],
-                    [121.0400, 14.7725]
-                ]
-            }
-        },
+        coordinates: "14.772161, 121.040400",
+        hazards: [
+            "Main community with emergency coordination center",
+            "Primary evacuation site for surrounding areas",
+            "Advanced warning system installed"
+        ],
         focalPerson: {
             name: "Gwyneth Uy",
             photo: "/images/focal-persons/gwyneth.jpg",
@@ -236,7 +184,7 @@ export const predefinedAwaitingGroups: CommunityGroup[] = [
         registeredAt: "August 30, 2025"
     },
     {
-        id: "R-002", 
+        id: "R-002",
         name: "Sunset Village",
         status: "OFFLINE",
         focalPerson: "Kristine Lopez",
@@ -263,17 +211,18 @@ export const predefinedAwaitingGroupDetails: { [key: string]: CommunityGroupDeta
         communityId: "R-003",
         individuals: 10,
         families: 10,
-        kids: 0,
-        seniors: 0,
-        pwds: 0,
-        pregnantWomen: 0,
         notableInfo: [
             "Strong water current",
-            "Risk of landslide or erosion", 
+            "Risk of landslide or erosion",
             "Roads become impassable"
         ],
         address: "Block 1, Lot 17, Paraiso Rd, 1400",
-        coordinates: [121.042443, 14.774083],
+        coordinates: "14.774083, 121.042443",
+        hazards: [
+            "Strong water current",
+            "Risk of landslide or erosion",
+            "Roads become impassable"
+        ],
         focalPerson: {
             name: "Gwyneth Uy",
             contactNumber: "0905 385 4293",
@@ -293,17 +242,18 @@ export const predefinedAwaitingGroupDetails: { [key: string]: CommunityGroupDeta
         communityId: "R-002",
         individuals: 10,
         families: 10,
-        kids: 0,
-        seniors: 0,
-        pwds: 0,
-        pregnantWomen: 0,
         notableInfo: [
             "Strong water current",
-            "Risk of landslide or erosion", 
+            "Risk of landslide or erosion",
             "Roads become impassable"
         ],
         address: "Block 3, Lot 8, Maligaya Rd, 1411",
-        coordinates: [121.041234, 14.773456],
+        coordinates: "14.773456, 121.041234",
+        hazards: [
+            "Strong water current",
+            "Risk of landslide or erosion",
+            "Roads become impassable"
+        ],
         focalPerson: {
             name: "Kristine Lopez",
             contactNumber: "0908 765 4321",
@@ -318,22 +268,23 @@ export const predefinedAwaitingGroupDetails: { [key: string]: CommunityGroupDeta
         }
     },
     "R-001": {
-        name: "Green Valley", 
+        name: "Green Valley",
         terminalId: "R-001",
         communityId: "R-001",
         individuals: 10,
         families: 10,
-        kids: 0,
-        seniors: 0,
-        pwds: 0,
-        pregnantWomen: 0,
         notableInfo: [
             "Strong water current",
-            "Risk of landslide or erosion", 
+            "Risk of landslide or erosion",
             "Roads become impassable"
         ],
         address: "Block 7, Lot 22, Sto. Niño Rd, 1420",
-        coordinates: [121.043567, 14.775678],
+        coordinates: "14.775678, 121.043567",
+        hazards: [
+            "Strong water current",
+            "Risk of landslide or erosion",
+            "Roads become impassable"
+        ],
         focalPerson: {
             name: "Roberto Reyes",
             contactNumber: "0945 123 9876",

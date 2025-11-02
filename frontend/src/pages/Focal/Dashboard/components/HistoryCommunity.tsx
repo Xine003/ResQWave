@@ -272,7 +272,7 @@ export default function HistoryModal({ open, onClose, center = null }: HistoryMo
                     actionsTaken: selected.actionsTaken || '',
                 },
             };
-            await exportToPdf(exportData, '');
+            await exportToPdf(exportData);
             console.log('PDF opened in new tab.');
         } catch (err) {
             console.error('PDF export failed:', err);

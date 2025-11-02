@@ -5,7 +5,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { CommunityGroupInfoSheet } from '../CommunityGroups/components/CommunityGroupInfoSheet';
-import type { CommunityGroupDetails } from '../CommunityGroups/types';
+
 import LiveReportSidebar from './components/LiveReportSidebar';
 import MapControls from './components/MapControls';
 import RescueFormAlerts, { type RescueFormAlertsHandle } from './components/RescueFormAlerts';
@@ -54,8 +54,8 @@ function VisualizationContent() {
     useEffect(() => { sidebarOpenRef.current = isLiveReportOpen; }, [isLiveReportOpen]);
     
     // Community info sheet state
-    const [infoSheetOpen, setInfoSheetOpen] = useState(false);
-    const [selectedCommunityData, setSelectedCommunityData] = useState<CommunityGroupDetails | undefined>(undefined);
+    const [infoSheetOpen] = useState(false);
+    // Removed unused setSelectedCommunityData and selectedCommunityData
     
     // Signal & UI state from centralized hook
     const signals = useSignals();
@@ -481,8 +481,8 @@ function VisualizationContent() {
             {/* Community Group Info Sheet */}
             <CommunityGroupInfoSheet
                 open={infoSheetOpen}
-                onOpenChange={setInfoSheetOpen}
-                communityData={selectedCommunityData}
+                onOpenChange={() => {}}
+                communityData={undefined}
             />
 
             {/* Waitlisted Rescue Form Preview */}

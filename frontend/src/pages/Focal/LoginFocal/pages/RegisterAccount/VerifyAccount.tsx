@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FocalHeader } from "@/pages/Focal/LoginFocal/components/FocalHeader";
 import { Button } from "@/components/ui/button";

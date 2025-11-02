@@ -3,30 +3,39 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useCallback, useEffect, useState } from "react"
-import type { TerminalDetails, TerminalDrawerProps, TerminalFormData } from "../types"
+import type { TerminalDrawerProps, TerminalFormData } from "../types"
 
 interface FormData {
-  name: string
+  id: string;
+  name: string;
 }
 
 interface FormErrors {
-  name?: string
+  id?: string;
+  name?: string;
 }
 
-export function CreateTerminalSheet({ 
-  open, 
-  onOpenChange, 
-  onSave, 
-  editData 
+export function CreateTerminalSheet({
+  open,
+  onOpenChange,
+  onSave,
+  editData
 }: TerminalDrawerProps) {
   const isEditing = !!editData
-  
+
   const [formData, setFormData] = useState<FormData>({
     id: "",
     name: "",
   })
-  
+
   const [errors, setErrors] = useState<FormErrors>({})
+  // Removed unused isDirty state
+  // Validate terminal ID (for new terminals only)
+  const validateId = (id: string): string | undefined => {
+    if (!id.trim()) return "Terminal ID is required"
+    if (!/^RSQW-\d{3}$/.test(id.trim())) return "ID must be in format RSQW-XXX (e.g., RSQW-002)"
+    return undefined
+  }
   // Validation functions
   const validateName = (name: string): string | undefined => {
     if (!name.trim()) return "Terminal name is required"
@@ -37,7 +46,8 @@ export function CreateTerminalSheet({
   // Check if form is valid
   const isFormValid = (): boolean => {
     const hasValidName = !validateName(formData.name)
-    return hasValidName
+    const hasValidId = isEditing || !validateId(formData.id)
+    return hasValidName && hasValidId
   }
 
   // Reset form when opening/closing or when edit data changes
@@ -48,7 +58,7 @@ export function CreateTerminalSheet({
         name: editData.name,
       })
       setErrors({})
-      setIsDirty(false)
+      // setIsDirty removed
     } else if (open && !isEditing) {
       // Reset for new terminal
       setFormData({
@@ -56,7 +66,7 @@ export function CreateTerminalSheet({
         name: "",
       })
       setErrors({})
-      setIsDirty(false)
+      // setIsDirty removed
     }
   }, [open, isEditing, editData])
 
@@ -65,7 +75,7 @@ export function CreateTerminalSheet({
       ...prev,
       [field]: value
     }))
-    
+
     // Clear error for this field when user starts typing
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({
@@ -73,24 +83,24 @@ export function CreateTerminalSheet({
         [field]: undefined
       }))
     }
-    
+
     // Real-time validation
-    if (field === 'id') {
+    if (field === 'id' && !isEditing) {
       const error = validateId(value)
       setErrors(prev => ({ ...prev, id: error }))
     } else if (field === 'name') {
       const error = validateName(value)
       setErrors(prev => ({ ...prev, name: error }))
     }
-    
-    setIsDirty(true)
-  }, [errors])
+
+    // setIsDirty removed
+  }, [errors, isEditing])
 
   const handleSave = useCallback(() => {
     // Validate all fields
-    const idError = validateId(formData.id)
+    const idError = isEditing ? undefined : validateId(formData.id)
     const nameError = validateName(formData.name)
-    
+
     const newErrors: FormErrors = {
       id: idError,
       name: nameError,
@@ -106,53 +116,19 @@ export function CreateTerminalSheet({
       return
     }
 
-    // Prepare the data
+    // Prepare the data for saving (TerminalFormData)
     const terminalFormData: TerminalFormData = {
       name: formData.name.trim(),
       status: "Offline", // Default status
       availability: "Available", // Default availability
     }
 
-    let terminalDetails: TerminalDetails
-    if (isEditing && editData) {
-      terminalDetails = {
-        ...editData,
-        id: formData.id.trim(),
-        name: formData.name.trim(),
-        dateUpdated: new Date().toLocaleDateString('en-US', { 
-          month: 'long', 
-          day: 'numeric', 
-          year: 'numeric' 
-        }),
-      }
-    } else {
-      terminalDetails = {
-        id: formData.id.trim(),
-        name: formData.name.trim(),
-        status: "Offline",
-        availability: "Available",
-        dateCreated: new Date().toLocaleDateString('en-US', { 
-          month: 'long', 
-          day: 'numeric', 
-          year: 'numeric' 
-        }),
-        dateUpdated: new Date().toLocaleDateString('en-US', { 
-          month: 'long', 
-          day: 'numeric', 
-          year: 'numeric' 
-        }),
-      }
-    }
-
-    // Call the onSave callback
-    onSave?.(terminalDetails, terminalFormData)
-    
+    // Call the onSave callback (only pass TerminalFormData)
+    onSave?.(terminalFormData)
     // Don't close here - let the parent handle success/error and close
-  }, [formData, onSave, isEditing, editData])
+  }, [formData, onSave, isEditing])
 
-  const handleClose = useCallback(() => {
-    onOpenChange(false)
-  }, [onOpenChange])
+  // Removed unused handleClose function
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -197,7 +173,7 @@ export function CreateTerminalSheet({
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               className="bg-[#262626] border-[#404040] text-white placeholder:text-[#a1a1a1] focus:border-[#4285f4]"
-              
+
             />
             {errors.name && (
               <p className="text-red-400 text-xs">{errors.name}</p>

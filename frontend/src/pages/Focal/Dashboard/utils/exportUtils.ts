@@ -178,7 +178,7 @@ export const exportToDocx = async (data: ExportData) => {
 };
 
 // Export to PDF
-export const exportToPdf = async (data: ExportData, headerImage: string) => {
+export const exportToPdf = async (data: ExportData) => {
   const doc = new jsPDF();
   // Set margins: 1.25 inch left/right, 1 inch top/bottom
   const inch = 25.4; // 1 inch in mm

@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/input-otp-focal";
 import Alert, { AlertDescription } from '@/components/ui/alert-focal';
 import { CheckCircle2Icon } from 'lucide-react';
-import resqwave_logo from '/Landing/resqwave_logo.png';
 import { useState, useEffect, useRef } from "react";
 import { apiFetch } from '@/lib/api';
 

@@ -1,29 +1,11 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import resqwave_logo from '/Landing/resqwave_logo.png';
-import { CircleQuestionMark } from 'lucide-react';
 
 export function FocalHeader() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // List of all registration-related routes and verify/account review where the button should be hidden
-    const hideButtonRoutes = [
-        '/verify-account-focal',
-        '/register/personal-info',
-        '/register/profile-picture',
-        '/register/create-password',
-        '/register/location-details',
-        '/register/alternative-focal-person',
-        '/register/alternative-profile-picture',
-        '/register/about-neighborhood',
-        '/register/about-residents',
-        '/register/floodwater-duration',
-        '/register/flood-hazards',
-        '/register/other-info',
-        '/register/account-review'
-    ];
 
-    const showButton = !hideButtonRoutes.includes(location.pathname);
     let buttonText = 'Create an account';
     let handleClick = () => navigate('/register-focal');
     if (location.pathname === '/register-focal') {

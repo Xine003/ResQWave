@@ -1,5 +1,4 @@
 import type React from 'react';
-import type mapboxgl from "mapbox-gl";
 
 export function addCustomLayers(map: mapboxgl.Map, otherSignals: any[], OwnCommunitySignal: any) {
     // Helper to create a GeoJSON circle polygon from center and radius (meters)
