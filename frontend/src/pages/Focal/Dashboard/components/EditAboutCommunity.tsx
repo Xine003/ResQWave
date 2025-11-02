@@ -85,6 +85,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     // Alt focal photo (for upload and display)
     const [altPhotoUrl, setAltPhotoUrl] = useState<string | null>(null);
     const [altPhotoFile, setAltPhotoFile] = useState<File | null>(null);
+    const [altPhotoError, setAltPhotoError] = useState('');
     // const fileInputRef = useRef<HTMLInputElement | null>(null);
     const mainFileInputRef = useRef<HTMLInputElement | null>(null);
     // expose imperative method to parent with optional continue callback
@@ -485,6 +486,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                         }
                                         setAltPhotoUrl(null);
                                         setAltPhotoFile(null);
+                                        setAltPhotoError('');
                                     }}
                                     style={{ position: 'absolute', right: 15, bottom: 15, width: 36, height: 36, borderRadius: 1, background: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
                                     <Trash size={15} color="red" strokeWidth={3} />
@@ -494,29 +496,82 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                     ) : (
                         // when empty: render a standalone dashed upload panel (no outer dark card)
                         <div style={{ marginTop: 6 }}>
-                            <div onClick={() => mainFileInputRef.current?.click()} role="button" tabIndex={0} onKeyDown={() => mainFileInputRef.current?.click()} style={{ cursor: 'pointer', background: '#262626', padding: '28px', borderRadius: 8, border: '1px dashed #404040', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                            <div
+                                onClick={() => mainFileInputRef.current?.click()}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={() => mainFileInputRef.current?.click()}
+                                title="Upload alternative focal person photo&#10;Max size: 5MB | Min dimensions: 200x200px&#10;Allowed formats: JPG, PNG, WebP"
+                                style={{ cursor: 'pointer', background: '#262626', padding: '28px', borderRadius: 8, border: altPhotoError ? '1px dashed #ef4444' : '1px dashed #404040', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5 }}
+                            >
                                 <div style={{ background: '#1f2937', width: 48, height: 48, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Upload color="#60A5FA" />
                                 </div>
                                 <div style={{ color: '#fff', fontWeight: 700 }}>Upload photo</div>
                                 <div style={{ color: '#9ca3af', fontSize: 12 }}>Drag and drop or click to upload</div>
-                                <div style={{ color: '#9ca3af', fontSize: 12 }}>JPG and PNG, file size no more than 10MB</div>
                             </div>
+                            {altPhotoError && (
+                                <div style={{ color: '#ef4444', fontSize: 12, marginTop: 6 }}>
+                                    {altPhotoError}
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {/* hidden file input for main focal photo (kept outside so it's always present) */}
-                    <input ref={mainFileInputRef} type="file" accept="image/png,image/jpeg" style={{ display: 'none' }} onChange={(e) => {
+                    <input ref={mainFileInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={(e) => {
                         const f = e.target.files?.[0];
                         if (!f) return;
-                        try {
-                            const url = URL.createObjectURL(f);
-                            if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
-                                try { URL.revokeObjectURL(altPhotoUrl); } catch { /* Ignore revoke errors */ }
+                        // async validation helper
+                        const validateAltPhoto = (file: File): Promise<string> => new Promise((resolve) => {
+                            if (!file) return resolve('');
+                            const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                            if (!allowed.includes(file.type)) return resolve('Allowed formats: JPG, PNG, WebP');
+                            const MAX_BYTES = 5 * 1024 * 1024; // 5MB
+                            const MIN_BYTES = 10 * 1024; // 10KB
+                            if (file.size > MAX_BYTES) return resolve('File must be less than 5MB');
+                            if (file.size < MIN_BYTES) return resolve('File is too small (min 10KB)');
+                            const img = new Image();
+                            const tmpUrl = URL.createObjectURL(file);
+                            img.onload = () => {
+                                const w = img.width;
+                                const h = img.height;
+                                URL.revokeObjectURL(tmpUrl);
+                                if (w < 200 || h < 200) return resolve('Image dimensions must be at least 200x200px');
+                                if (w > 4096 || h > 4096) return resolve('Image dimensions must be at most 4096x4096px');
+                                return resolve('');
+                            };
+                            img.onerror = () => {
+                                try { URL.revokeObjectURL(tmpUrl); } catch { /* ignore */ }
+                                return resolve('Unable to read image file');
+                            };
+                            img.src = tmpUrl;
+                        });
+
+                        // run validation and set preview only if valid
+                        validateAltPhoto(f).then(err => {
+                            if (err) {
+                                setAltPhotoError(err);
+                                // clear previous preview/file if invalid
+                                if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
+                                    try { URL.revokeObjectURL(altPhotoUrl); } catch { /* Ignore revoke errors */ }
+                                }
+                                setAltPhotoUrl(null);
+                                setAltPhotoFile(null);
+                            } else {
+                                setAltPhotoError('');
+                                try {
+                                    const url = URL.createObjectURL(f);
+                                    if (altPhotoUrl && altPhotoUrl.startsWith('blob:')) {
+                                        try { URL.revokeObjectURL(altPhotoUrl); } catch { /* Ignore revoke errors */ }
+                                    }
+                                    setAltPhotoUrl(url);
+                                    setAltPhotoFile(f);
+                                } catch {
+                                    setAltPhotoError('Failed to read file');
+                                }
                             }
-                            setAltPhotoUrl(url);
-                            setAltPhotoFile(f);
-                        } catch { /* Ignore file read errors */ }
+                        });
                     }} />
 
 

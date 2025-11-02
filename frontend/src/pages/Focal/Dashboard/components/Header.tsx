@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFocalAuth } from '../../context/focalAuthContext';
 import type { HeaderProps } from '../types/header';
-import resqwave_logo from '/Landing/resqwave_logo.png';
+import resqwave_logo from '/resqwave_logo.png';
 
 export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community', onAccountSettingsClick, onActivityLogClick, accountSettingsOpen = false, onRequestCloseAccountSettings }: HeaderProps) {
     const navigate = useNavigate();
@@ -77,7 +77,7 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
                 }}
             >
                 <div style={{ display: "flex", alignItems: "center", gap: "1.2rem" }}>
-                    <img src={resqwave_logo} alt="ResQWave Logo" onClick={() => navigate('/')} style={{ height: 32, cursor: 'pointer' }} />
+                    <img src={resqwave_logo} alt="ResQWave Logo" onClick={() => navigate('/')} style={{ height: 35, cursor: 'pointer' }} />
                     <span onClick={() => navigate('/')} style={{ fontWeight: 500, fontSize: "1.25rem", cursor: 'pointer' }}>ResQWave</span>
                     <span style={{ fontWeight: 300, fontSize: "1.13rem", color: "#BABABA", marginLeft: 12 }}>
                         Editing Community Boundary ...
@@ -151,7 +151,7 @@ export default function Header({ editBoundaryOpen = false, editAboutOpen = false
         >
             <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                    <img src={resqwave_logo} alt="ResQWave Logo" onClick={() => navigate('/')} style={{ height: 30, cursor: 'pointer' }} />
+                    <img src={resqwave_logo} alt="ResQWave Logo" onClick={() => navigate('/')} style={{ height: 32, cursor: 'pointer' }} />
                     <span onClick={() => navigate('/')} style={{ fontWeight: 500, fontSize: "1.25rem", cursor: 'pointer' }}>ResQWave</span>
                 </div>
                 <Tabs value={activeTab} defaultValue="community" onValueChange={(v) => {

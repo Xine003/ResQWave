@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import resqwave_logo from '/Landing/resqwave_logo.png';
+import resqwave_logo from '/resqwave_logo.png';
 
 export function FocalHeader() {
     const navigate = useNavigate();
@@ -18,7 +18,7 @@ export function FocalHeader() {
             }}
         >
             <div className="flex items-center flex-shrink-0" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-                <img src={resqwave_logo} alt="ResQWave Logo" className="h-auto w-8" />
+                <img src={resqwave_logo} alt="ResQWave Logo" className="h-auto w-9" />
                 <span className="font-medium text-lg ml-4 text-white" style={{ fontSize: '1.125rem' }}>ResQWave</span>
             </div>
             {/* <div className="flex flex-1 items-center justify-end gap-11">

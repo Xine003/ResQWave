@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Menu } from "lucide-react";
-import resqwave_logo from '/Landing/resqwave_logo.png';
+import resqwave_logo from '/resqwave_logo.png';
 
 export function LandingHeader({ navOpen, setNavOpen }: { navOpen: boolean, setNavOpen: (open: boolean) => void }) {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ export function LandingHeader({ navOpen, setNavOpen }: { navOpen: boolean, setNa
     >
       {/* Left side: logo and name */}
       <div className="flex items-center gap-4">
-        <img src={resqwave_logo} alt="ResQWave Logo" className="h-auto w-8" />
+        <img src={resqwave_logo} alt="ResQWave Logo" className="h-auto w-9" />
         <span className="font-medium text-lg ">ResQWave</span>
       </div>
       <div>

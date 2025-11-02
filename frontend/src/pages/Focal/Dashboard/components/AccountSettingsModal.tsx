@@ -79,6 +79,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
     };
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [photoError, setPhotoError] = useState('');
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     // const [isDragging, setIsDragging] = useState(false); // Removed unused variable
     const { focalId } = useFocalAuth();
@@ -152,6 +153,82 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
     const handleEmailChange = (value: string) => {
         setEmail(value);
         setEmailError(validateEmailAddress(value));
+    };
+
+    // Profile picture validation
+    const validateProfilePicture = (file: File): Promise<string> => {
+        return new Promise((resolve) => {
+            // Check file size (max 5MB)
+            const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+            const minSize = 10 * 1024; // 10KB in bytes
+
+            if (file.size > maxSize) {
+                resolve('Image size must be less than 5MB');
+                return;
+            }
+
+            if (file.size < minSize) {
+                resolve('Image size is too small (minimum 10KB)');
+                return;
+            }
+
+            // Check file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                resolve('Only JPG, PNG, and WebP images are allowed');
+                return;
+            }
+
+            // Check image dimensions
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
+
+            img.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+
+                const minDimension = 200;
+                const maxDimension = 4096;
+
+                if (img.width < minDimension || img.height < minDimension) {
+                    resolve(`Image dimensions must be at least ${minDimension}x${minDimension} pixels`);
+                    return;
+                }
+
+                if (img.width > maxDimension || img.height > maxDimension) {
+                    resolve(`Image dimensions must not exceed ${maxDimension}x${maxDimension} pixels`);
+                    return;
+                }
+
+                // All validations passed
+                resolve('');
+            };
+
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                resolve('Invalid image file');
+            };
+
+            img.src = objectUrl;
+        });
+    };
+
+    // Handle profile picture change
+    const handleProfilePictureChange = async (file: File | null) => {
+        if (!file) {
+            setPhotoFile(null);
+            setPhotoError('');
+            return;
+        }
+
+        const error = await validateProfilePicture(file);
+        if (error) {
+            setPhotoError(error);
+            setPhotoFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        } else {
+            setPhotoError('');
+            setPhotoFile(file);
+        }
     };
 
     // Track initial values for dirty check
@@ -328,6 +405,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
         setLastNameError('');
         setPhoneError('');
         setEmailError('');
+        setPhotoError('');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
@@ -543,18 +621,19 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                             <div className="flex flex-col items-center mb-8">
                                 <div className="relative flex flex-col items-center justify-center" style={{ width: 160, height: 160 }}>
                                     <div
-                                        className={`w-[160px] h-[160px] rounded-full overflow-hidden cursor-pointer flex items-center justify-center bg-[#232323]`}
-                                        onDrop={e => {
+                                        className={`w-[160px] h-[160px] rounded-full overflow-hidden cursor-pointer flex items-center justify-center ${photoError ? 'ring-2 ring-red-500' : 'bg-[#232323]'}`}
+                                        onDrop={async (e) => {
                                             e.preventDefault();
                                             const file = e.dataTransfer.files[0];
                                             if (file && file.type.startsWith('image/')) {
-                                                setPhotoFile(file);
+                                                await handleProfilePictureChange(file);
                                             }
                                         }}
                                         onDragOver={e => { e.preventDefault(); }}
                                         onDragLeave={e => { e.preventDefault(); }}
                                         onClick={() => document.getElementById('profile-photo-upload')?.click()}
                                         style={{ width: 140, height: 140 }}
+                                        title="Upload profile picture&#10;Max size: 5MB | Min dimensions: 200x200px&#10;Allowed formats: JPG, PNG, WebP"
                                     >
                                         {photoFile === null && !photoUrl ? (
                                             <div className="w-full h-full bg-[#262626] rounded-full flex items-center justify-center">
@@ -582,6 +661,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                                                 e.stopPropagation();
                                                 setPhotoFile(null);
                                                 setPhotoUrl(null);
+                                                setPhotoError('');
                                                 if (fileInputRef.current) fileInputRef.current.value = "";
                                             }}
                                             style={{ transform: 'translateY(50%)' }}
@@ -605,15 +685,21 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                                     ref={fileInputRef}
                                     id="profile-photo-upload"
                                     type="file"
-                                    accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp"
-                                    onChange={e => {
+                                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                    onChange={async (e) => {
                                         const file = e.target.files?.[0] || null;
-                                        if (file && file.type.startsWith('image/')) {
-                                            setPhotoFile(file);
+                                        if (file) {
+                                            await handleProfilePictureChange(file);
                                         }
                                     }}
                                     className="hidden"
                                 />
+                                {/* Photo error message */}
+                                {photoError && (
+                                    <div style={{ color: '#ef4444', fontSize: 13, marginTop: 8, textAlign: 'center' }}>
+                                        {photoError}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Name Fields */}
@@ -731,24 +817,24 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                             {/* Save Changes Button */}
                             <button
                                 onClick={() => setConfirmSaveOpen(true)}
-                                disabled={!isAnyDirty() || firstNameError !== '' || lastNameError !== '' || phoneError !== '' || emailError !== ''}
+                                disabled={!isAnyDirty() || firstNameError !== '' || lastNameError !== '' || phoneError !== '' || emailError !== '' || photoError !== ''}
                                 style={{
                                     padding: '8px 24px',
                                     borderRadius: 6,
-                                    background: (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError) ? '#ffffff' : '#414141',
-                                    color: (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError) ? '#000' : '#171717',
+                                    background: (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError && !photoError) ? '#ffffff' : '#414141',
+                                    color: (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError && !photoError) ? '#000' : '#171717',
                                     border: 'none',
                                     fontSize: 14,
                                     fontWeight: 600,
-                                    cursor: (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError) ? 'pointer' : 'not-allowed',
+                                    cursor: (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError && !photoError) ? 'pointer' : 'not-allowed',
                                     transition: 'background 0.15s',
                                     marginBottom: 24,
                                     width: 145,
                                     height: 40,
                                     alignSelf: 'flex-end'
                                 }}
-                                onMouseEnter={e => { if (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError) e.currentTarget.style.background = '#e5e5e5'; }}
-                                onMouseLeave={e => { if (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError) e.currentTarget.style.background = '#ffffff'; }}
+                                onMouseEnter={e => { if (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError && !photoError) e.currentTarget.style.background = '#e5e5e5'; }}
+                                onMouseLeave={e => { if (isAnyDirty() && !firstNameError && !lastNameError && !phoneError && !emailError && !photoError) e.currentTarget.style.background = '#ffffff'; }}
                             >
                                 Save Changes
                             </button>
