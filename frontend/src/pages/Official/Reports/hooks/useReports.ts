@@ -20,7 +20,7 @@ const transformCompletedReport = (report: CompletedReport) => {
     communityName: report.terminalName,
     alertType: report.alertType,
     dispatcher: report.dispatcherName,
-    dateTimeOccurred: new Date(report.completedAt).toLocaleString(),
+    dateTimeOccurred: new Date(report.createdAt).toLocaleString(),
     accomplishedOn: new Date(report.completedAt).toLocaleString(),
     address: extractAddress(report.address)
   };
@@ -33,10 +33,10 @@ export function useReports() {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch pending reports only
-  const fetchPendingReports = useCallback(async () => {
+  const fetchPendingReports = useCallback(async (forceRefresh = false) => {
     try {
       setError(null);
-      const pendingData = await apiFetchPendingReports(false);
+      const pendingData = await apiFetchPendingReports(forceRefresh);
       setPendingReports(pendingData.map(transformPendingReport));
     } catch (err: any) {
       setError(err.message || 'Failed to fetch pending reports');
@@ -44,10 +44,10 @@ export function useReports() {
   }, []);
 
   // Fetch completed reports only
-  const fetchCompletedReports = useCallback(async () => {
+  const fetchCompletedReports = useCallback(async (forceRefresh = false) => {
     try {
       setError(null);
-      const completedData = await apiFetchCompletedReports(false);
+      const completedData = await apiFetchCompletedReports(forceRefresh);
       setCompletedReports(completedData.map(transformCompletedReport));
     } catch (err: any) {
       setError(err.message || 'Failed to fetch completed reports');
@@ -76,30 +76,51 @@ export function useReports() {
     try {
       setError(null);
       
+      // Find the pending report that will be moved
+      const pendingReport = pendingReports.find(report => report.emergencyId === alertId);
+      
+      // Optimistically update UI immediately
+      if (pendingReport) {
+        // Remove from pending list immediately
+        setPendingReports(current => current.filter(report => report.emergencyId !== alertId));
+        // Don't add to completed list yet - let the refresh handle correct positioning based on alert date
+      }
+      
       // Call the API to create the post rescue form
       const { createPostRescueForm: apiCreatePostRescueForm } = await import('@/pages/Official/Reports/api/api');
       const result = await apiCreatePostRescueForm(alertId, formData);
       
-      // Optimistically update local state - remove from pending and refresh both lists
-      await Promise.all([
-        fetchPendingReports(),    // Refresh pending (should have one less)
-        fetchCompletedReports()   // Refresh completed (should have one more)
-      ]);
+      // Background refresh to get the exact data from server (without loading state)
+      setTimeout(async () => {
+        try {
+          await Promise.all([
+            fetchPendingReports(true),    // Force refresh pending
+            fetchCompletedReports(true)   // Force refresh completed
+          ]);
+        } catch (err) {
+          console.error('Background refresh failed:', err);
+        }
+      }, 50); // Small delay to ensure backend processing is complete
       
       return result;
     } catch (err: any) {
       setError(err.message || 'Failed to create post rescue form');
+      // Revert optimistic updates on error
+      await Promise.all([
+        fetchPendingReports(true),
+        fetchCompletedReports(true)
+      ]);
       throw err;
     }
-  }, [fetchPendingReports, fetchCompletedReports]);
+  }, [pendingReports, fetchPendingReports, fetchCompletedReports]);
 
   // Refresh all data
   const refreshAllReports = useCallback(async () => {
     setLoading(true);
     try {
       await Promise.all([
-        fetchPendingReports(),
-        fetchCompletedReports()
+        fetchPendingReports(true),    // Force refresh to bypass cache
+        fetchCompletedReports(true)   // Force refresh to bypass cache
       ]);
     } finally {
       setLoading(false);

@@ -49,7 +49,7 @@ export function Reports() {
               <CardHeader className="flex-shrink-0">
                 <CardTitle className="text-foreground">Alert Type</CardTitle>
                 <CardDescription className="text-muted-foreground">
-                  Showing user-initiated and critical alerts from the last 3 months
+                  Real-time data showing user-initiated and critical alerts from rescue forms
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">

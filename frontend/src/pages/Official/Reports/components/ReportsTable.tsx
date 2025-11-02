@@ -138,7 +138,7 @@ export function ReportsTable({ type, data, onReportCreated }: ReportsTableProps)
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-popover border-border">
               <DropdownMenuItem className="text-popover-foreground hover:bg-accent">View details</DropdownMenuItem>
-              <DropdownMenuItem className="text-popover-foreground hover:bg-accent">Download report</DropdownMenuItem>
+              <DropdownMenuItem className="text-popover-foreground hover:bg-accent">Generate report</DropdownMenuItem>
               <DropdownMenuItem className="text-popover-foreground hover:bg-accent">Edit</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

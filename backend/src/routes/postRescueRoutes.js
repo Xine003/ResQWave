@@ -10,12 +10,14 @@ const {
     clearReportsCache,
     migrateOriginalAlertTypes,
     fixRescueFormStatus,
+    getAlertTypeChartData,
 } = require("../controllers/postRescueFormController");
 
 
 router.post("/:alertID", createPostRescueForm);
 router.get("/pending", getPendingReports);
 router.get("/completed", getCompletedReports);
+router.get("/chart/alert-types", getAlertTypeChartData);
 router.get("/aggregated", getAggregatedRescueReports);
 router.get("/table/aggregated", getAggregatedPostRescueForm);
 router.delete("/cache", clearReportsCache);

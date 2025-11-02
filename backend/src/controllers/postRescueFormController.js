@@ -99,15 +99,16 @@ const getCompletedReports = async (req, res) => {
         "rescueForm.originalAlertType AS alertType", // Use original alert type from rescue form
         "dispatcher.name AS dispatcherName",
         "rescueForm.status AS rescueStatus",
+        "alert.dateTimeSent AS createdAt",
         "prf.completedAt AS completedAt",
         "fp.address AS address",
       ])
-      .orderBy("prf.completedAt", "DESC")
+      .orderBy("alert.dateTimeSent", "ASC")
       .getRawMany();
 
-    // Update cache with fresh data (balanced TTL for responsiveness)
-    await setCache(cacheKey, reports, 60);
-    res.set('Cache-Control', 'public, max-age=60');
+    // Update cache with fresh data (shorter TTL for faster refresh after new reports)
+    await setCache(cacheKey, reports, 30);
+    res.set('Cache-Control', 'public, max-age=30');
     res.json(reports);
   } catch (err) {
     console.error(err);
@@ -149,7 +150,7 @@ const getPendingReports = async (req, res) => {
         "alert.dateTimeSent AS createdAt",
         "fp.address AS address",
       ])
-      .orderBy("alert.dateTimeSent", "DESC")
+      .orderBy("alert.dateTimeSent", "ASC")
       .getRawMany();
 
     // Update cache with fresh data (balanced TTL for responsiveness)
@@ -416,6 +417,222 @@ const migrateOriginalAlertTypes = async (req, res) => {
     }
 };
 
+// GET Alert Type Chart Data
+const getAlertTypeChartData = async (req, res) => {
+    try {
+        const { timeRange = 'last3months' } = req.query;
+        const cacheKey = `alertTypeChart:${timeRange}`;
+        
+        console.log(`[AlertTypeChart] Processing request for timeRange: ${timeRange}`);
+
+        // Calculate date range based on timeRange parameter
+        const endDate = new Date();
+        const startDate = new Date();
+        
+        switch (timeRange) {
+            case 'last6months':
+                startDate.setMonth(endDate.getMonth() - 6);
+                break;
+            case 'lastyear':
+                startDate.setFullYear(endDate.getFullYear() - 1);
+                break;
+            case 'last3months':
+            default:
+                startDate.setDate(endDate.getDate() - 30);
+                break;
+        }
+
+        console.log(`[AlertTypeChart] Querying data from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+
+        // First, let's check if there are any rescue forms at all
+        const totalRescueForms = await rescueFormRepo.count();
+        console.log(`[AlertTypeChart] Total rescue forms in database: ${totalRescueForms}`);
+
+        // Check rescue forms with alerts in any date range
+        const totalWithAlerts = await rescueFormRepo
+            .createQueryBuilder("rf")
+            .leftJoin("rf.alert", "alert")
+            .where("alert.dateTimeSent IS NOT NULL")
+            .getCount();
+        console.log(`[AlertTypeChart] Total rescue forms with alerts: ${totalWithAlerts}`);
+
+        // Query rescue forms with alert data - focus on originalAlertType from rescueforms table
+        const alertData = await rescueFormRepo
+            .createQueryBuilder("rf")
+            .leftJoin("rf.alert", "alert")
+            .where("alert.dateTimeSent >= :startDate", { startDate })
+            .andWhere("alert.dateTimeSent <= :endDate", { endDate })
+            .andWhere("rf.originalAlertType IS NOT NULL") // Only get records with alert types
+            .select([
+                "rf.originalAlertType AS alertType",
+                "alert.dateTimeSent AS alertDate"
+            ])
+            .getRawMany();
+
+        console.log(`[AlertTypeChart] Found ${alertData.length} rescue forms with alert types in date range`);
+
+        // Log sample data to understand the alert types
+        if (alertData.length > 0) {
+            const sampleTypes = [...new Set(alertData.map(item => item.alertType))];
+            console.log(`[AlertTypeChart] Sample alert types found:`, sampleTypes);
+        }
+
+        // Generate chart data based on time range
+        const chartData = [];
+        
+        if (timeRange === 'last3months') {
+            // For last 30 days, show weekly data points including today
+            const weeks = 5; // Show 5 weeks to include today
+            for (let i = 0; i < weeks; i++) {
+                const weekStart = new Date(startDate);
+                weekStart.setDate(startDate.getDate() + (i * 7));
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 6);
+                
+                // For the last week, make sure it includes today
+                if (i === weeks - 1) {
+                    weekEnd.setTime(endDate.getTime());
+                }
+                
+                const weekLabel = i === weeks - 1 ? 
+                    `Today (${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` :
+                    weekStart.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+
+                // Count alerts in this week
+                let userInitiated = 0;
+                let critical = 0;
+
+                alertData.forEach(item => {
+                    const alertDate = new Date(item.alertDate);
+                    if (alertDate >= weekStart && alertDate <= weekEnd) {
+                        const alertType = (item.alertType || '').toLowerCase();
+                        console.log(`[AlertTypeChart] Processing alert type: "${item.alertType}" on ${alertDate.toDateString()}`);
+                        
+                        if (alertType.includes('user') || alertType === 'user-initiated') {
+                            userInitiated++;
+                        } else if (alertType.includes('critical') || alertType === 'critical') {
+                            critical++;
+                        }
+                        // Note: If alertType doesn't match either category, it won't be counted
+                    }
+                });
+
+                console.log(`[AlertTypeChart] Week ${weekLabel}: userInitiated=${userInitiated}, critical=${critical}`);
+
+                chartData.push({
+                    date: weekLabel,
+                    userInitiated,
+                    critical
+                });
+            }
+        } else if (timeRange === 'last6months') {
+            // For 6 months, show monthly data points including current month
+            for (let i = 0; i < 6; i++) {
+                const monthStart = new Date(startDate);
+                monthStart.setMonth(startDate.getMonth() + i);
+                monthStart.setDate(1);
+                
+                const monthEnd = new Date(monthStart);
+                monthEnd.setMonth(monthStart.getMonth() + 1);
+                monthEnd.setDate(0);
+                
+                // For the last month, make sure it includes today
+                if (i === 5) {
+                    monthEnd.setTime(endDate.getTime());
+                }
+
+                const monthLabel = i === 5 ?
+                    `${monthStart.toLocaleDateString('en-US', { month: 'short' })} (Current)` :
+                    monthStart.toLocaleDateString('en-US', { 
+                        month: 'short' 
+                    });
+
+                // Count alerts in this month
+                let userInitiated = 0;
+                let critical = 0;
+
+                alertData.forEach(item => {
+                    const alertDate = new Date(item.alertDate);
+                    if (alertDate >= monthStart && alertDate <= monthEnd) {
+                        const alertType = (item.alertType || '').toLowerCase();
+                        
+                        if (alertType.includes('user') || alertType === 'user-initiated') {
+                            userInitiated++;
+                        } else if (alertType.includes('critical') || alertType === 'critical') {
+                            critical++;
+                        }
+                    }
+                });
+
+                chartData.push({
+                    date: monthLabel,
+                    userInitiated,
+                    critical
+                });
+            }
+        } else if (timeRange === 'lastyear') {
+            // For last year, show quarterly data points including current quarter
+            const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+            const currentYear = endDate.getFullYear();
+            
+            for (let i = 0; i < 4; i++) {
+                const quarterStart = new Date(startDate);
+                quarterStart.setMonth(i * 3);
+                quarterStart.setDate(1);
+                
+                const quarterEnd = new Date(quarterStart);
+                quarterEnd.setMonth(quarterStart.getMonth() + 3);
+                quarterEnd.setDate(0);
+                
+                // For the current quarter, make sure it includes today
+                const currentQuarter = Math.floor(endDate.getMonth() / 3);
+                if (i === currentQuarter) {
+                    quarterEnd.setTime(endDate.getTime());
+                }
+
+                const quarterLabel = i === currentQuarter ?
+                    `${quarters[i]} ${currentYear} (Current)` :
+                    `${quarters[i]} ${quarterStart.getFullYear()}`;
+
+                // Count alerts in this quarter
+                let userInitiated = 0;
+                let critical = 0;
+
+                alertData.forEach(item => {
+                    const alertDate = new Date(item.alertDate);
+                    if (alertDate >= quarterStart && alertDate <= quarterEnd) {
+                        const alertType = (item.alertType || '').toLowerCase();
+                        
+                        if (alertType.includes('user') || alertType === 'user-initiated') {
+                            userInitiated++;
+                        } else if (alertType.includes('critical') || alertType === 'critical') {
+                            critical++;
+                        }
+                    }
+                });
+
+                chartData.push({
+                    date: quarterLabel,
+                    userInitiated,
+                    critical
+                });
+            }
+        }
+
+        console.log(`[AlertTypeChart] Generated chart data:`, chartData);
+
+        // Cache for 30 minutes
+        await setCache(cacheKey, chartData, 1800);
+        res.json(chartData);
+    } catch (err) {
+        console.error('[AlertTypeChart] Error:', err);
+        res.status(500).json({ message: "Server Error", error: err.message });
+    }
+};
+
 module.exports = {
   createPostRescueForm,
   getCompletedReports,
@@ -425,5 +642,6 @@ module.exports = {
   clearReportsCache,
   migrateOriginalAlertTypes,
   fixRescueFormStatus,
+  getAlertTypeChartData,
 };
 

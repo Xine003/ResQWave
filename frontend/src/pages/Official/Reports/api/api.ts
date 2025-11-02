@@ -84,18 +84,37 @@ export interface CompletedReport {
   alertType: string;
   dispatcherName: string;
   rescueStatus: string;
+  createdAt: string;
   completedAt: string;
   address: string;
 }
 
 export async function fetchPendingReports(refresh = false): Promise<PendingReport[]> {
-  const url = refresh ? '/post/pending?refresh=true' : '/post/pending';
-  return apiFetch<PendingReport[]>(url);
+  let url = refresh ? '/post/pending?refresh=true' : '/post/pending';
+  if (refresh) {
+    url += `&t=${Date.now()}`; // Add timestamp to prevent browser caching
+  }
+  const options = refresh ? {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    }
+  } : {};
+  return apiFetch<PendingReport[]>(url, options);
 }
 
 export async function fetchCompletedReports(refresh = false): Promise<CompletedReport[]> {
-  const url = refresh ? '/post/completed?refresh=true' : '/post/completed';
-  return apiFetch<CompletedReport[]>(url);
+  let url = refresh ? '/post/completed?refresh=true' : '/post/completed';
+  if (refresh) {
+    url += `&t=${Date.now()}`; // Add timestamp to prevent browser caching
+  }
+  const options = refresh ? {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    }
+  } : {};
+  return apiFetch<CompletedReport[]>(url, options);
 }
 
 export async function clearReportsCache(): Promise<any> {
@@ -113,4 +132,15 @@ export async function createPostRescueForm(alertId: string, data: {
     method: 'POST',
     body: JSON.stringify(data)
   });
+}
+
+// Chart data interfaces and functions
+export interface AlertTypeChartData {
+  date: string;
+  userInitiated: number;
+  critical: number;
+}
+
+export async function fetchAlertTypeChartData(timeRange: string = 'last3months'): Promise<AlertTypeChartData[]> {
+  return apiFetch<AlertTypeChartData[]>(`/post/chart/alert-types?timeRange=${timeRange}`);
 }
