@@ -1,23 +1,8 @@
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-
-const chartData = [
-  { date: "Apr 15", userInitiated: 40, critical: 20 },
-  { date: "Apr 20", userInitiated: 35, critical: 25 },
-  { date: "Apr 25", userInitiated: 45, critical: 30 },
-  { date: "Apr 30", userInitiated: 50, critical: 35 },
-  { date: "May 5", userInitiated: 42, critical: 28 },
-  { date: "May 10", userInitiated: 48, critical: 32 },
-  { date: "May 15", userInitiated: 38, critical: 22 },
-  { date: "May 20", userInitiated: 44, critical: 26 },
-  { date: "May 25", userInitiated: 46, critical: 30 },
-  { date: "May 30", userInitiated: 52, critical: 35 },
-  { date: "Jun 4", userInitiated: 49, critical: 33 },
-  { date: "Jun 9", userInitiated: 45, critical: 28 },
-  { date: "Jun 14", userInitiated: 51, critical: 36 },
-];
+import { fetchAlertTypeChartData, type AlertTypeChartData } from "../api/api";
 
 const chartConfig = {
   userInitiated: {
@@ -31,7 +16,39 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function AlertTypeChart() {
-  const [timeRange, setTimeRange] = useState("Last 3 months");
+  const [timeRange, setTimeRange] = useState("last3months");
+  const [chartData, setChartData] = useState<AlertTypeChartData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch chart data when component mounts or timeRange changes
+  useEffect(() => {
+    const loadChartData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await fetchAlertTypeChartData(timeRange);
+        setChartData(data);
+      } catch (err: any) {
+        console.error('Error fetching chart data:', err);
+        setError(err.message || 'Failed to load chart data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadChartData();
+  }, [timeRange]);
+
+  // Map timeRange values to display labels
+  const getTimeRangeLabel = (range: string) => {
+    switch (range) {
+      case 'last6months': return 'Last 6 months';
+      case 'lastyear': return 'Last year';
+      case 'last3months':
+      default: return 'Last 1 month';
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -41,75 +58,95 @@ export function AlertTypeChart() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Last 3 months">Last 3 months</SelectItem>
-            <SelectItem value="Last 6 months">Last 6 months</SelectItem>
-            <SelectItem value="Last year">Last year</SelectItem>
+            <SelectItem value="last3months">Last 30 days</SelectItem>
+            <SelectItem value="last6months">Last 6 months</SelectItem>
+            <SelectItem value="lastyear">Last year</SelectItem>
           </SelectContent>
         </Select>
       </div>
       
       <div className="flex-1">
-        <ChartContainer
-          config={chartConfig}
-          className="aspect-auto h-full w-full"
-        >
-          <AreaChart data={chartData}>
-            <defs>
-              <linearGradient id="fillUserInitiated" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-userInitiated)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-userInitiated)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-              <linearGradient id="fillCritical" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-critical)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-critical)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="date"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              minTickGap={32}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-            />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <Area
-              dataKey="critical"
-              type="natural"
-              fill="url(#fillCritical)"
-              stroke="var(--color-critical)"
-              stackId="a"
-            />
-            <Area
-              dataKey="userInitiated"
-              type="natural"
-              fill="url(#fillUserInitiated)"
-              stroke="var(--color-userInitiated)"
-              stackId="a"
-            />
-          </AreaChart>
-        </ChartContainer>
+        {loading && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-muted-foreground">Loading chart data...</div>
+          </div>
+        )}
+        
+        {error && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-red-400">Error: {error}</div>
+          </div>
+        )}
+        
+        {!loading && !error && chartData.length === 0 && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-muted-foreground">No data available for this time range</div>
+          </div>
+        )}
+        
+        {!loading && !error && chartData.length > 0 && (
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-full w-full"
+          >
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="fillUserInitiated" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor="var(--color-userInitiated)"
+                    stopOpacity={0.8}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="var(--color-userInitiated)"
+                    stopOpacity={0.1}
+                  />
+                </linearGradient>
+                <linearGradient id="fillCritical" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor="var(--color-critical)"
+                    stopOpacity={0.8}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="var(--color-critical)"
+                    stopOpacity={0.1}
+                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <Area
+                dataKey="critical"
+                type="natural"
+                fill="url(#fillCritical)"
+                stroke="var(--color-critical)"
+                strokeWidth={2}
+              />
+              <Area
+                dataKey="userInitiated"
+                type="natural"
+                fill="url(#fillUserInitiated)"
+                stroke="var(--color-userInitiated)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ChartContainer>
+        )}
       </div>
     </div>
   );

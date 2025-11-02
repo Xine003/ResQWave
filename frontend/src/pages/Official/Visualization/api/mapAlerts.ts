@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '@/pages/Official/Reports/api/api';
 
 // Backend response type from the map alert endpoints
 export interface MapAlertResponse {

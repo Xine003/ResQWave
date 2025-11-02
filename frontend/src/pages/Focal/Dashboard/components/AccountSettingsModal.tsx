@@ -1,6 +1,6 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog-focal';
 import { Input } from '@/components/ui/input';
-import { API_BASE_URL, apiFetch } from '@/lib/api';
+import { API_BASE_URL, apiFetch } from '@/pages/Official/Reports/api/api';
 import { ArrowLeft, Camera, Check, Eye, EyeOff, User, X } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';

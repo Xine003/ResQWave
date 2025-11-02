@@ -1,13 +1,12 @@
-import React, { useEffect } from 'react';
-import { useState, useCallback } from 'react';
-import resqwave_logo from '/Landing/resqwave_logo.png';
-import { useNavigate } from 'react-router-dom';
+import { Popover, PopoverContent, PopoverItem, PopoverSeparator, PopoverTrigger } from "@/components/ui/popover-focal";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
-import { Popover, PopoverTrigger, PopoverContent, PopoverItem, PopoverSeparator } from "@/components/ui/popover-focal";
-import { LogOut, User, BookOpen } from "lucide-react";
-import type { HeaderProps } from '../types/header';
+import { API_BASE_URL } from '@/pages/Official/Reports/api/api';
+import { BookOpen, LogOut, User } from "lucide-react";
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFocalAuth } from '../../context/focalAuthContext';
-import { API_BASE_URL } from '@/lib/api';
+import type { HeaderProps } from '../types/header';
+import resqwave_logo from '/Landing/resqwave_logo.png';
 
 export default function Header({ editBoundaryOpen = false, editAboutOpen = false, canSave = false, onSave, onExit, onAboutClick, onRequestDiscard, onTabChange, activeTab = 'community', onAccountSettingsClick, onActivityLogClick, accountSettingsOpen = false, onRequestCloseAccountSettings }: HeaderProps) {
     const navigate = useNavigate();

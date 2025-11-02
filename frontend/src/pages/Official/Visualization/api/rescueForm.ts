@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '@/pages/Official/Reports/api/api';
 
 export interface CreateRescueFormRequest {
   focalUnreachable: boolean;

@@ -87,8 +87,8 @@ export default function useSignals() {
  */
 function determineAlertType(signal: any): string {
     // Check if alert was dispatched (rescue completed)
-    if (signal.alertStatus === 'Dispatched') {
-        return 'DISPATCHED';
+    if (signal.alertStatus === 'null') {
+        return 'NULL';
     }
     
     // Check if there's an active alert
