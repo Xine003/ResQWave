@@ -109,19 +109,8 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
         }
     }, [open, data?.hazards]);
 
-    // editable fields (will be initialized from the shared hook when opened)
-    const [groupName, setGroupName] = useState('');
-    const [noOfResidents, setNoOfResidents] = useState<number>(0);
-    const [noOfHouseholds, setNoOfHouseholds] = useState<number>(0);
-    // Removed unused stats fields: kids, seniors, pregnant, pwds
+    // Only keep used editable fields
     const [otherInfo, setOtherInfo] = useState('');
-
-    // focal person
-    const [focalName, setFocalName] = useState('');
-    const [focalContact, setFocalContact] = useState('');
-    const [focalEmail, setFocalEmail] = useState('');
-    const [focalAddress, setFocalAddress] = useState('');
-    const [focalCoordinates, setFocalCoordinates] = useState('');
     const [altFocalName, setAltFocalName] = useState('');
     const [altFocalContact, setAltFocalContact] = useState('');
     // New state for alt focal email (renamed for clarity)
@@ -175,17 +164,10 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     useEffect(() => {
         if (!open) return;
         if (!data) return;
-        setGroupName(data?.groupName ?? '');
-        // If value is a string (range), fallback to 0 for number input, dropdown will handle the string
-        setNoOfResidents(typeof data?.stats?.noOfResidents === 'number' ? data.stats.noOfResidents : 0);
-        setNoOfHouseholds(typeof data?.stats?.noOfHouseholds === 'number' ? data.stats.noOfHouseholds : 0);
+        // Removed unused: setGroupName, setNoOfResidents, setNoOfHouseholds
         setOtherInfo(Array.isArray(data?.otherInfo) ? data.otherInfo.join('\n') : '');
 
-        setFocalName(data?.focal?.name ?? '');
-        setFocalContact(data?.focal?.contact ?? '');
-        setFocalEmail(data?.focal?.email ?? '');
-        setFocalAddress(data?.address ?? '');
-        setFocalCoordinates(data?.coordinates ?? '');
+        // Removed unused: setFocalName, setFocalContact, setFocalEmail, setFocalAddress, setFocalCoordinates
         setAltFocalName(data?.altFocal?.name ?? '');
         setAltFocalContact(data?.altFocal?.contact ?? '');
         setAltFocalEmail(data?.altFocal?.email ?? '');
@@ -222,7 +204,7 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
     // revoke object URLs when photo changes / on unmount
     useEffect(() => {
         return () => {
-            if (photoUrl && photoUrl.startsWith('blob:')) {
+            if (typeof photoUrl === 'string' && photoUrl.startsWith('blob:')) {
                 try { URL.revokeObjectURL(photoUrl); } catch (e) { }
             }
         };

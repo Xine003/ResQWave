@@ -14,7 +14,7 @@ function OfficialLayoutContent({ children }: officialLayoutProps) {
   const location = useLocation();
   const { isLiveReportOpen } = useLiveReport();
   const { isRescueFormOpen, isRescuePreviewOpen } = useRescueForm();
-  
+
   // Get auth state
   let isLoading = false;
   let user = null;
@@ -74,7 +74,7 @@ function OfficialLayoutContent({ children }: officialLayoutProps) {
             marginRight: getMarginRight()
           }}
         >
-          <Header isVisualizationOpen={isVisualizationOpen} isLiveReportOpen={isLiveReportOpen} />
+          <Header isVisualizationOpen={isVisualizationOpen} />
           <main className="flex-1">{children}</main>
         </div>
       </div>

@@ -1,5 +1,3 @@
-import React from "react";
-
 export default function CircleCheck({ size = 64, color = "#FFD600", checkColor = "#232323" }) {
   return (
     <span className="flex items-center justify-center" style={{ width: size, height: size }}>

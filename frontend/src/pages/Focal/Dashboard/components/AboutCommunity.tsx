@@ -199,9 +199,6 @@ export default function AboutModal({ open, onClose, onEdit, center = null }: Abo
         transition: `opacity ${ANIM_MS}ms ease, transform ${ANIM_MS}ms cubic-bezier(.2,.9,.2,1)`,
     };
 
-    // Only show No. of Residents and No. of Households
-    const statsTop = [String(data.stats.noOfResidents), String(data.stats.noOfHouseholds)];
-    const statsTopLabels = ['No. of Residents', 'No. of Households'];
 
     return (
         <div style={overlayStyle}>

@@ -58,7 +58,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const [isDragging, setIsDragging] = useState(false); // eslint-disable-line @typescript-eslint/no-unused-vars
+    // const [isDragging, setIsDragging] = useState(false); // Removed unused variable
     const { focalId } = useFocalAuth();
     const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
     const [confirmExitOpen, setConfirmExitOpen] = useState(false);
@@ -435,14 +435,13 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                         className={`w-[160px] h-[160px] rounded-full overflow-hidden cursor-pointer flex items-center justify-center bg-[#232323]`}
                                         onDrop={e => {
                                             e.preventDefault();
-                                            setIsDragging(false);
                                             const file = e.dataTransfer.files[0];
                                             if (file && file.type.startsWith('image/')) {
                                                 setPhotoFile(file);
                                             }
                                         }}
-                                        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-                                        onDragLeave={e => { e.preventDefault(); setIsDragging(false); }}
+                                        onDragOver={e => { e.preventDefault(); }}
+                                        onDragLeave={e => { e.preventDefault(); }}
                                         onClick={() => document.getElementById('profile-photo-upload')?.click()}
                                         style={{ width: 140, height: 140 }}
                                     >

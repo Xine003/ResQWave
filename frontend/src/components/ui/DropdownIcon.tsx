@@ -1,5 +1,3 @@
-import * as React from "react";
-
 export function DropdownIcon({ open }: { open: boolean }) {
   return (
     <svg

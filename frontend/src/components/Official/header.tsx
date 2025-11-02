@@ -2,7 +2,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export function Header({ isVisualizationOpen, isLiveReportOpen }: { isVisualizationOpen: boolean, isLiveReportOpen?: boolean }) {
+export function Header({ isVisualizationOpen }: { isVisualizationOpen: boolean }) {
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
 

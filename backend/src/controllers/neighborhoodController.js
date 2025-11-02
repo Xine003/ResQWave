@@ -145,7 +145,7 @@ const viewAboutYourNeighborhood = async (req, res) => {
         name: [focal.firstName, focal.lastName].filter(Boolean).join(" ").trim() || focal.name || null,
         number: focal.contactNumber || null,
         email: focal.email || null,
-        photo: focal.photo || null, 
+        photo: focal.photo || null,
         alternativeFPFirstName: focal.altFirstName || null,
         alternativeFPLastName: focal.altLastName || null,
         alternativeFPEmail: focal.altEmail || null,
@@ -236,10 +236,10 @@ const getNeighborhoods = async (req, res) => {
     const terminalIds = Array.from(new Set(neighborhoods.map(x => x.n_terminalID).filter(Boolean)));
     const terminals = terminalIds.length
       ? await terminalRepo
-          .createQueryBuilder("t")
-          .select(["t.id", "t.status"])
-          .where("t.id IN (:...ids)", { ids: terminalIds })
-          .getRawMany()
+        .createQueryBuilder("t")
+        .select(["t.id", "t.status"])
+        .where("t.id IN (:...ids)", { ids: terminalIds })
+        .getRawMany()
       : [];
     const byTerminal = {};
     terminals.forEach(t => (byTerminal[t.t_id] = t.t_status));
@@ -248,10 +248,10 @@ const getNeighborhoods = async (req, res) => {
     const focalIds = Array.from(new Set(neighborhoods.map(x => x.n_focalPersonID).filter(Boolean)));
     const focalRows = focalIds.length
       ? await focalPersonRepo
-          .createQueryBuilder("f")
-          .select(["f.id", "f.firstName", "f.lastName", "f.contactNumber", "f.address"])
-          .where("f.id IN (:...ids)", { ids: focalIds })
-          .getRawMany()
+        .createQueryBuilder("f")
+        .select(["f.id", "f.firstName", "f.lastName", "f.contactNumber", "f.address"])
+        .where("f.id IN (:...ids)", { ids: focalIds })
+        .getRawMany()
       : [];
     const byFocal = {};
     focalRows.forEach(f => {
@@ -306,19 +306,19 @@ const getNeighborhood = async (req, res) => {
       hazards: parseHazards(neighborhood.hazards),
       focalPerson: focal
         ? {
-            id: focal.id,
-            firstName: focal.firstName || null,
-            lastName: focal.lastName || null,
-            contactNumber: focal.contactNumber || null,
-            email: focal.email || null,
-            photo: focal.photo || null,
-            altFirstName: focal.altFirstName || null,
-            altLastName: focal.altLastName || null,
-            altContactNumber: focal.altContactNumber || null,
-            altEmail: focal.altEmail || null,
-            alternativeFPImage: focal.alternativeFPImage || null,
-            address: focal.address || null,
-          }
+          id: focal.id,
+          firstName: focal.firstName || null,
+          lastName: focal.lastName || null,
+          contactNumber: focal.contactNumber || null,
+          email: focal.email || null,
+          photo: focal.photo || null,
+          altFirstName: focal.altFirstName || null,
+          altLastName: focal.altLastName || null,
+          altContactNumber: focal.altContactNumber || null,
+          altEmail: focal.altEmail || null,
+          alternativeFPImage: focal.alternativeFPImage || null,
+          address: focal.address || null,
+        }
         : null,
     };
 
@@ -363,15 +363,15 @@ const updateNeighborhood = async (req, res) => {
     // snapshots BEFORE
     const nbBefore = { ...neighborhood, hazards: neighborhood.hazards };
 
-    // Neighborhood updates
-    if (noOfHouseholds != null && Number(noOfHouseholds) !== Number(neighborhood.noOfHouseholds)) {
-      neighborhood.noOfHouseholds = Number(noOfHouseholds);
+    // Neighborhood updates (store as string for range support)
+    if (noOfHouseholds != null && noOfHouseholds !== neighborhood.noOfHouseholds) {
+      neighborhood.noOfHouseholds = noOfHouseholds;
     }
-    if (noOfResidents != null && Number(noOfResidents) !== Number(neighborhood.noOfResidents)) {
-      neighborhood.noOfResidents = Number(noOfResidents);
+    if (noOfResidents != null && noOfResidents !== neighborhood.noOfResidents) {
+      neighborhood.noOfResidents = noOfResidents;
     }
-    if (floodSubsideHours != null && Number(floodSubsideHours) !== Number(neighborhood.floodSubsideHours)) {
-      neighborhood.floodSubsideHours = Number(floodSubsideHours);
+    if (floodSubsideHours != null && floodSubsideHours !== neighborhood.floodSubsideHours) {
+      neighborhood.floodSubsideHours = floodSubsideHours;
     }
     if (hazards != null) {
       const incoming = stringifyHazards(hazards);
@@ -426,7 +426,7 @@ const updateNeighborhood = async (req, res) => {
     // Neighborhood changes
     const nbAfter = { ...neighborhood, hazards: neighborhood.hazards };
     const nbChanges = diffFields(nbBefore, nbAfter, [
-      "noOfHouseholds","noOfResidents","floodSubsideHours","hazards","otherInformation"
+      "noOfHouseholds", "noOfResidents", "floodSubsideHours", "hazards", "otherInformation"
     ]);
     await addLogs({
       entityType: "Neighborhood",
@@ -439,8 +439,8 @@ const updateNeighborhood = async (req, res) => {
     // Focal person changes
     if (fpBefore && fpAfter) {
       const fpChanges = diffFields(fpBefore, fpAfter, [
-        "firstName","lastName","contactNumber","email",
-        "altFirstName","altLastName","altContactNumber","altEmail"
+        "firstName", "lastName", "contactNumber", "email",
+        "altFirstName", "altLastName", "altContactNumber", "altEmail"
       ]);
 
       if (photoFile?.buffer) {
@@ -451,9 +451,9 @@ const updateNeighborhood = async (req, res) => {
       }
 
       await addLogs({
-        entityType: "FocalPerson",                 
-        entityID: neighborhood.focalPersonID,      
-        changes: fpChanges,                         
+        entityType: "FocalPerson",
+        entityID: neighborhood.focalPersonID,
+        changes: fpChanges,
         actorID,
         actorRole,
       });
@@ -461,7 +461,7 @@ const updateNeighborhood = async (req, res) => {
 
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
-    
+
     return res.json({
       message: "Neighborhood Updated",
       neighborhood: {
@@ -508,7 +508,7 @@ const archivedNeighborhood = async (req, res) => {
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
     await deleteCache("neighborhoods:archived");
-    
+
     // Invalidate terminal caches to reflect availability change immediately
     if (terminalId) {
       await deleteCache(`terminal:${terminalId}`);
@@ -525,39 +525,39 @@ const archivedNeighborhood = async (req, res) => {
 };
 
 // DELETE Neighborhood
-const deleteNeighborhood = async(req, res) => {
+const deleteNeighborhood = async (req, res) => {
   try {
-    const {id} = req.params;
+    const { id } = req.params;
 
     const nb = await neighborhoodRepo
       .createQueryBuilder("n")
       .select(["n.id", "n.archived", "n.focalPersonID", "n.terminalID"])
-      .where("n.id = :id", {id})
+      .where("n.id = :id", { id })
       .getRawOne();
 
-    if (!nb) return res.status(404).json({message: "Neighborhood Not Found"});
+    if (!nb) return res.status(404).json({ message: "Neighborhood Not Found" });
     if (!nb.n_archived) {
-      return res.status(400).json({message: "Neighborhood Must Be Archived"});
+      return res.status(400).json({ message: "Neighborhood Must Be Archived" });
     }
 
     // Terminal is Unlinked and Available
     if (nb.n_terminalID) {
-      await terminalRepo.update({id: nb.n_terminalID}, {availability: "Available"});
-      await neighborhoodRepo.update({id}, {terminalID: null});
+      await terminalRepo.update({ id: nb.n_terminalID }, { availability: "Available" });
+      await neighborhoodRepo.update({ id }, { terminalID: null });
     }
 
     // Delete Linked Focal Person
     if (nb.n_focalPersonID) {
-      await focalPersonRepo.delete({id: nb.n_focalPersonID});
+      await focalPersonRepo.delete({ id: nb.n_focalPersonID });
     }
 
-    await neighborhoodRepo.delete({id});
+    await neighborhoodRepo.delete({ id });
 
     // Invalidate all relevant caches
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
     await deleteCache("neighborhoods:archived");
-    
+
     // Invalidate terminal caches to reflect availability change immediately
     if (nb.n_terminalID) {
       await deleteCache(`terminal:${nb.n_terminalID}`);
@@ -566,10 +566,10 @@ const deleteNeighborhood = async(req, res) => {
       await deleteCache("offlineTerminals");
     }
 
-    return res.json({message: "Neighborhood permanently delete"});
+    return res.json({ message: "Neighborhood permanently delete" });
   } catch (err) {
     console.error(err);
-    return res.status(500).son({message: "Server Error"});
+    return res.status(500).son({ message: "Server Error" });
   }
 };
 
