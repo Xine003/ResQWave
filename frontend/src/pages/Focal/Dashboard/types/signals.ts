@@ -48,4 +48,5 @@ export type DashboardSignals = {
     setCanSave: (v: boolean) => void;
     updateBoundary: (deviceId: string | undefined, newBoundary: [number, number][] | null) => void;
     getDistressCoord: () => [number, number];
+    refetchSignals: () => void;
 };

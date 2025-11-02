@@ -122,9 +122,33 @@
   * {
     @apply border-border outline-ring/50;
   }
+  
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Force default cursor everywhere */
+* {
+  cursor: default !important;
+}
+
+/* Allow text cursor only in actual input elements */
+input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]),
+textarea,
+[contenteditable="true"] {
+  cursor: text !important;
+}
+
+/* Allow pointer cursor for interactive elements */
+button,
+a,
+[role="button"],
+[role="link"],
+[type="button"],
+[type="submit"],
+[type="reset"] {
+  cursor: pointer !important;
 }
 
 ::-webkit-scrollbar {

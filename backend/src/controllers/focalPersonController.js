@@ -14,7 +14,8 @@ const terminalRepo = AppDataSource.getRepository("Terminal");
 // Helper to strip sensitive fields before caching
 function sanitizeFP(fp) {
     if (!fp) return fp;
-    // removed unused password, photo, alternativeFPImage variables
+    // Remove sensitive fields like password and photo before caching
+    const { password, photo, alternativeFPImage, ...rest } = fp;
     return rest;
 }
 

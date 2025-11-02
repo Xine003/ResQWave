@@ -559,17 +559,21 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
                                 onClick={async () => {
                                     if (!data?.groupName) return;
                                     try {
+                                        // Split alt focal name into first and last name
+                                        const nameParts = altFocalName.trim().split(/\s+/);
+                                        const altFirstName = nameParts[0] || '';
+                                        const altLastName = nameParts.slice(1).join(' ') || '';
+
                                         // Compose payload for backend
                                         const payload = {
                                             noOfResidents: residentsRange ? residentsRange : (typeof data?.stats?.noOfResidents === 'string' ? data.stats.noOfResidents : ''),
                                             noOfHouseholds: householdsRange ? householdsRange : (typeof data?.stats?.noOfHouseholds === 'string' ? data.stats.noOfHouseholds : ''),
                                             floodSubsideHours: floodwaterRange ? floodwaterRange : (typeof data?.floodwaterSubsidenceDuration === 'string' ? data.floodwaterSubsidenceDuration : ''),
                                             hazards: selectedHazards,
-                                            altFocal: {
-                                                name: altFocalName,
-                                                contact: altFocalContact,
-                                                email: altFocalEmail,
-                                            },
+                                            altFirstName: altFirstName,
+                                            altLastName: altLastName,
+                                            altContactNumber: altFocalContact,
+                                            altEmail: altFocalEmail,
                                             otherInformation: otherInfo.split('\n').filter(line => line.trim() !== '').join('\n'),
                                         };
                                         await apiFetch(`/neighborhood/${data.groupName}`, {

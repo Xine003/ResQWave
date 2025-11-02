@@ -33,99 +33,101 @@ export function useSignals() {
     const [infoBubbleVisible, setInfoBubbleVisible] = useState(true);
     const [canSave, setCanSave] = useState(false);
 
+    // Fetch signals function (extracted for reuse)
+    const fetchSignals = async () => {
+        try {
+            const headers: Record<string, string> = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            // Fetch own neighborhood (with focal, terminal info)
+            const own = await apiFetch<{
+                address?: string;
+                terminalID?: string;
+                focalPerson?: {
+                    name?: string;
+                    alternativeFPFirstName?: string;
+                    alternativeFPLastName?: string;
+                };
+                createdDate?: string;
+            }>(`/neighborhood/map/own`, { headers });
+            // Fetch other neighborhoods (limited info)
+            const others = await apiFetch<Array<{
+                address?: string;
+                terminalID?: string;
+                createdDate?: string;
+            }>>(`/neighborhood/map/others`, { headers });
+
+
+            // Parse coordinates from address JSON string
+            let ownCoords: [number, number] = [0, 0];
+            let ownAddress = '';
+            if (own.address) {
+                try {
+                    const addrObj = typeof own.address === 'string' ? JSON.parse(own.address) : own.address;
+                    if (addrObj && typeof addrObj.lat === 'number' && typeof addrObj.lng === 'number') {
+                        ownCoords = [addrObj.lng, addrObj.lat];
+                        ownAddress = addrObj.address || '';
+                    }
+                } catch {
+                    ownAddress = own.address;
+                }
+            }
+            setOwnCommunitySignal({
+                coordinates: ownCoords,
+                properties: {
+                    status: 'online',
+                    deviceId: own.terminalID || '',
+                    focalPerson: own.focalPerson?.name || '',
+                    altFocalPerson: (
+                        own.focalPerson?.alternativeFPFirstName || own.focalPerson?.alternativeFPLastName
+                    )
+                        ? [own.focalPerson?.alternativeFPFirstName, own.focalPerson?.alternativeFPLastName].filter(Boolean).join(' ')
+                        : '',
+                    address: ownAddress,
+                    date: own.createdDate ? new Date(own.createdDate).toLocaleDateString() : '',
+                    name: '',
+                }
+            });
+
+            setOtherSignals(
+                (others || []).map((nb: { terminalID?: string; address?: string | Record<string, unknown>; groupName?: string; createdDate?: string }) => {
+                    // Parse coordinates from address JSON string
+                    let coords: [number, number] = [0, 0];
+                    let address = '';
+                    if (nb.address) {
+                        try {
+                            const addrObj = typeof nb.address === 'string' ? JSON.parse(nb.address) : nb.address;
+                            if (addrObj && typeof addrObj.lat === 'number' && typeof addrObj.lng === 'number') {
+                                coords = [addrObj.lng, addrObj.lat];
+                                address = addrObj.address || '';
+                            }
+                        } catch {
+                            address = typeof nb.address === 'string' ? nb.address : '';
+                        }
+                    }
+                    return {
+                        coordinates: coords,
+                        properties: {
+                            status: 'offline',
+                            deviceId: nb.terminalID || '',
+                            focalPerson: '',
+                            altFocalPerson: '',
+                            address,
+                            date: nb.createdDate ? new Date(nb.createdDate).toLocaleDateString() : '',
+                            name: '',
+                        }
+                    };
+                })
+            );
+        } catch {
+            setOtherSignals(initialOtherSignals);
+            setOwnCommunitySignal(initialOwnCommunitySignal);
+        }
+    };
+
 
     // Fetch signals from backend on mount
     useEffect(() => {
-        async function fetchSignals() {
-            try {
-                const headers: Record<string, string> = {};
-                if (token) headers['Authorization'] = `Bearer ${token}`;
-
-                // Fetch own neighborhood (with focal, terminal info)
-                const own = await apiFetch<{
-                    address?: string;
-                    terminalID?: string;
-                    focalPerson?: {
-                        name?: string;
-                        alternativeFPFirstName?: string;
-                        alternativeFPLastName?: string;
-                    };
-                    createdDate?: string;
-                }>(`/neighborhood/map/own`, { headers });
-                // Fetch other neighborhoods (limited info)
-                const others = await apiFetch<Array<{
-                    address?: string;
-                    terminalID?: string;
-                    createdDate?: string;
-                }>>(`/neighborhood/map/others`, { headers });
-
-
-                // Parse coordinates from address JSON string
-                let ownCoords: [number, number] = [0, 0];
-                let ownAddress = '';
-                if (own.address) {
-                    try {
-                        const addrObj = typeof own.address === 'string' ? JSON.parse(own.address) : own.address;
-                        if (addrObj && typeof addrObj.lat === 'number' && typeof addrObj.lng === 'number') {
-                            ownCoords = [addrObj.lng, addrObj.lat];
-                            ownAddress = addrObj.address || '';
-                        }
-                    } catch {
-                        ownAddress = own.address;
-                    }
-                }
-                setOwnCommunitySignal({
-                    coordinates: ownCoords,
-                    properties: {
-                        status: 'online',
-                        deviceId: own.terminalID || '',
-                        focalPerson: own.focalPerson?.name || '',
-                        altFocalPerson: (
-                            own.focalPerson?.alternativeFPFirstName || own.focalPerson?.alternativeFPLastName
-                        )
-                            ? [own.focalPerson?.alternativeFPFirstName, own.focalPerson?.alternativeFPLastName].filter(Boolean).join(' ')
-                            : '',
-                        address: ownAddress,
-                        date: own.createdDate ? new Date(own.createdDate).toLocaleDateString() : '',
-                        name: '',
-                    }
-                });
-
-                setOtherSignals(
-                    (others || []).map((nb: { terminalID?: string; address?: string | Record<string, unknown>; groupName?: string; createdDate?: string }) => {
-                        // Parse coordinates from address JSON string
-                        let coords: [number, number] = [0, 0];
-                        let address = '';
-                        if (nb.address) {
-                            try {
-                                const addrObj = typeof nb.address === 'string' ? JSON.parse(nb.address) : nb.address;
-                                if (addrObj && typeof addrObj.lat === 'number' && typeof addrObj.lng === 'number') {
-                                    coords = [addrObj.lng, addrObj.lat];
-                                    address = addrObj.address || '';
-                                }
-                            } catch {
-                                address = typeof nb.address === 'string' ? nb.address : '';
-                            }
-                        }
-                        return {
-                            coordinates: coords,
-                            properties: {
-                                status: 'offline',
-                                deviceId: nb.terminalID || '',
-                                focalPerson: '',
-                                altFocalPerson: '',
-                                address,
-                                date: nb.createdDate ? new Date(nb.createdDate).toLocaleDateString() : '',
-                                name: '',
-                            }
-                        };
-                    })
-                );
-            } catch {
-                setOtherSignals(initialOtherSignals);
-                setOwnCommunitySignal(initialOwnCommunitySignal);
-            }
-        }
         fetchSignals();
 
     }, [token]);
@@ -140,6 +142,11 @@ export function useSignals() {
     };
 
     const getDistressCoord = () => ownCommunitySignal.coordinates as [number, number];
+
+    // Expose refetch function for manual refresh
+    const refetchSignals = () => {
+        fetchSignals();
+    };
 
     return {
         otherSignals,
@@ -157,7 +164,8 @@ export function useSignals() {
         canSave,
         setCanSave,
         updateBoundary,
-        getDistressCoord
+        getDistressCoord,
+        refetchSignals
     } as const;
 }
 

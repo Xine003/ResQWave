@@ -8,10 +8,13 @@ import { useFocalAuth } from '../../context/focalAuthContext';
 import type { AccountSettingsModalProps } from '../types/accountSettings';
 import { isAccountFormDirty, validatePassword } from '../utils/passwordUtils';
 
-export default function AccountSettingsModal({ open, onClose, onSaved, center = null, isDirtyRef = null }: AccountSettingsModalProps) {
+export default function AccountSettingsModal({ open, onClose, onSaved, center = null, isDirtyRef = null, onRefetchSignals }: AccountSettingsModalProps) {
     // Helper to refresh profile data from backend
     const refreshProfile = async () => {
-        if (!focalId) return;
+        if (!focalId) {
+            console.warn('[AccountSettingsModal] Cannot refresh: No focalId available');
+            return;
+        }
         try {
             const data = await apiFetch<{
                 firstName?: string;
@@ -34,11 +37,21 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                 phoneNumber: data.contactNumber || '',
                 email: data.email || '',
             }));
+
             // Fetch photo as blob and create object URL using API_BASE_URL
+            const token = localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token') || '';
+            if (!token) {
+                console.warn('[AccountSettingsModal] No auth token for photo refresh');
+                setPhotoUrl(null);
+                setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
+                setPhotoFile(null);
+                return;
+            }
+
             fetch(`${API_BASE_URL}/focalperson/${focalId}/photo`, {
                 credentials: 'include',
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token') || ''}`
+                    Authorization: `Bearer ${token}`
                 }
             })
                 .then(async (res) => {
@@ -53,12 +66,14 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                         setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
                     }
                 })
-                .catch(() => {
+                .catch((err) => {
+                    console.error('[AccountSettingsModal] Failed to refresh photo:', err);
                     setPhotoUrl(null);
                     setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
                 });
             setPhotoFile(null); // reset file input
-        } catch {
+        } catch (err) {
+            console.error('[AccountSettingsModal] Failed to refresh profile:', err);
             // fallback to empty or previous state
         }
     };
@@ -90,59 +105,76 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
     });
 
     useEffect(() => {
-        if (open && focalId) {
-            apiFetch<{
-                firstName?: string;
-                lastName?: string;
-                contactNumber?: string;
-                email?: string;
-                updatedAt?: string;
-                approvedBy?: string;
-            }>(`/focalperson/${focalId}`)
-                .then((data) => {
-                    setFirstName(data.firstName || '');
-                    setLastName(data.lastName || '');
-                    setPhoneNumber(data.contactNumber || '');
-                    setEmail(data.email || '');
-                    setLastUpdated(data.updatedAt || null);
-                    setIsVerified(!!data.approvedBy);
-                    setInitialProfile((prev) => ({
-                        ...prev,
-                        firstName: data.firstName || '',
-                        lastName: data.lastName || '',
-                        phoneNumber: data.contactNumber || '',
-                        email: data.email || '',
-                        // photoUrl will be set after fetch below
-                    }));
-                })
-                .catch(() => {
-                    // fallback to empty or previous state
-                });
-            // Fetch photo as blob and create object URL using API_BASE_URL
-            fetch(`${API_BASE_URL}/focalperson/${focalId}/photo`, {
-                credentials: 'include',
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token') || ''}`
-                }
+        if (!open) return;
+        if (!focalId) {
+            console.warn('[AccountSettingsModal] No focalId available');
+            return;
+        }
+
+        // Fetch focal person data
+        apiFetch<{
+            firstName?: string;
+            lastName?: string;
+            contactNumber?: string;
+            email?: string;
+            updatedAt?: string;
+            approvedBy?: string;
+        }>(`/focalperson/${focalId}`)
+            .then((data) => {
+                setFirstName(data.firstName || '');
+                setLastName(data.lastName || '');
+                setPhoneNumber(data.contactNumber || '');
+                setEmail(data.email || '');
+                setLastUpdated(data.updatedAt || null);
+                setIsVerified(!!data.approvedBy);
+                setInitialProfile((prev) => ({
+                    ...prev,
+                    firstName: data.firstName || '',
+                    lastName: data.lastName || '',
+                    phoneNumber: data.contactNumber || '',
+                    email: data.email || '',
+                    // photoUrl will be set after fetch below
+                }));
             })
-                .then(async (res) => {
-                    if (!res.ok) throw new Error('No photo');
-                    const blob = await res.blob();
-                    if (blob.size > 0) {
-                        const url = URL.createObjectURL(blob);
-                        setPhotoUrl(url);
-                        setInitialProfile((prev) => ({ ...prev, photoUrl: url }));
-                    } else {
-                        setPhotoUrl(null);
-                        setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
-                    }
-                })
-                .catch(() => {
+            .catch((err) => {
+                console.error('[AccountSettingsModal] Failed to fetch focal person data:', err);
+                // fallback to empty or previous state
+            });
+
+        // Fetch photo as blob and create object URL using API_BASE_URL
+        const token = localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token') || '';
+        if (!token) {
+            console.warn('[AccountSettingsModal] No auth token available');
+            setPhotoUrl(null);
+            setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
+            return;
+        }
+
+        fetch(`${API_BASE_URL}/focalperson/${focalId}/photo`, {
+            credentials: 'include',
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
+            .then(async (res) => {
+                if (!res.ok) throw new Error('No photo');
+                const blob = await res.blob();
+                if (blob.size > 0) {
+                    const url = URL.createObjectURL(blob);
+                    setPhotoUrl(url);
+                    setInitialProfile((prev) => ({ ...prev, photoUrl: url }));
+                } else {
                     setPhotoUrl(null);
                     setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
-                });
-            setPhotoFile(null); // reset file input
-        }
+                }
+            })
+            .catch((err) => {
+                console.error('[AccountSettingsModal] Failed to fetch photo:', err);
+                setPhotoUrl(null);
+                setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
+            });
+
+        setPhotoFile(null); // reset file input
     }, [open, focalId]);
 
     // Change password form state
@@ -685,6 +717,8 @@ export default function AccountSettingsModal({ open, onClose, onSaved, center = 
                                                         photoUpdated = true;
                                                     }
                                                     setConfirmSaveOpen(false);
+                                                    // Refetch signals data to update popover
+                                                    try { onRefetchSignals?.(); } catch { /* Ignore refetch errors */ }
                                                     // Wait for confirmation modal to close before closing parent
                                                     setTimeout(() => {
                                                         if (onClose) onClose();

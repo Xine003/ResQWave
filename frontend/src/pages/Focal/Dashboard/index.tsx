@@ -16,6 +16,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { createDraw, ensureSquareGreenImage, changeToDrawPolygon, makeUpdateCanSave } from './utils/drawMapBoundary';
 import { addCustomLayers, makeTooltip } from './utils/mapHelpers';
 import { HazardLegend } from './components/HazardLegend';
+import SignalStatusLegend from './components/SignalStatusLegend';
 
 import DashboardAlerts from './components/DashboardAlerts';
 import {
@@ -41,7 +42,7 @@ export default function Dashboard() {
     const [mapLoaded, setMapLoaded] = useState(false);
     // signal & UI state provided by the useSignals hook (centralized)
     const signals = useSignals();
-    const { otherSignals, ownCommunitySignal: OwnCommunitySignal, editBoundaryOpen, setEditBoundaryOpen, popover, setPopover, infoBubble, infoBubbleVisible, setInfoBubbleVisible, setSavedGeoJson, canSave, setCanSave, getDistressCoord } = signals as unknown as DashboardSignals;
+    const { otherSignals, ownCommunitySignal: OwnCommunitySignal, editBoundaryOpen, setEditBoundaryOpen, popover, setPopover, infoBubble, setInfoBubble, infoBubbleVisible, setInfoBubbleVisible, setSavedGeoJson, canSave, setCanSave, getDistressCoord, refetchSignals } = signals as unknown as DashboardSignals;
     const distressCoord: [number, number] = getDistressCoord();
 
 
@@ -175,10 +176,9 @@ export default function Dashboard() {
 
         map.on("load", () => {
             try {
-                // make the canvas focusable so draw.changeMode and keyboard interactions can work
+                // configure canvas for touch interactions
                 const canvas = map.getCanvas() as HTMLCanvasElement | null;
                 if (canvas) {
-                    canvas.tabIndex = 0;
                     canvas.style.touchAction = 'auto';
                 }
             } catch { /* Ignore cleanup errors */ }
@@ -270,14 +270,19 @@ export default function Dashboard() {
                         // Show radius overlay for clicked signal
                         const deviceId = f?.properties?.deviceId;
                         const radius = 70; // Always use hardcoded value
-                        let color = '#22c55e';
-                        if (deviceId) {
+                        let color = '#22c55e'; // default green for own community
+
+                        // Determine color based on signal status
+                        const status = f?.properties?.status;
+                        if (status === 'offline') {
+                            color = '#6b7280'; // gray for offline signals
+                        } else if (deviceId) {
                             if (deviceId === OwnCommunitySignal.properties.deviceId) {
-                                color = '#22c55e';
+                                color = '#22c55e'; // green for own community
                             } else {
                                 const found = otherSignals.find(s => s.properties.deviceId === deviceId);
-                                if (found) {
-                                    color = '#6b7280';
+                                if (found && found.properties.status === 'offline') {
+                                    color = '#6b7280'; // gray for other offline signals
                                 }
                             }
                         }
@@ -419,6 +424,18 @@ export default function Dashboard() {
                     // ignore
                 }
             });
+
+            // Keep info bubble anchored to own community signal while moving
+            map.on('move', () => {
+                if (!OwnCommunitySignal) return;
+                const coords = OwnCommunitySignal.coordinates;
+                if (!Array.isArray(coords) || (coords[0] === 0 && coords[1] === 0)) return;
+                try {
+                    const pt = map.project([coords[0], coords[1]]);
+                    setInfoBubble({ x: pt.x, y: pt.y });
+                } catch { /* ignore projection errors */ }
+            });
+
             // Map loaded state
             setMapLoaded(true);
         });
@@ -444,6 +461,27 @@ export default function Dashboard() {
         if (!mapRef.current || !mapLoaded) return;
         addCustomLayers(mapRef.current, otherSignals, OwnCommunitySignal);
     }, [otherSignals, OwnCommunitySignal, mapLoaded]);
+
+    // Set info bubble position when map loads and own community signal is available
+    useEffect(() => {
+        if (!mapRef.current || !mapLoaded || !OwnCommunitySignal) return;
+        const coords = OwnCommunitySignal.coordinates;
+        // Only set if coordinates are valid (not [0, 0])
+        if (!Array.isArray(coords) || (coords[0] === 0 && coords[1] === 0)) return;
+
+        const map = mapRef.current;
+        const rect = mapContainer.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        try {
+            const pt = map.project([coords[0], coords[1]]);
+            const x = pt.x;
+            const y = pt.y;
+            setInfoBubble({ x, y });
+        } catch (e) {
+            console.warn('[Dashboard] could not calculate info bubble position', e);
+        }
+    }, [mapLoaded, OwnCommunitySignal, setInfoBubble]);
 
     // makeTooltip moved to utils/mapHelpers and imported above
 
@@ -483,11 +521,9 @@ export default function Dashboard() {
 
         map.addControl(drawRef.current as MapboxDraw);
 
-        // immediately switch into draw polygon mode and focus the canvas
+        // immediately switch into draw polygon mode
         setTimeout(() => {
             changeToDrawPolygon(drawRef.current);
-            const canvas = map.getCanvas();
-            if (canvas) canvas.focus();
         }, 0);
 
         const updateCanSave = makeUpdateCanSave(drawRef, setCanSave);
@@ -672,11 +708,6 @@ export default function Dashboard() {
         // Reset draw mode so user can draw again
         try {
             draw.changeMode('draw_polygon');
-            const map = mapRef.current;
-            if (map) {
-                const canvas = map.getCanvas();
-                if (canvas) canvas.focus();
-            }
         } catch { /* Ignore canvas focus errors */ }
     };
 
@@ -803,6 +834,20 @@ export default function Dashboard() {
                 onExit={handleExitEdit}
                 onAboutClick={openAbout}
                 onAccountSettingsClick={() => {
+                    // If EditCommunity modal is open, trigger its discard confirmation
+                    if (editAboutOpen) {
+                        editAboutRef.current?.openDiscardConfirm?.(() => {
+                            setEditAboutOpen(false);
+                            // After closing edit modal, open Account Settings
+                            try {
+                                const rect = mapContainer.current?.getBoundingClientRect();
+                                if (rect) setAccountSettingsCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                                else setAccountSettingsCenter(null);
+                            } catch { setAccountSettingsCenter(null); }
+                            setAccountSettingsOpen(true);
+                        });
+                        return;
+                    }
                     // Close any other modal from header tab before opening AccountSettingsModal
                     setAboutOpen(false);
                     setHistoryOpen(false);
@@ -840,17 +885,37 @@ export default function Dashboard() {
                 })}
                 onTabChange={handleTabChange}
                 activeTab={activeTab}
-                onActivityLogClick={() => handleModalSwitchWithDirtyCheck(() => {
-                    setAboutOpen(false);
-                    setHistoryOpen(false);
-                    setAccountSettingsOpen(false);
-                    try {
-                        const rect = mapContainer.current?.getBoundingClientRect();
-                        if (rect) setActivityLogCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-                        else setActivityLogCenter(null);
-                    } catch { setActivityLogCenter(null); }
-                    setActivityLogOpen(true);
-                })}
+                onActivityLogClick={() => {
+                    // If EditCommunity modal is open, trigger its discard confirmation
+                    if (editAboutOpen) {
+                        editAboutRef.current?.openDiscardConfirm?.(() => {
+                            setEditAboutOpen(false);
+                            // After closing edit modal, open Activity Log
+                            setAboutOpen(false);
+                            setHistoryOpen(false);
+                            setAccountSettingsOpen(false);
+                            try {
+                                const rect = mapContainer.current?.getBoundingClientRect();
+                                if (rect) setActivityLogCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                                else setActivityLogCenter(null);
+                            } catch { setActivityLogCenter(null); }
+                            setActivityLogOpen(true);
+                        });
+                        return;
+                    }
+                    // Otherwise use the normal dirty check for Account Settings modal
+                    handleModalSwitchWithDirtyCheck(() => {
+                        setAboutOpen(false);
+                        setHistoryOpen(false);
+                        setAccountSettingsOpen(false);
+                        try {
+                            const rect = mapContainer.current?.getBoundingClientRect();
+                            if (rect) setActivityLogCenter({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+                            else setActivityLogCenter(null);
+                        } catch { setActivityLogCenter(null); }
+                        setActivityLogOpen(true);
+                    });
+                }}
             />
 
             <div ref={mapContainer} style={{ position: "absolute", top: 80, left: 0, right: 0, bottom: 0, zIndex: 1 }} />
@@ -875,11 +940,15 @@ export default function Dashboard() {
 
             <HazardLegend />
 
+            <SignalStatusLegend />
+
             <CommunityDataProvider>
                 <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
                 <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={() => {
                     // show the centered success alert with a custom message
                     try { alertsRef.current?.showValidAlert?.('Community information updated successfully!'); } catch { /* Ignore alert errors */ }
+                    // Refetch signals to update popover with new data
+                    refetchSignals();
                 }} center={aboutCenter} />
             </CommunityDataProvider>
 
@@ -890,7 +959,7 @@ export default function Dashboard() {
                 setAccountSettingsOpen(false);
                 setSavedMessage('Password Updated Successfully!');
                 setSavedTrigger(prev => (prev == null ? 1 : prev + 1));
-            }} isDirtyRef={accountSettingsIsDirtyRef} />
+            }} isDirtyRef={accountSettingsIsDirtyRef} onRefetchSignals={refetchSignals} />
 
             <ActivityLogModal open={activityLogOpen} onClose={() => { setActivityLogOpen(false); setActiveTab('community'); }} center={activityLogCenter} />
 

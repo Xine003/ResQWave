@@ -31,6 +31,7 @@ export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBo
             <Tooltip>
                 <TooltipTrigger asChild>
                     <div
+                        onClick={toggleHeatmap}
                         style={{
                             width: 50,
                             height: 50,
@@ -48,21 +49,7 @@ export default function MapControls({ mapRef, mapLoaded, addCustomLayers, editBo
                         onMouseEnter={e => { if (!heatmapVisible) e.currentTarget.style.background = '#EEEEEE' }}
                         onMouseLeave={e => { if (!heatmapVisible) e.currentTarget.style.background = '#fff' }}
                     >
-                        <button
-                            aria-label="Toggle Heatmap"
-                            onClick={toggleHeatmap}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: heatmapVisible ? '#fff' : '#000',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                filter: heatmapVisible ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' : 'none'
-                            }}
-                        >
-                            <Waves size={21} />
-                        </button>
+                        <Waves size={21} style={{ color: heatmapVisible ? '#fff' : '#000', filter: heatmapVisible ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' : 'none' }} />
                     </div>
                 </TooltipTrigger>
                 <TooltipContent side="left" sideOffset={8}>
