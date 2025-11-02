@@ -29,9 +29,9 @@ export function AlertTypeChart() {
         setError(null);
         const data = await fetchAlertTypeChartData(timeRange);
         setChartData(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching chart data:', err);
-        setError(err.message || 'Failed to load chart data');
+        setError(err instanceof Error ? err.message : 'Failed to load chart data');
       } finally {
         setLoading(false);
       }
@@ -39,16 +39,6 @@ export function AlertTypeChart() {
 
     loadChartData();
   }, [timeRange]);
-
-  // Map timeRange values to display labels
-  const getTimeRangeLabel = (range: string) => {
-    switch (range) {
-      case 'last6months': return 'Last 6 months';
-      case 'lastyear': return 'Last year';
-      case 'last3months':
-      default: return 'Last 1 month';
-    }
-  };
 
   return (
     <div className="h-full flex flex-col">

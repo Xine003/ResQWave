@@ -2,8 +2,22 @@ import { fetchCompletedReports as apiFetchCompletedReports, fetchPendingReports 
 import { extractAddress } from '@/pages/Official/Visualization/api/mapAlerts';
 import { useCallback, useEffect, useState } from 'react';
 
+// Types for transformed reports
+interface TransformedPendingReport {
+  emergencyId: string;
+  communityName: string;
+  alertType: string;
+  dispatcher: string;
+  dateTimeOccurred: string;
+  address: string;
+}
+
+interface TransformedCompletedReport extends TransformedPendingReport {
+  accomplishedOn: string;
+}
+
 // Transform backend data to frontend format
-const transformPendingReport = (report: PendingReport) => {
+const transformPendingReport = (report: PendingReport): TransformedPendingReport => {
   return {
     emergencyId: report.alertId,
     communityName: report.terminalName,
@@ -14,7 +28,7 @@ const transformPendingReport = (report: PendingReport) => {
   };
 };
 
-const transformCompletedReport = (report: CompletedReport) => {
+const transformCompletedReport = (report: CompletedReport): TransformedCompletedReport => {
   return {
     emergencyId: report.alertId,
     communityName: report.terminalName,
@@ -27,8 +41,8 @@ const transformCompletedReport = (report: CompletedReport) => {
 };
 
 export function useReports() {
-  const [pendingReports, setPendingReports] = useState<any[]>([]);
-  const [completedReports, setCompletedReports] = useState<any[]>([]);
+  const [pendingReports, setPendingReports] = useState<TransformedPendingReport[]>([]);
+  const [completedReports, setCompletedReports] = useState<TransformedCompletedReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,8 +52,8 @@ export function useReports() {
       setError(null);
       const pendingData = await apiFetchPendingReports(forceRefresh);
       setPendingReports(pendingData.map(transformPendingReport));
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch pending reports');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch pending reports');
     }
   }, []);
 
@@ -49,8 +63,8 @@ export function useReports() {
       setError(null);
       const completedData = await apiFetchCompletedReports(forceRefresh);
       setCompletedReports(completedData.map(transformCompletedReport));
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch completed reports');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch completed reports');
     }
   }, []);
 
@@ -64,15 +78,18 @@ export function useReports() {
         fetchPendingReports(),
         fetchCompletedReports()
       ]);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch reports');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch reports');
     } finally {
       setLoading(false);
     }
   }, [fetchPendingReports, fetchCompletedReports]);
 
   // Create a new post rescue form (moves report from pending to completed)
-  const createPostRescueForm = useCallback(async (alertId: string, formData: any) => {
+  const createPostRescueForm = useCallback(async (
+    alertId: string,
+    formData: { noOfPersonnelDeployed: number; resourcesUsed: string; actionTaken: string }
+  ) => {
     try {
       setError(null);
       
@@ -103,8 +120,8 @@ export function useReports() {
       }, 50); // Small delay to ensure backend processing is complete
       
       return result;
-    } catch (err: any) {
-      setError(err.message || 'Failed to create post rescue form');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create post rescue form');
       // Revert optimistic updates on error
       await Promise.all([
         fetchPendingReports(true),
@@ -132,8 +149,8 @@ export function useReports() {
     try {
       await clearReportsCache();
       await refreshAllReports();
-    } catch (err: any) {
-      setError(err.message || 'Failed to clear cache');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to clear cache');
     }
   }, [refreshAllReports]);
 

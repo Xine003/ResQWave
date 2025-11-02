@@ -98,8 +98,8 @@ export function RescueCompletionForm({ isOpen, onClose, onSuccess, emergencyData
             setActions([]);
             
             onClose();
-        } catch (err: any) {
-            setError(err.message || 'Failed to save rescue completion form');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to save rescue completion form');
         } finally {
             setIsSubmitting(false);
         }

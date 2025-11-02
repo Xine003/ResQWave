@@ -11,7 +11,7 @@ export function setGlobalLogoutCallback(callback: () => void) {
   logoutCallback = callback;
 }
 
-export async function apiFetch<T = any>(
+export async function apiFetch<T = unknown>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
@@ -117,7 +117,7 @@ export async function fetchCompletedReports(refresh = false): Promise<CompletedR
   return apiFetch<CompletedReport[]>(url, options);
 }
 
-export async function clearReportsCache(): Promise<any> {
+export async function clearReportsCache(): Promise<unknown> {
   return apiFetch('/post/cache', {
     method: 'DELETE'
   });
@@ -127,7 +127,7 @@ export async function createPostRescueForm(alertId: string, data: {
   noOfPersonnelDeployed: number;
   resourcesUsed: string;
   actionTaken: string;
-}): Promise<any> {
+}): Promise<unknown> {
   return apiFetch(`/post/${alertId}`, {
     method: 'POST',
     body: JSON.stringify(data)

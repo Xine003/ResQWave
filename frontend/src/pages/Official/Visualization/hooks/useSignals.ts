@@ -85,7 +85,7 @@ export default function useSignals() {
  * Determines the alert type based on signal data
  * Returns terminal status if no alert exists, or DISPATCHED if alert was completed
  */
-function determineAlertType(signal: any): string {
+function determineAlertType(signal: MapSignal): string {
     // Check if alert was dispatched (rescue completed)
     if (signal.alertStatus === 'null') {
         return 'NULL';

@@ -14,7 +14,6 @@ const recentlyCompletedData = [
 
 export function Reports() {
   const [activeTab, setActiveTab] = useState("completed");
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const { 
     pendingReports, 
     completedReports, 
