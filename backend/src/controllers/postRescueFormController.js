@@ -633,6 +633,140 @@ const getAlertTypeChartData = async (req, res) => {
     }
 };
 
+// GET Detailed Report Data for PDF Generation
+const getDetailedReportData = async (req, res) => {
+    try {
+        const { alertId } = req.params;
+        
+        console.log('[DetailedReport] Fetching data for alertId:', alertId);
+        
+        if (!alertId) {
+            return res.status(400).json({ message: "Alert ID is required" });
+        }
+
+        // First, let's check if the alert exists
+        const alertExists = await alertRepo.findOne({ where: { id: alertId } });
+        console.log('[DetailedReport] Alert exists:', !!alertExists);
+        
+        if (!alertExists) {
+            return res.status(404).json({ message: "Alert not found" });
+        }
+
+        // Get detailed report data using complex join query
+        const reportData = await alertRepo
+            .createQueryBuilder("alert")
+            .leftJoin("alert.terminal", "terminal")
+            .leftJoin("Neighborhood", "n", "n.terminalID = terminal.id")
+            .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+            .leftJoin("RescueForm", "rf", "rf.emergencyID = alert.id")
+            .leftJoin("Dispatcher", "dispatcher", "dispatcher.id = rf.dispatcherID")
+            .leftJoin("PostRescueForm", "prf", "prf.alertID = alert.id")
+            .where("alert.id = :alertId", { alertId })
+            .select([
+                // Alert information
+                "alert.id AS alertId",
+                "alert.alertType AS originalAlertType",
+                "alert.dateTimeSent AS dateTimeSent",
+                
+                // Terminal information
+                "terminal.name AS terminalName",
+                
+                // Neighborhood information
+                "n.id AS neighborhoodId",
+                
+                // Focal Person information
+                "fp.firstName AS focalFirstName",
+                "fp.lastName AS focalLastName",
+                "fp.address AS focalAddress",
+                "fp.contactNumber AS focalContactNumber",
+                
+                // Rescue Form information
+                "rf.id AS rescueFormId",
+                "rf.waterLevel AS waterLevel",
+                "rf.urgencyOfEvacuation AS urgencyOfEvacuation",
+                "rf.hazardPresent AS hazardPresent",
+                "rf.accessibility AS accessibility",
+                "rf.resourceNeeds AS resourceNeeds",
+                "rf.otherInformation AS otherInformation",
+                "rf.originalAlertType AS rescueFormAlertType",
+                
+                // Dispatcher information
+                "dispatcher.name AS dispatcherName",
+                
+                // Post Rescue Form information
+                "prf.id AS postRescueFormId",
+                "prf.noOfPersonnelDeployed AS noOfPersonnelDeployed",
+                "prf.resourcesUsed AS resourcesUsed",
+                "prf.actionTaken AS actionTaken",
+                "prf.completedAt AS completedAt",
+                "prf.createdAt AS prfCreatedAt"
+            ])
+            .getRawOne();
+
+        console.log('[DetailedReport] Query result:', reportData);
+
+        if (!reportData) {
+            console.log('[DetailedReport] No data found for alertId:', alertId);
+            return res.status(404).json({ message: "Report data not found for the given Alert ID" });
+        }
+
+        // Format the response data
+        const formattedData = {
+            alertId: reportData.alertId,
+            emergencyId: reportData.alertId, // Using alertId as emergencyId for compatibility
+            
+            // Community & Terminal Information
+            neighborhoodId: reportData.neighborhoodId || 'N/A',
+            terminalName: reportData.terminalName || 'N/A',
+            focalPersonName: `${reportData.focalFirstName || ''} ${reportData.focalLastName || ''}`.trim() || 'N/A',
+            focalPersonAddress: (() => {
+                // Parse the JSON address and extract just the address field
+                try {
+                    if (reportData.focalAddress && typeof reportData.focalAddress === 'string') {
+                        const parsed = JSON.parse(reportData.focalAddress);
+                        return parsed.address || reportData.focalAddress;
+                    }
+                    return reportData.focalAddress || 'N/A';
+                } catch (e) {
+                    // If parsing fails, return the original string
+                    return reportData.focalAddress || 'N/A';
+                }
+            })(),
+            focalPersonContactNumber: reportData.focalContactNumber || 'N/A',
+            
+            // Emergency Context
+            waterLevel: reportData.waterLevel || 'N/A',
+            urgencyOfEvacuation: reportData.urgencyOfEvacuation || 'N/A',
+            hazardPresent: reportData.hazardPresent || 'N/A',
+            accessibility: reportData.accessibility || 'N/A',
+            resourceNeeds: reportData.resourceNeeds || 'N/A',
+            otherInformation: reportData.otherInformation || 'N/A',
+            alertType: reportData.rescueFormAlertType || reportData.originalAlertType || 'N/A',
+            timeOfRescue: reportData.prfCreatedAt ? new Date(reportData.prfCreatedAt).toLocaleTimeString() : 'N/A',
+            dateTimeOccurred: reportData.dateTimeSent ? new Date(reportData.dateTimeSent).toLocaleString() : 'N/A',
+            
+            // Dispatcher Information
+            dispatcherName: reportData.dispatcherName || 'N/A',
+            
+            // Rescue Completion Details
+            rescueFormId: reportData.rescueFormId || 'N/A',
+            postRescueFormId: reportData.postRescueFormId || 'N/A',
+            noOfPersonnelDeployed: reportData.noOfPersonnelDeployed || 'N/A',
+            resourcesUsed: reportData.resourcesUsed || 'N/A',
+            actionTaken: reportData.actionTaken || 'N/A',
+            completedAt: reportData.completedAt ? new Date(reportData.completedAt).toLocaleString() : 'N/A',
+            rescueCompletionTime: reportData.completedAt ? new Date(reportData.completedAt).toLocaleTimeString() : 'N/A'
+        };
+
+        console.log('[DetailedReport] Formatted response:', formattedData);
+        return res.json(formattedData);
+        
+    } catch (err) {
+        console.error("[DetailedReport] Error fetching detailed report data:", err);
+        return res.status(500).json({ message: "Server Error", error: err.message });
+    }
+};
+
 module.exports = {
   createPostRescueForm,
   getCompletedReports,
@@ -643,5 +777,6 @@ module.exports = {
   migrateOriginalAlertTypes,
   fixRescueFormStatus,
   getAlertTypeChartData,
+  getDetailedReportData,
 };
 

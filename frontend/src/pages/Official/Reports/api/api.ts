@@ -144,3 +144,34 @@ export interface AlertTypeChartData {
 export async function fetchAlertTypeChartData(timeRange: string = 'last3months'): Promise<AlertTypeChartData[]> {
   return apiFetch<AlertTypeChartData[]>(`/post/chart/alert-types?timeRange=${timeRange}`);
 }
+
+// Detailed report data interface and function for PDF generation
+export interface DetailedReportData {
+  alertId: string;
+  emergencyId: string;
+  neighborhoodId: string;
+  terminalName: string;
+  focalPersonName: string;
+  focalPersonAddress: string;
+  focalPersonContactNumber: string;
+  waterLevel: string;
+  urgencyOfEvacuation: string;
+  hazardPresent: string;
+  accessibility: string;
+  resourceNeeds: string;
+  otherInformation: string;
+  alertType: string;
+  timeOfRescue: string;
+  dateTimeOccurred: string;
+  dispatcherName: string;
+  rescueFormId: string;
+  postRescueFormId: string;
+  noOfPersonnelDeployed: string;
+  resourcesUsed: string;
+  actionTaken: string;
+  rescueCompletionTime: string;
+}
+
+export async function fetchDetailedReportData(alertId: string): Promise<DetailedReportData> {
+  return apiFetch<DetailedReportData>(`/post/report/${alertId}`);
+}

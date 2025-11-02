@@ -16,6 +16,8 @@ import {
 } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import { fetchDetailedReportData } from "../api/api";
+import { exportOfficialReportToPdf, type OfficialReportData } from "../utils/reportExportUtils";
 import "./ReportsTable.css";
 import { RescueCompletionForm } from "./RescueCompletionForm";
 
@@ -50,11 +52,71 @@ export function ReportsTable({ type, data, onReportCreated }: ReportsTableProps)
   const isCompleted = type === "completed";
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedReportData, setSelectedReportData] = useState<ReportData | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
 
   const handleCreateReport = (reportData: ReportData) => {
     setSelectedReportData(reportData);
     setIsFormOpen(true);
+  };
+
+  const handleGenerateReport = async (reportData: ReportData) => {
+    setIsGeneratingPdf(true);
+    try {
+      console.log('Generating PDF for report:', reportData);
+      
+      // Fetch detailed report data from backend
+      const detailedData = await fetchDetailedReportData(reportData.emergencyId);
+      console.log('Received detailed data:', detailedData);
+      
+      // Transform data for PDF export
+      const exportData: OfficialReportData = {
+        title: `Official Rescue Operation Report - ${detailedData.emergencyId}`,
+        summary: 'This document serves as the official report of the rescue operation conducted for the affected community. It records the key information, emergency context, and actions taken to ensure accountability, transparency, and reference for future disaster response efforts.',
+        
+        // Community & Terminal Information
+        neighborhoodId: detailedData.neighborhoodId,
+        terminalName: detailedData.terminalName,
+        focalPersonName: detailedData.focalPersonName,
+        focalPersonAddress: detailedData.focalPersonAddress,
+        focalPersonContactNumber: detailedData.focalPersonContactNumber,
+        
+        // Emergency Context
+        emergencyId: detailedData.emergencyId,
+        waterLevel: detailedData.waterLevel,
+        urgencyOfEvacuation: detailedData.urgencyOfEvacuation,
+        hazardPresent: detailedData.hazardPresent,
+        accessibility: detailedData.accessibility,
+        resourceNeeds: detailedData.resourceNeeds,
+        otherInformation: detailedData.otherInformation,
+        timeOfRescue: detailedData.timeOfRescue,
+        alertType: detailedData.alertType,
+        dateTimeOccurred: detailedData.dateTimeOccurred,
+        
+        // Dispatcher Information
+        dispatcherName: detailedData.dispatcherName,
+        
+        // Rescue Completion Details
+        rescueFormId: detailedData.rescueFormId,
+        postRescueFormId: detailedData.postRescueFormId,
+        noOfPersonnelDeployed: detailedData.noOfPersonnelDeployed,
+        resourcesUsed: detailedData.resourcesUsed,
+        actionTaken: detailedData.actionTaken,
+        rescueCompletionTime: detailedData.rescueCompletionTime,
+      };
+
+      console.log('Transformed export data:', exportData);
+
+      // Generate and open PDF
+      await exportOfficialReportToPdf(exportData);
+      console.log('PDF report generated successfully');
+      
+    } catch (error) {
+      console.error('Error generating PDF report:', error);
+      alert('Error generating PDF report: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   // Define columns based on table type
@@ -136,10 +198,20 @@ export function ReportsTable({ type, data, onReportCreated }: ReportsTableProps)
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-popover border-border">
-              <DropdownMenuItem className="text-popover-foreground hover:bg-accent">View details</DropdownMenuItem>
-              <DropdownMenuItem className="text-popover-foreground hover:bg-accent">Generate report</DropdownMenuItem>
-              <DropdownMenuItem className="text-popover-foreground hover:bg-accent">Edit</DropdownMenuItem>
+            <DropdownMenuContent
+              align="start" side="left" sideOffset={2}
+              className="bg-[#171717] border border-[#2a2a2a] text-white hover:text-white w-50 h-20 p-1 rounded-[5px] shadow-lg flex flex-col space-y-1"
+            >
+              <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+                View details
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+                onClick={() => handleGenerateReport(row.original)}
+                disabled={isGeneratingPdf}
+              >
+                {isGeneratingPdf ? 'Generating...' : 'Generate report'}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
