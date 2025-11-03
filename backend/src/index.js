@@ -26,51 +26,70 @@ const { getTerminalsForMap } = require("./controllers/terminalController");
 const path = require("path");
 
 const app = express();
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://resqwave.vercel.app",
+      "https://resqwave-production.up.railway.app",
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 
 //Connect DB
 AppDataSource.initialize()
-    .then(() => {
-        console.log("Database Connected and Synced!");
+  .then(() => {
+    console.log("Database Connected and Synced!");
 
-        // test route
-        app.get("/", (req, res) => {
-            res.send("ResQWave Backend Running");
-        });
+    // test route
+    app.get("/", (req, res) => {
+      res.send("ResQWave Backend Running");
+    });
 
-        // Serve static files (for test page)
-        // Add comment to test the realtime page again
-        app.use(express.static(path.join(__dirname, "public")));
+    // Serve static files (for test page)
+    // Add comment to test the realtime page again
+    app.use(express.static(path.join(__dirname, "public")));
 
-        // Public Routes
-        app.use("/", authRoutes);
-        app.use("/", resetPasswordRoutes);
-        app.use("/", verificationRoutes);
-        app.use("/", focalRegistrationRoutes);
-        app.use("/", sensorDataRoutes); // public route for sensor data
+    // Public Routes
+    app.use("/", authRoutes);
+    app.use("/", resetPasswordRoutes);
+    app.use("/", verificationRoutes);
+    app.use("/", focalRegistrationRoutes);
+    app.use("/", sensorDataRoutes); // public route for sensor data
 
-        // Public endpoint for map data (landing page)
-        app.get("/terminals/map", getTerminalsForMap);
+    // Public endpoint for map data (landing page)
+    app.get("/terminals/map", getTerminalsForMap);
 
-        // Protect Everything After This
-        app.use(authMiddleware);
+    // Protect Everything After This
+    app.use(authMiddleware);
 
-        // Protected Routes
-        // Only Admin can access Dispatcher Management
-        app.use("/dispatcher", requireRole("admin"), dispatcherRoutes);
-        app.use("/terminal", requireRole(["admin", "dispatcher"]), terminalRoutes);
-        app.use("/focalperson", focalPersonRoutes);
-        app.use("/neighborhood", neighborhoodRoutes);
-        app.use("/logs", logsRoute);
-        app.use("/alerts", alertRoutes);
-        app.use("/forms", rescueFormRoutes);
-        app.use("/post", postRescueRoutes);
-        app.use("/", graphRoutes);
-        app.use("/", documentRoutes);
+    // Protected Routes
+    // Only Admin can access Dispatcher Management
+    app.use("/dispatcher", requireRole("admin"), dispatcherRoutes);
+    app.use("/terminal", requireRole(["admin", "dispatcher"]), terminalRoutes);
+    app.use("/focalperson", focalPersonRoutes);
+    app.use("/neighborhood", neighborhoodRoutes);
+    app.use("/logs", logsRoute);
+    app.use("/alerts", alertRoutes);
+    app.use("/forms", rescueFormRoutes);
+    app.use("/post", postRescueRoutes);
+    app.use("/", graphRoutes);
+    app.use("/", documentRoutes);
 
-        const server = http.createServer(app);
-        setupSocket(server, { origin: "http://localhost:5173" });
-        server.listen(5000, () => console.log("Server + SocketIO at http://localhost:5000"));
-    })
-    .catch((err) => console.error("DB Error", err));
+    const server = http.createServer(app);
+    setupSocket(server, {
+      origin: [
+        "http://localhost:5173",
+        "https://resqwave.vercel.app", // Add this
+      ],
+      credentials: true,
+    });
+    server.listen(5000, () =>
+      console.log("Server + SocketIO at http://localhost:5000")
+    );
+  })
+  .catch((err) => console.error("DB Error", err));
