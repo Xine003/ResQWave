@@ -34,6 +34,8 @@ app.use(
       "https://resqwave-production.up.railway.app",
     ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json());
@@ -82,11 +84,9 @@ AppDataSource.initialize()
     setupSocket(server, {
       origin: [
         "http://localhost:5173",
-        // Add the same URLs as above for Socket.IO
-        // "http://localhost:3000",
-        // "https://yourdomain.com",
-        // "https://www.yourdomain.com"
+        "https://resqwave.vercel.app", // Add this
       ],
+      credentials: true,
     });
     server.listen(5000, () =>
       console.log("Server + SocketIO at http://localhost:5000")
