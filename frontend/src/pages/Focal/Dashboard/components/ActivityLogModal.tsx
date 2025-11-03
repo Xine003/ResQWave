@@ -1,5 +1,5 @@
 import { apiFetch } from '@/pages/Official/Reports/api/api';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 import {
     DropdownMenu,
@@ -8,12 +8,16 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, RefreshCw, Search } from 'lucide-react';
 
 type ActivityLogModalProps = {
     open: boolean;
     onClose: () => void;
     center?: { x: number; y: number } | null;
+};
+
+export type ActivityLogModalHandle = {
+    refresh: () => void;
 };
 
 
@@ -57,7 +61,7 @@ function groupDaysByMonth(days: LogDay[]): MonthGroup[] {
     }));
 }
 
-export default function ActivityLogModal({ open, onClose, center = null }: ActivityLogModalProps) {
+const ActivityLogModal = forwardRef<ActivityLogModalHandle, ActivityLogModalProps>(({ open, onClose, center = null }, ref) => {
     const [activityLogs, setActivityLogs] = useState<MonthGroup[]>([]);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -125,8 +129,7 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
     }
 
     // Fetch logs from backend
-    useEffect(() => {
-        if (!open) return;
+    const fetchLogs = () => {
         setLoading(true);
         setError(null);
         apiFetch<{ lastUpdated?: string; days?: LogDay[] }>('/logs/own')
@@ -140,7 +143,17 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
             })
             .catch((err) => setError(err.message || 'Failed to load logs'))
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        if (!open) return;
+        fetchLogs();
     }, [open]);
+
+    // Expose refresh method to parent
+    useImperativeHandle(ref, () => ({
+        refresh: fetchLogs,
+    }));
 
     // Filtered logs by search (date string)
     const filteredLogs = useMemo(() => {
@@ -206,24 +219,59 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
                     .history-modal-list{ -webkit-overflow-scrolling: touch; }
                     .history-group-body{ -webkit-overflow-scrolling: touch; }
                 `}</style>
-                    <button
-                        onClick={onClose}
-                        aria-label="Close"
-                        style={{
-                            position: 'absolute', right: 35, top: 30, background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18,
-                            cursor: 'pointer', transition: 'color 0.18s, transform 0.18s',
-                        }}
-                        onMouseEnter={e => {
-                            e.currentTarget.style.color = '#fff';
-                            e.currentTarget.style.transform = 'scale(1.01)';
-                        }}
-                        onMouseLeave={e => {
-                            e.currentTarget.style.color = '#BABABA';
-                            e.currentTarget.style.transform = 'scale(1)';
-                        }}
-                    >
-                        ✕
-                    </button>
+                    {/* Exit and Refresh buttons */}
+                    <div style={{ position: 'absolute', right: 35, top: 30, display: 'flex', gap: 20 }}>
+                        <button
+                            onClick={fetchLogs}
+                            aria-label="Refresh"
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#BABABA',
+                                fontSize: 19,
+                                cursor: 'pointer',
+                                marginRight: 2,
+                                transition: 'color 0.18s, transform 0.18s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 0
+                            }}
+                            title="Refresh activity logs"
+                            onMouseEnter={e => {
+                                e.currentTarget.style.color = '#fff';
+                                e.currentTarget.style.transform = 'scale(1.05)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.color = '#BABABA';
+                                e.currentTarget.style.transform = 'scale(1)';
+                            }}
+                        >
+                            <RefreshCw size={17} />
+                        </button>
+                        <button
+                            onClick={onClose}
+                            aria-label="Close"
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#BABABA',
+                                fontSize: 18,
+                                cursor: 'pointer',
+                                transition: 'color 0.18s, transform 0.18s',
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.color = '#fff';
+                                e.currentTarget.style.transform = 'scale(1.01)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.color = '#BABABA';
+                                e.currentTarget.style.transform = 'scale(1)';
+                            }}
+                        >
+                            ✕
+                        </button>
+                    </div>
 
                     {/* Header */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, zIndex: 2 }}>
@@ -422,38 +470,103 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
                                                                                 gap: 0,
                                                                             }}
                                                                         >
-                                                                            {action.fields.map((field: LogField, fidx: number) => (
-                                                                                <div
-                                                                                    key={fidx}
-                                                                                    style={{
-                                                                                        display: 'flex',
-                                                                                        alignItems: 'center',
-                                                                                        borderRadius: 6,
-                                                                                        padding: '4px 0',
-                                                                                    }}
-                                                                                >
-                                                                                    <div style={{ minWidth: 140, fontWeight: 400, color: '#BABABA', fontSize: 14 }}>
-                                                                                        {field.field}:
+                                                                            {action.fields.map((field: LogField, fidx: number) => {
+                                                                                // Helper function to check if value is an array
+                                                                                const parseArrayValue = (value: string) => {
+                                                                                    if (!value) return null;
+                                                                                    try {
+                                                                                        const parsed = JSON.parse(value);
+                                                                                        if (Array.isArray(parsed)) {
+                                                                                            return parsed;
+                                                                                        }
+                                                                                    } catch {
+                                                                                        // Not JSON, return null
+                                                                                    }
+                                                                                    return null;
+                                                                                };
+
+                                                                                const oldArray = parseArrayValue(field.oldValue);
+                                                                                const newArray = parseArrayValue(field.newValue);
+
+                                                                                // If both are arrays, display as bullet lists
+                                                                                if (oldArray !== null || newArray !== null) {
+                                                                                    return (
+                                                                                        <div
+                                                                                            key={fidx}
+                                                                                            style={{
+                                                                                                display: 'flex',
+                                                                                                borderRadius: 6,
+                                                                                                padding: '4px 0',
+                                                                                                gap: 10,
+                                                                                            }}
+                                                                                        >
+                                                                                            <div style={{ minWidth: 140, fontWeight: 400, color: '#BABABA', fontSize: 14 }}>
+                                                                                                {field.field}:
+                                                                                            </div>
+                                                                                            <div style={{ display: 'flex', gap: 20, flex: 1 }}>
+                                                                                                {oldArray && (
+                                                                                                    <div style={{ flex: 1 }}>
+                                                                                                        <div style={{ textDecoration: 'line-through', color: '#888', fontSize: 13, fontWeight: 400, marginBottom: 4 }}>
+                                                                                                            {oldArray.length === 0 ? 'None' : ''}
+                                                                                                        </div>
+                                                                                                        <ul style={{ margin: 0, paddingLeft: 0, textDecoration: 'line-through', color: '#888', fontSize: 13, listStyleType: 'disc' }}>
+                                                                                                            {oldArray.map((item, i) => (
+                                                                                                                <li key={i} style={{ display: 'list-item' }}>{item}</li>
+                                                                                                            ))}
+                                                                                                        </ul>
+                                                                                                    </div>
+                                                                                                )}
+                                                                                                {newArray && (
+                                                                                                    <div style={{ flex: 1 }}>
+                                                                                                        <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 4 }}>
+                                                                                                            {newArray.length === 0 ? 'None' : ''}
+                                                                                                        </div>
+                                                                                                        <ul style={{ margin: 0, paddingLeft: 20, fontWeight: 500, fontSize: 14, listStyleType: 'disc', color: '#fff' }}>
+                                                                                                            {newArray.map((item, i) => (
+                                                                                                                <li key={i} style={{ display: 'list-item' }}>{item}</li>
+                                                                                                            ))}
+                                                                                                        </ul>
+                                                                                                    </div>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    );
+                                                                                }
+
+                                                                                // Default display for non-array fields
+                                                                                return (
+                                                                                    <div
+                                                                                        key={fidx}
+                                                                                        style={{
+                                                                                            display: 'flex',
+                                                                                            alignItems: 'center',
+                                                                                            borderRadius: 6,
+                                                                                            padding: '4px 0',
+                                                                                        }}
+                                                                                    >
+                                                                                        <div style={{ minWidth: 140, fontWeight: 400, color: '#BABABA', fontSize: 14 }}>
+                                                                                            {field.field}:
+                                                                                        </div>
+                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                                                            <span style={{
+                                                                                                textDecoration: 'line-through',
+                                                                                                color: '#888',
+                                                                                                fontSize: 13,
+                                                                                                fontWeight: 400,
+                                                                                                marginRight: 6,
+                                                                                            }}>
+                                                                                                {field.oldValue}
+                                                                                            </span>
+                                                                                            <span style={{
+                                                                                                fontWeight: 500,
+                                                                                                fontSize: 14,
+                                                                                            }}>
+                                                                                                {field.newValue}
+                                                                                            </span>
+                                                                                        </div>
                                                                                     </div>
-                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                                                        <span style={{
-                                                                                            textDecoration: 'line-through',
-                                                                                            color: '#888',
-                                                                                            fontSize: 13,
-                                                                                            fontWeight: 400,
-                                                                                            marginRight: 6,
-                                                                                        }}>
-                                                                                            {field.oldValue}
-                                                                                        </span>
-                                                                                        <span style={{
-                                                                                            fontWeight: 500,
-                                                                                            fontSize: 14,
-                                                                                        }}>
-                                                                                            {field.newValue}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            ))}
+                                                                                );
+                                                                            })}
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -472,5 +585,7 @@ export default function ActivityLogModal({ open, onClose, center = null }: Activ
             </div>
         </>
     );
-}
+});
+
+export default ActivityLogModal;
 

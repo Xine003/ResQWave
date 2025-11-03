@@ -1,7 +1,7 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog-focal';
 import { Input } from '@/components/ui/input';
 import { API_BASE_URL, apiFetch } from '@/pages/Official/Reports/api/api';
-import { ArrowLeft, Camera, Check, Eye, EyeOff, User, X } from 'lucide-react';
+import { ArrowLeft, Camera, Check, Eye, EyeOff, Loader2, User, X } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useFocalAuth } from '../../context/focalAuthContext';
@@ -80,6 +80,8 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [photoError, setPhotoError] = useState('');
+    const [photoDeleted, setPhotoDeleted] = useState(false);
+    const [photoLoading, setPhotoLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     // const [isDragging, setIsDragging] = useState(false); // Removed unused variable
     const { focalId } = useFocalAuth();
@@ -217,17 +219,21 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
         if (!file) {
             setPhotoFile(null);
             setPhotoError('');
+            setPhotoLoading(false);
             return;
         }
 
+        setPhotoLoading(true);
         const error = await validateProfilePicture(file);
         if (error) {
             setPhotoError(error);
             setPhotoFile(null);
+            setPhotoLoading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
         } else {
             setPhotoError('');
             setPhotoFile(file);
+            setPhotoLoading(false);
         }
     };
 
@@ -311,6 +317,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
             });
 
         setPhotoFile(null); // reset file input
+        setPhotoDeleted(false); // reset deletion flag
     }, [open, focalId]);
 
     // Change password form state
@@ -433,8 +440,8 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
             email !== initialProfile.email;
         // Password fields
         const passwordDirty = currentPassword !== '' || newPassword !== '' || confirmPassword !== '';
-        // Photo dirty: changed, added, or removed
-        const photoDirty = photoFile !== null || (photoUrl === null && initialProfile.photoUrl !== null);
+        // Photo dirty: changed, added, removed, or deletion flagged
+        const photoDirty = photoFile !== null || photoDeleted || (photoUrl === null && initialProfile.photoUrl !== null);
         return profileDirty || passwordDirty || photoDirty;
     };
 
@@ -635,7 +642,11 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                                         style={{ width: 140, height: 140 }}
                                         title="Upload profile picture&#10;Max size: 5MB | Min dimensions: 200x200px&#10;Allowed formats: JPG, PNG, WebP"
                                     >
-                                        {photoFile === null && !photoUrl ? (
+                                        {photoLoading ? (
+                                            <div className="w-full h-full bg-[#262626] rounded-full flex items-center justify-center">
+                                                <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+                                            </div>
+                                        ) : photoFile === null && !photoUrl ? (
                                             <div className="w-full h-full bg-[#262626] rounded-full flex items-center justify-center">
                                                 <User className="w-16 h-16 text-[#BABABA] opacity-60" />
                                             </div>
@@ -653,8 +664,8 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                                             />
                                         ) : null}
                                     </div>
-                                    {/* Remove button if photoFile is set */}
-                                    {photoFile && (
+                                    {/* Remove button if photoFile is set or photoUrl exists */}
+                                    {(photoFile || photoUrl) && (
                                         <div
                                             className="absolute bottom-[30px] right-4 w-9 h-9 bg-red-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors shadow-lg"
                                             onClick={e => {
@@ -662,6 +673,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                                                 setPhotoFile(null);
                                                 setPhotoUrl(null);
                                                 setPhotoError('');
+                                                setPhotoDeleted(true);
                                                 if (fileInputRef.current) fileInputRef.current.value = "";
                                             }}
                                             style={{ transform: 'translateY(50%)' }}
@@ -669,8 +681,8 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                                             <X className="w-4 h-4 text-white" />
                                         </div>
                                     )}
-                                    {/* Camera button if no photoFile */}
-                                    {!photoFile && (
+                                    {/* Camera button if no photoFile and no photoUrl */}
+                                    {!photoFile && !photoUrl && (
                                         <div
                                             className="absolute -bottom-[-30px] right-4 w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg"
                                             onClick={e => { e.stopPropagation(); document.getElementById('profile-photo-upload')?.click(); }}
@@ -862,9 +874,22 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                                                             email
                                                         })
                                                     });
-                                                    // Save photo if changed
+                                                    // Handle photo deletion or update
                                                     let photoUpdated = false;
-                                                    if (photoFile) {
+                                                    
+                                                    // If photo was deleted and no new file, send DELETE request
+                                                    if (photoDeleted && !photoFile) {
+                                                        await fetch(`${API_BASE_URL}/focalperson/${focalId}/photo`, {
+                                                            method: 'DELETE',
+                                                            credentials: 'include',
+                                                            headers: {
+                                                                Authorization: `Bearer ${localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token') || ''}`
+                                                            }
+                                                        });
+                                                        photoUpdated = true;
+                                                    }
+                                                    // If new photo file, upload it
+                                                    else if (photoFile) {
                                                         const formData = new FormData();
                                                         formData.append('photo', photoFile);
                                                         await fetch(`${API_BASE_URL}/focalperson/${focalId}/photos`, {

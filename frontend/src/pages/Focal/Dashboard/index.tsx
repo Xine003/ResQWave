@@ -463,6 +463,7 @@ export default function Dashboard() {
     }, [otherSignals, OwnCommunitySignal, mapLoaded]);
 
     // Set info bubble position when map loads and own community signal is available
+    // Also update position when map moves or zooms
     useEffect(() => {
         if (!mapRef.current || !mapLoaded || !OwnCommunitySignal) return;
         const coords = OwnCommunitySignal.coordinates;
@@ -473,14 +474,32 @@ export default function Dashboard() {
         const rect = mapContainer.current?.getBoundingClientRect();
         if (!rect) return;
 
-        try {
-            const pt = map.project([coords[0], coords[1]]);
-            const x = pt.x;
-            const y = pt.y;
-            setInfoBubble({ x, y });
-        } catch (e) {
-            console.warn('[Dashboard] could not calculate info bubble position', e);
-        }
+        const updateInfoBubblePosition = () => {
+            try {
+                const pt = map.project([coords[0], coords[1]]);
+                const x = pt.x;
+                const y = pt.y;
+                setInfoBubble({ x, y });
+            } catch (e) {
+                console.warn('[Dashboard] could not calculate info bubble position', e);
+            }
+        };
+
+        // Initial position
+        updateInfoBubblePosition();
+
+        // Update position on map move, zoom, or pitch/bearing changes
+        map.on('move', updateInfoBubblePosition);
+        map.on('zoom', updateInfoBubblePosition);
+        map.on('pitch', updateInfoBubblePosition);
+        map.on('rotate', updateInfoBubblePosition);
+
+        return () => {
+            map.off('move', updateInfoBubblePosition);
+            map.off('zoom', updateInfoBubblePosition);
+            map.off('pitch', updateInfoBubblePosition);
+            map.off('rotate', updateInfoBubblePosition);
+        };
     }, [mapLoaded, OwnCommunitySignal, setInfoBubble]);
 
     // makeTooltip moved to utils/mapHelpers and imported above
@@ -735,6 +754,7 @@ export default function Dashboard() {
     const [confirmAccountOpen, setConfirmAccountOpen] = useState(false);
     const pendingAccountContinueRef = useRef<(() => void) | null>(null);
     const editAboutRef = useRef<{ openDiscardConfirm: (onContinue?: () => void) => void } | null>(null);
+    const activityLogRef = useRef<{ refresh: () => void } | null>(null);
     const [activeTab, setActiveTab] = useState('community');
     // Store a pending modal open action if confirmation is needed
     const pendingModalContinueRef = useRef<(() => void) | null>(null);
@@ -953,6 +973,10 @@ export default function Dashboard() {
                             altFocalPerson: altName || popover.altFocalPerson,
                         });
                     }
+                    // Refresh activity logs to show the changes immediately
+                    if (activityLogRef.current) {
+                        activityLogRef.current.refresh();
+                    }
                 }} center={aboutCenter} />
             </CommunityDataProvider>
 
@@ -963,6 +987,10 @@ export default function Dashboard() {
                 setAccountSettingsOpen(false);
                 setSavedMessage('Password Updated Successfully!');
                 setSavedTrigger(prev => (prev == null ? 1 : prev + 1));
+                // Refresh activity logs to show password change
+                if (activityLogRef.current) {
+                    activityLogRef.current.refresh();
+                }
             }} onSaveProfile={(data) => {
                 // Update popover instantly with the new focal person name (if popover is open and showing own community)
                 if (popover && popover.deviceId === OwnCommunitySignal.properties.deviceId) {
@@ -972,9 +1000,13 @@ export default function Dashboard() {
                         focalPerson: fullName || popover.focalPerson,
                     });
                 }
+                // Refresh activity logs to show profile changes
+                if (activityLogRef.current) {
+                    activityLogRef.current.refresh();
+                }
             }} isDirtyRef={accountSettingsIsDirtyRef} />
 
-            <ActivityLogModal open={activityLogOpen} onClose={() => { setActivityLogOpen(false); setActiveTab('community'); }} center={activityLogCenter} />
+            <ActivityLogModal ref={activityLogRef} open={activityLogOpen} onClose={() => { setActivityLogOpen(false); setActiveTab('community'); }} center={activityLogCenter} />
 
             {/* Alert dialog for confirming leaving Change Password with unsaved changes */}
             <AlertDialog open={confirmAccountOpen} onOpenChange={setConfirmAccountOpen}>
