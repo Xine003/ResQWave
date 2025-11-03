@@ -146,7 +146,7 @@ const ActivityLogModal = forwardRef<ActivityLogModalHandle, ActivityLogModalProp
                 if (notify && typeof window !== 'undefined') {
                     try {
                         window.dispatchEvent(new CustomEvent('dashboard:show-saved', { detail: { message: 'Refreshed successfully!', showViewLogs: false } }));
-                    } catch (e) {
+                    } catch {
                         // ignore if CustomEvent isn't available
                     }
                 }

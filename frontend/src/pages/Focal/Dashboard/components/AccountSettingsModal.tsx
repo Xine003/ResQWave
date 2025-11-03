@@ -49,7 +49,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                 setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
                 setPhotoFile(null);
                 // Notify dashboard to show bottom-left toast
-                try { window.dispatchEvent(new CustomEvent('dashboard:show-saved', { detail: { message: 'Refreshed successfully!', showViewLogs: false } })); } catch { }
+                try { window.dispatchEvent(new CustomEvent('dashboard:show-saved', { detail: { message: 'Refreshed successfully!', showViewLogs: false } })); } catch { /* Ignore event errors */ }
                 return;
             }
 
@@ -84,7 +84,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
             setPhotoFile(null); // reset file input
 
             // Notify dashboard to show bottom-left toast
-            try { window.dispatchEvent(new CustomEvent('dashboard:show-saved', { detail: { message: 'Refreshed successfully!', showViewLogs: false } })); } catch { }
+            try { window.dispatchEvent(new CustomEvent('dashboard:show-saved', { detail: { message: 'Refreshed successfully!', showViewLogs: false } })); } catch { /* Ignore event errors */ }
         } catch (err) {
             console.error('[AccountSettingsModal] Failed to refresh profile:', err);
             // fallback to empty or previous state

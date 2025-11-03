@@ -42,7 +42,7 @@ export default function Dashboard() {
     const [mapLoaded, setMapLoaded] = useState(false);
     // signal & UI state provided by the useSignals hook (centralized)
     const signals = useSignals();
-    const { otherSignals, ownCommunitySignal: OwnCommunitySignal, editBoundaryOpen, setEditBoundaryOpen, popover, setPopover, infoBubble, setInfoBubble, infoBubbleVisible, setInfoBubbleVisible, setSavedGeoJson, canSave, setCanSave, getDistressCoord, refetchSignals } = signals as unknown as DashboardSignals;
+    const { otherSignals, ownCommunitySignal: OwnCommunitySignal, editBoundaryOpen, setEditBoundaryOpen, popover, setPopover, infoBubble, setInfoBubble, infoBubbleVisible, setInfoBubbleVisible, setSavedGeoJson, canSave, setCanSave, getDistressCoord } = signals as unknown as DashboardSignals;
     const distressCoord: [number, number] = getDistressCoord();
 
 
@@ -167,7 +167,7 @@ export default function Dashboard() {
                 setSavedMessage(msg);
                 setSavedShowViewLogs(showViewLogs);
                 setSavedTrigger(prev => (prev == null ? 1 : prev + 1));
-            } catch (e) { /* ignore */ }
+            } catch { /* ignore */ }
         };
         window.addEventListener('dashboard:show-saved', handler as EventListener);
         return () => window.removeEventListener('dashboard:show-saved', handler as EventListener);
@@ -981,10 +981,11 @@ export default function Dashboard() {
 
             <CommunityDataProvider>
                 <AboutCommunity open={aboutOpen} onClose={closeAbout} onEdit={handleOpenEditAbout} center={aboutCenter} />
-                <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(updatedData: any) => {
+                <EditAboutCommunity ref={editAboutRef} open={editAboutOpen} onClose={handleCloseEditAbout} onSave={(updatedData: unknown) => {
                     // Update popover instantly with the new data (if popover is open and showing own community)
+                    const data = updatedData as { altFirstName?: string; altLastName?: string };
                     if (popover && popover.deviceId === OwnCommunitySignal.properties.deviceId) {
-                        const altName = [updatedData.altFirstName, updatedData.altLastName].filter(Boolean).join(' ');
+                        const altName = [data.altFirstName, data.altLastName].filter(Boolean).join(' ');
                         setPopover({
                             ...popover,
                             altFocalPerson: altName || popover.altFocalPerson,

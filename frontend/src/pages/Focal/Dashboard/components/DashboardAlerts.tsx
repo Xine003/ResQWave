@@ -93,7 +93,7 @@ const DashboardAlerts = forwardRef(function DashboardAlerts({ editBoundaryOpen, 
 				savedAlertTimer.current = null;
 			}
 		};
-	}, [savedTrigger]);
+	}, [savedTrigger, showViewLogs]);
 
 	// expose imperative API to parent: hideValidAlert(), hideEditAlert(), hideSavedAlert()
 	useImperativeHandle(ref, () => ({

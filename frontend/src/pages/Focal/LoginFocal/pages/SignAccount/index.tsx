@@ -32,7 +32,7 @@ export function LoginFocal() {
         }
       );
       // Only navigate to verification when the server confirms an OTP was sent
-      if (res.tempToken && (res as any).otpSent) {
+      if (res.tempToken && (res as { otpSent?: boolean }).otpSent) {
         const tempToken = res.tempToken as string;
         // Reset OTP expiry timer to 5 minutes from now on login
         localStorage.setItem('focalOtpExpiry', (Date.now() + 5 * 60 * 1000).toString());

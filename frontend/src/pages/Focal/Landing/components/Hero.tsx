@@ -358,7 +358,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
       if (src) {
         src.setData({ type: 'FeatureCollection', features: mapFeatures } as GeoJSON.FeatureCollection);
       }
-    } catch (e) {
+    } catch {
       // source might not be ready yet; ignore
     }
   }, [mapFeatures]);
