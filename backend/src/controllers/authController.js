@@ -441,6 +441,73 @@ const adminDispatcherVerify = async (req, res) => {
       return res.status(400).json({ message: "Invalid token context" });
     }
 
+    // Validate the OTP code against stored verification
+    const otpSession = await loginVerificationRepo.findOne({ 
+      where: { userID: decoded.id, userType: decoded.role, code } 
+    });
+
+    if (!otpSession || (otpSession.expiry && new Date() > new Date(otpSession.expiry))) {
+      // Get user for failed attempt tracking
+      let user = null;
+      if (decoded.role === "admin") {
+        user = await adminRepo.findOne({ where: { id: decoded.id } });
+      } else {
+        user = await dispatcherRepo.findOne({ where: { id: decoded.id } });
+      }
+
+      if (user) {
+        // Increment failed attempts
+        user.failedAttempts = (user.failedAttempts || 0) + 1;
+        
+        // Lock account after 5 failed attempts
+        if (user.failedAttempts >= 5) {
+          user.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 minutes
+          if (decoded.role === "admin") {
+            await adminRepo.save(user);
+          } else {
+            await dispatcherRepo.save(user);
+          }
+          return res.status(403).json({ 
+            message: "Too many failed attempts. Account locked for 15 minutes." 
+          });
+        }
+
+        // Save failed attempt count
+        if (decoded.role === "admin") {
+          await adminRepo.save(user);
+        } else {
+          await dispatcherRepo.save(user);
+        }
+      }
+
+      return res.status(400).json({ 
+        message: `Invalid or expired verification code. Attempts: ${user?.failedAttempts || 0}/5` 
+      });
+    }
+
+    // Get user for successful login
+    let user = null;
+    if (decoded.role === "admin") {
+      user = await adminRepo.findOne({ where: { id: decoded.id } });
+    } else {
+      user = await dispatcherRepo.findOne({ where: { id: decoded.id } });
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Reset failed attempts on successful verification
+    user.failedAttempts = 0;
+    user.lockUntil = null;
+    if (decoded.role === "admin") {
+      await adminRepo.save(user);
+    } else {
+      await dispatcherRepo.save(user);
+    }
+
+    // Delete the used OTP
+    await loginVerificationRepo.delete({ userID: decoded.id, userType: decoded.role, code });
 
     // Create session (so logout can invalidate)
     const sessionID = crypto.randomUUID();
@@ -453,26 +520,21 @@ const adminDispatcherVerify = async (req, res) => {
       expiry: sessionExpiry,
     });
 
-    // Cleanup used OTP
-    await loginVerificationRepo.delete({ userID: decoded.id, userType: decoded.role, code });
-
     // Get user data for response
     let userData = null;
     if (decoded.role === "admin") {
-      const admin = await adminRepo.findOne({ where: { id: decoded.id } });
       userData = {
-        id: admin.id,
-        name: admin.name,
-        email: admin.email,
+        id: user.id,
+        name: user.name,
+        email: user.email,
         role: "admin"
       };
     } else {
-      const dispatcher = await dispatcherRepo.findOne({ where: { id: decoded.id } });
       userData = {
-        id: dispatcher.id,
-        name: dispatcher.name,
-        email: dispatcher.email,
-        phoneNumber: dispatcher.phoneNumber,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
         role: "dispatcher"
       };
     }
