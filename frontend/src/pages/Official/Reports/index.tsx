@@ -1,16 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { useState } from "react";
-import { AlertTypeChart, RecentlyCompletedReports, ReportsTable } from "./components";
+import { AlertTypeChart, ReportsTable } from "./components";
 import { useReports } from "./hooks/useReports";
-
-// Recently completed reports data
-const recentlyCompletedData = [
-  {
-    id: "EMG-001",
-    title: "Report accomplished on August 17, 2025"
-  }
-];
 
 export function Reports() {
   const [activeTab, setActiveTab] = useState("completed");
@@ -41,10 +33,10 @@ export function Reports() {
 
       {!loading && !error && (
         <>
-          {/* Top section with charts - 40% of available height */}
-          <div className="flex gap-6 h-[40%]">
-            {/* Alert Type Chart - 75% width */}
-            <Card className="border-border flex-[3] flex flex-col" style={{ backgroundColor: "#211f1f" }}>
+          {/* Top section with chart - 40% of available height */}
+          <div className="h-[40%]">
+            {/* Alert Type Chart - Full width */}
+            <Card className="border-border flex flex-col h-full" style={{ backgroundColor: "#211f1f" }}>
               <CardHeader className="flex-shrink-0">
                 <CardTitle className="text-foreground">Alert Type</CardTitle>
                 <CardDescription className="text-muted-foreground">
@@ -53,16 +45,6 @@ export function Reports() {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <AlertTypeChart />
-              </CardContent>
-            </Card>
-
-            {/* Recently Completed Reports - 25% width */}
-            <Card className="border-border flex-1 flex flex-col" style={{ backgroundColor: "#211f1f" }}>
-              <CardHeader className="flex-shrink-0">
-                <CardTitle className="text-foreground">Recently Completed Reports</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto">
-                <RecentlyCompletedReports reports={recentlyCompletedData} />
               </CardContent>
             </Card>
           </div>

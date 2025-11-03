@@ -12,7 +12,7 @@ export const initializeSocket = (token: string): Socket => {
     return socket;
   }
 
-  socket = io('http://localhost:5000', {
+  socket = io(import.meta.env.VITE_BACKEND_URL, {
     auth: { token },
     transports: ['websocket', 'polling'],
     reconnection: true,

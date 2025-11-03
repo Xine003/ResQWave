@@ -2,7 +2,7 @@
 // Utility for making API requests to the backend using the VITE_BACKEND_URL env variable
 
 
-export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 // Global logout handler for 401/403 errors
 let logoutCallback: (() => void) | null = null;

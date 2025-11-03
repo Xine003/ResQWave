@@ -9,7 +9,7 @@ import { animatePinSaved } from "../utils/PinAnimation"
 import SettingLocationAlerts, { type SettingLocationAlertsHandle } from "./SettingLocationAlerts"
 import SettingLocationControls from "./SettingLocationControls"
 
-mapboxgl.accessToken = "pk.eyJ1Ijoicm9kZWxsbCIsImEiOiJjbWU0OXNvb2gwYnM0MnpvbXNueXo2dzhxIn0.Ep43_IxVhaPhEqWBaAuuyA"
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
 
 interface MapboxLocationPickerModalProps {
   open: boolean

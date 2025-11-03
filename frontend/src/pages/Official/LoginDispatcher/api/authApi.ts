@@ -1,13 +1,13 @@
 import type {
-    LoginRequest,
-    UnifiedLoginResponse,
-    UnifiedVerificationRequest,
-    VerificationResponse
-} from './types'
-import { ApiException } from './types'
+  LoginRequest,
+  UnifiedLoginResponse,
+  UnifiedVerificationRequest,
+  VerificationResponse
+} from './types';
+import { ApiException } from './types';
 
 // Backend API base URL
-const API_BASE_URL = 'http://localhost:5000'
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 // Generic API request handler
 async function apiRequest<T>(

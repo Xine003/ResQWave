@@ -55,6 +55,34 @@ export function addCustomLayers(map: mapboxgl.Map, otherSignals: Signal[], OwnCo
         });
     }
 
+    // Add pulse layer for critical and user-initiated pins (behind main pins)
+    if (!map.getLayer("signal-pins-pulse")) {
+        map.addLayer({
+            id: "signal-pins-pulse",
+            type: "circle",
+            source: "all-signals",
+            filter: [
+                "any",
+                ["==", ["get", "alertType"], "CRITICAL"],
+                ["==", ["get", "alertType"], "USER-INITIATED"]
+            ],
+            paint: {
+                "circle-color": [
+                    "case",
+                    ["==", ["get", "alertType"], "CRITICAL"], "#ef4444",
+                    ["==", ["get", "alertType"], "USER-INITIATED"], "#eab308",
+                    "#ef4444" // fallback
+                ],
+                "circle-radius": 13,
+                "circle-opacity": 0.4,
+                "circle-stroke-width": 0
+            }
+        });
+
+        // Start pulse animation only if not already running
+        animatePinPulse(map);
+    }
+
     // Add dynamic colored pins based on alert type
     if (!map.getLayer("signal-pins")) {
         map.addLayer({
@@ -124,6 +152,67 @@ export function getPinColor(alertType: string): string {
         'offline': '#6b7280'         // Gray for offline terminals
     };
     return colors[alertType?.toLowerCase()] || '#6b7280';
+}
+
+// Animate pulse for critical and user-initiated pins
+let pulseAnimationFrame: number | null = null;
+
+export function animatePinPulse(map: mapboxgl.Map): void {
+    // Stop any existing animation
+    if (pulseAnimationFrame) {
+        cancelAnimationFrame(pulseAnimationFrame);
+        pulseAnimationFrame = null;
+    }
+
+    let pulseRadius = 13;
+    let pulseOpacity = 0.4;
+    let growing = true;
+
+    function pulse() {
+        if (!map.getLayer('signal-pins-pulse')) {
+            pulseAnimationFrame = null;
+            return;
+        }
+
+        // Update pulse animation
+        if (growing) {
+            pulseRadius += 0.5;
+            pulseOpacity -= 0.002;
+            if (pulseRadius >= 25) {
+                growing = false;
+            }
+        } else {
+            pulseRadius -= 0.5;
+            pulseOpacity += 0.002;
+            if (pulseRadius <= 10) {
+                growing = true;
+            }
+        }
+
+        // Ensure opacity stays within bounds
+        pulseOpacity = Math.max(0.1, Math.min(0.5, pulseOpacity));
+
+        try {
+            map.setPaintProperty('signal-pins-pulse', 'circle-radius', pulseRadius);
+            map.setPaintProperty('signal-pins-pulse', 'circle-opacity', pulseOpacity);
+        } catch (error) {
+            // Layer might have been removed, stop animation
+            pulseAnimationFrame = null;
+            return;
+        }
+
+        pulseAnimationFrame = requestAnimationFrame(pulse);
+    }
+
+    pulse();
+}
+
+// Function to stop pulse animation
+export function stopPinPulse(): void {
+    if (pulseAnimationFrame) {
+        cancelAnimationFrame(pulseAnimationFrame);
+        pulseAnimationFrame = null;
+    }
 }
 
 export const makeTooltip = (text: string): React.ReactElement => (
