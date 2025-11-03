@@ -1,8 +1,8 @@
 // API service for dispatcher CRUD operations
-import { ApiException } from '@/pages/Official/LoginDispatcher/api/types'
+import { ApiException } from '@/pages/Official/LoginDispatcher/api/types';
 
 // Backend API base URL
-const API_BASE_URL = 'http://localhost:5000'
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 // Generic API request handler with authentication
 async function apiRequest<T>(

@@ -14,11 +14,11 @@ import SignalPopover from './components/SignalPopover';
 import { RescueWaitlistProvider, useRescueWaitlist, type WaitlistedRescueForm } from './contexts/RescueWaitlistContext';
 import useSignals from './hooks/useSignals';
 import { useWaitlistWebSocket } from './hooks/useWaitlistWebSocket';
-import type { VisualizationSignals, Signal } from './types/signals';
+import type { Signal, VisualizationSignals } from './types/signals';
 import { cinematicMapEntrance, flyToSignal } from './utils/flyingEffects';
-import { addCustomLayers, getPinColor, makeTooltip, createGeoJSONCircle } from './utils/mapHelpers';
+import { addCustomLayers, createGeoJSONCircle, getPinColor, makeTooltip } from './utils/mapHelpers';
 
-mapboxgl.accessToken = "pk.eyJ1Ijoicm9kZWxsbCIsImEiOiJjbWU0OXNvb2gwYnM0MnpvbXNueXo2dzhxIn0.Ep43_IxVhaPhEqWBaAuuyA";
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 function VisualizationContent() {
     const mapContainer = useRef<HTMLDivElement | null>(null);

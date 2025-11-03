@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ClipboardCheck, Radio, RadioReceiver, UserCog, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SettingsPopover from "./settingsPopover";
-import resqwave_logo from "/Landing/resqwave_logo.png";
+import resqwave_logo from "/resqwave_logo.png";
 
 const baseNavigationItems = [
   {
@@ -63,7 +63,7 @@ export default function Sidebar() {
     <>
       <aside className={`hidden md:inline-flex h-screen px-[15px] py-5 flex-col justify-between items-center flex-shrink-0 border-r-[1.5px] border-[#404040] bg-[#171717] z-40`}>
         <div className="flex items-center justify-center">
-          <img src={resqwave_logo} alt="" className="h-10" />
+          <img src={resqwave_logo} alt="" className="h-12" />
         </div>
 
         <nav className="flex flex-col items-center flex-1 w-full py-3.5">
