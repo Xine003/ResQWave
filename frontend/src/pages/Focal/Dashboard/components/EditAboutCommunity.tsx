@@ -151,18 +151,32 @@ const EditAbout = forwardRef<EditAboutHandle, EditAboutProps>(({ open, onClose, 
 
     // Handle input changes with validation
     const handleNameChange = (value: string) => {
-        setAltFocalName(value);
-        setNameError(validateName(value));
+        // Prevent numbers and other forbidden characters by sanitizing input
+        const sanitized = value.replace(/[^a-zA-Z\s]/g, '');
+        setAltFocalName(sanitized);
+        setNameError(validateName(sanitized));
     };
 
     const handleContactChange = (value: string) => {
-        setAltFocalContact(value);
-        setContactError(validateContact(value));
+        // Allow only digits and an optional leading '+'. Strip spaces and other chars.
+        let raw = value.replace(/\s+/g, '');
+        // Keep at most one leading '+' if present
+        const hasPlus = raw.startsWith('+');
+        raw = raw.replace(/(?!^)\+/g, '');
+        // Extract digits only
+        let digits = hasPlus ? raw.slice(1).replace(/\D+/g, '') : raw.replace(/\D+/g, '');
+        // Limit to maximum 11 digits
+        digits = digits.slice(0, 11);
+        const v = hasPlus ? '+' + digits : digits;
+        setAltFocalContact(v);
+        setContactError(validateContact(v));
     };
 
     const handleEmailChange = (value: string) => {
-        setAltFocalEmail(value);
-        setEmailError(validateEmail(value));
+        // Strip any leading/trailing spaces and internal accidental spaces
+        const v = value.replace(/\s+/g, '');
+        setAltFocalEmail(v);
+        setEmailError(validateEmail(v));
     };
 
     const [floodwaterRange, setFloodwaterRange] = useState("");

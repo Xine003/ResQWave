@@ -129,7 +129,8 @@ const ActivityLogModal = forwardRef<ActivityLogModalHandle, ActivityLogModalProp
     }
 
     // Fetch logs from backend
-    const fetchLogs = () => {
+    // notify: if true, will emit a dashboard saved-toast after successful refresh
+    const fetchLogs = (notify = false) => {
         setLoading(true);
         setError(null);
         apiFetch<{ lastUpdated?: string; days?: LogDay[] }>('/logs/own')
@@ -140,6 +141,15 @@ const ActivityLogModal = forwardRef<ActivityLogModalHandle, ActivityLogModalProp
                 // Set default expanded month/day
                 if (grouped.length > 0) setExpandedMonth([grouped[0].monthLabel]);
                 if (grouped[0]?.days?.length > 0) setExpandedDay([grouped[0].days[0].dayLabel]);
+
+                // Only notify when explicitly requested (e.g., user clicked Refresh)
+                if (notify && typeof window !== 'undefined') {
+                    try {
+                        window.dispatchEvent(new CustomEvent('dashboard:show-saved', { detail: { message: 'Refreshed successfully!', showViewLogs: false } }));
+                    } catch {
+                        // ignore if CustomEvent isn't available
+                    }
+                }
             })
             .catch((err) => setError(err.message || 'Failed to load logs'))
             .finally(() => setLoading(false));
@@ -152,7 +162,8 @@ const ActivityLogModal = forwardRef<ActivityLogModalHandle, ActivityLogModalProp
 
     // Expose refresh method to parent
     useImperativeHandle(ref, () => ({
-        refresh: fetchLogs,
+        // parent-invoked refresh should not show the toast by default
+        refresh: () => fetchLogs(false),
     }));
 
     // Filtered logs by search (date string)
@@ -171,12 +182,6 @@ const ActivityLogModal = forwardRef<ActivityLogModalHandle, ActivityLogModalProp
     }, [query, activityLogs]);
 
     if (!mounted) return null;
-    if (loading) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: '#bababa', fontSize: 18 }}>Loading activity logs...</div>
-    );
-    if (error) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: '#ff6b6b', fontSize: 18 }}>{error}</div>
-    );
 
 
     const baseStyle: React.CSSProperties = {
@@ -222,7 +227,7 @@ const ActivityLogModal = forwardRef<ActivityLogModalHandle, ActivityLogModalProp
                     {/* Exit and Refresh buttons */}
                     <div style={{ position: 'absolute', right: 35, top: 30, display: 'flex', gap: 20 }}>
                         <button
-                            onClick={fetchLogs}
+                            onClick={() => fetchLogs(true)}
                             aria-label="Refresh"
                             style={{
                                 background: 'transparent',
@@ -346,7 +351,11 @@ const ActivityLogModal = forwardRef<ActivityLogModalHandle, ActivityLogModalProp
                             paddingRight: 6,
                         }}
                     >
-                        {filteredLogs.length === 0 ? (
+                        {loading ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 36, gap: 12, color: '#cfcfcf' }}>Loading activity logs...</div>
+                        ) : error ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 36, gap: 12, color: '#ff6b6b' }}>{error}</div>
+                        ) : filteredLogs.length === 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 36, gap: 12, color: '#cfcfcf' }}>
                                 <svg width="36" height="36" fill="none" stroke="#8b8b8b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="18" r="16" /><line x1="32" y1="32" x2="25" y2="25" /></svg>
                                 <div style={{ fontWeight: 700, fontSize: 18, marginTop: 6, color: '#fff' }}>No activity logs</div>
