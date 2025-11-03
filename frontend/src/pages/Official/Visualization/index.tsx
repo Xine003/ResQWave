@@ -11,6 +11,7 @@ import MapControls from './components/MapControls';
 import RescueFormAlerts, { type RescueFormAlertsHandle } from './components/RescueFormAlerts';
 import RescueFormPreview from './components/RescueFormPreview';
 import SignalPopover from './components/SignalPopover';
+import SignalStatusLegend from './components/SignalStatusLegend';
 import { RescueWaitlistProvider, useRescueWaitlist, type WaitlistedRescueForm } from './contexts/RescueWaitlistContext';
 import useSignals from './hooks/useSignals';
 import { useWaitlistWebSocket } from './hooks/useWaitlistWebSocket';
@@ -562,6 +563,9 @@ function VisualizationContent() {
 
             {/* Rescue Form Alerts */}
             <RescueFormAlerts ref={rescueFormAlertsRef} />
+
+            {/* Signal Status Legend */}
+            <SignalStatusLegend />
         </div>
     );
 }
