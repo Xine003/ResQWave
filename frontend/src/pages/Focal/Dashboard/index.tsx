@@ -167,7 +167,7 @@ export default function Dashboard() {
                 setSavedMessage(msg);
                 setSavedShowViewLogs(showViewLogs);
                 setSavedTrigger(prev => (prev == null ? 1 : prev + 1));
-            } catch { /* ignore */ }
+            } catch (e) { /* ignore */ }
         };
         window.addEventListener('dashboard:show-saved', handler as EventListener);
         return () => window.removeEventListener('dashboard:show-saved', handler as EventListener);
