@@ -10,6 +10,9 @@ import { isAccountFormDirty, validatePassword } from '../utils/passwordUtils';
 
 export default function AccountSettingsModal({ open, onClose, onSaved, onSaveProfile, center = null, isDirtyRef = null }: AccountSettingsModalProps) {
     // Helper to refresh profile data from backend
+    const [refreshHover, setRefreshHover] = useState(false);
+    const [closeHover, setCloseHover] = useState(false);
+
     const refreshProfile = async () => {
         if (!focalId) {
             console.warn('[AccountSettingsModal] Cannot refresh: No focalId available');
@@ -38,25 +41,31 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                 email: data.email || '',
             }));
 
-            // Fetch photo as blob and create object URL using API_BASE_URL
+            // Fetch photo as blob and create object URL using API_BASE_URL (await so we can show toast reliably)
             const token = localStorage.getItem('focalToken') || localStorage.getItem('resqwave_token') || '';
             if (!token) {
                 console.warn('[AccountSettingsModal] No auth token for photo refresh');
                 setPhotoUrl(null);
                 setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
                 setPhotoFile(null);
+                // Notify dashboard to show bottom-left toast
+                try { window.dispatchEvent(new CustomEvent('dashboard:show-saved', { detail: { message: 'Refreshed successfully!', showViewLogs: false } })); } catch { }
                 return;
             }
 
-            fetch(`${API_BASE_URL}/focalperson/${focalId}/photo`, {
-                credentials: 'include',
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            })
-                .then(async (res) => {
-                    if (!res.ok) throw new Error('No photo');
-                    const blob = await res.blob();
+            try {
+                const resPhoto = await fetch(`${API_BASE_URL}/focalperson/${focalId}/photo`, {
+                    credentials: 'include',
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                if (!resPhoto.ok) {
+                    // No photo available
+                    setPhotoUrl(null);
+                    setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
+                } else {
+                    const blob = await resPhoto.blob();
                     if (blob.size > 0) {
                         const url = URL.createObjectURL(blob);
                         setPhotoUrl(url);
@@ -65,13 +74,17 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                         setPhotoUrl(null);
                         setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
                     }
-                })
-                .catch((err) => {
-                    console.error('[AccountSettingsModal] Failed to refresh photo:', err);
-                    setPhotoUrl(null);
-                    setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
-                });
+                }
+            } catch (err) {
+                console.error('[AccountSettingsModal] Failed to refresh photo:', err);
+                setPhotoUrl(null);
+                setInitialProfile((prev) => ({ ...prev, photoUrl: null }));
+            }
+
             setPhotoFile(null); // reset file input
+
+            // Notify dashboard to show bottom-left toast
+            try { window.dispatchEvent(new CustomEvent('dashboard:show-saved', { detail: { message: 'Refreshed successfully!', showViewLogs: false } })); } catch { }
         } catch (err) {
             console.error('[AccountSettingsModal] Failed to refresh profile:', err);
             // fallback to empty or previous state
@@ -576,14 +589,17 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                     <button
                         onClick={refreshProfile}
                         aria-label="Refresh"
+                        onMouseEnter={() => setRefreshHover(true)}
+                        onMouseLeave={() => setRefreshHover(false)}
                         style={{
                             background: 'transparent',
                             border: 'none',
-                            color: '#BABABA',
+                            color: refreshHover ? '#fff' : '#BABABA',
                             fontSize: 19,
                             cursor: 'pointer',
                             marginRight: 2,
                             transition: 'color 0.18s, transform 0.18s',
+                            transform: refreshHover ? 'scale(1.06) rotate(12deg)' : 'none',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -593,7 +609,24 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                     >
                         <RefreshCw size={17} />
                     </button>
-                    <button onClick={handleClose} aria-label="Close" style={{ background: 'transparent', border: 'none', color: '#BABABA', fontSize: 18, cursor: 'pointer', transition: 'color 0.18s, transform 0.18s' }}>✕</button>
+                    <button
+                        onClick={handleClose}
+                        aria-label="Close"
+                        onMouseEnter={() => setCloseHover(true)}
+                        onMouseLeave={() => setCloseHover(false)}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: closeHover ? '#fff' : '#BABABA',
+                            fontSize: 18,
+                            cursor: 'pointer',
+                            transition: 'color 0.18s, transform 0.18s',
+                            transform: closeHover ? 'scale(1.06)' : 'none'
+                        }}
+                    >✕</button>
+
+                    {/* Small inline toast shown after refresh */}
+                    {/* no inline toast here; dashboard will show the bottom-left toast */}
                 </div>
 
                 {/* Exit confirmation dialog */}
@@ -623,7 +656,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                             <h2 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: 0.6 }}>Profile Information</h2>
                         </div>
 
-                        <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', paddingRight: 6 }}>
+                        <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', paddingRight: 6, overflowY: 'auto', maxHeight: 'calc(96vh - 220px)' }}>
                             {/* Profile Image */}
                             <div className="flex flex-col items-center mb-8">
                                 <div className="relative flex flex-col items-center justify-center" style={{ width: 160, height: 160 }}>

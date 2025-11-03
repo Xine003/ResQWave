@@ -155,6 +155,23 @@ export default function Dashboard() {
     } | null>(null);
     const [savedTrigger, setSavedTrigger] = useState<number | null>(null);
     const [savedMessage, setSavedMessage] = useState<string | null>(null);
+    const [savedShowViewLogs, setSavedShowViewLogs] = useState<boolean>(true);
+
+    // Listen for dashboard-wide events (e.g., refresh from modal) to show bottom-left saved alert
+    useEffect(() => {
+        const handler = (ev: Event) => {
+            try {
+                const ce = ev as CustomEvent;
+                const msg = (ce.detail && ce.detail.message) ? String(ce.detail.message) : 'Refreshed successfully!';
+                const showViewLogs = (ce.detail && typeof ce.detail.showViewLogs !== 'undefined') ? Boolean(ce.detail.showViewLogs) : true;
+                setSavedMessage(msg);
+                setSavedShowViewLogs(showViewLogs);
+                setSavedTrigger(prev => (prev == null ? 1 : prev + 1));
+            } catch (e) { /* ignore */ }
+        };
+        window.addEventListener('dashboard:show-saved', handler as EventListener);
+        return () => window.removeEventListener('dashboard:show-saved', handler as EventListener);
+    }, []);
 
     // keep a ref to the latest popover so map event handlers inside the load callback
     // (which are attached once) can see the current value and update its screen coords
@@ -986,6 +1003,7 @@ export default function Dashboard() {
                 // show saved alert (bump trigger) when account password updated
                 setAccountSettingsOpen(false);
                 setSavedMessage('Password Updated Successfully!');
+                setSavedShowViewLogs(true);
                 setSavedTrigger(prev => (prev == null ? 1 : prev + 1));
                 // Refresh activity logs to show password change
                 if (activityLogRef.current) {
@@ -1048,7 +1066,7 @@ export default function Dashboard() {
 
             {/* Transient bottom-centered alert that slides up when editing community markers */}
             {/* centralized dashboard alerts (edit/valid/saved) */}
-            <DashboardAlerts ref={alertsRef} editBoundaryOpen={editBoundaryOpen} canSave={canSave} savedTrigger={savedTrigger} savedMessage={savedMessage} onViewLogs={() => console.log('View Logs clicked')} />
+            <DashboardAlerts ref={alertsRef} editBoundaryOpen={editBoundaryOpen} canSave={canSave} savedTrigger={savedTrigger} savedMessage={savedMessage} onViewLogs={() => console.log('View Logs clicked')} showViewLogs={savedShowViewLogs} />
 
         </div>
     );
