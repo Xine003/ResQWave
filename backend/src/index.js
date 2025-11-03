@@ -30,7 +30,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://resqwave.vercel.app/",
+      "https://resqwave.vercel.app",
       "https://resqwave-production.up.railway.app",
     ],
     credentials: true,
