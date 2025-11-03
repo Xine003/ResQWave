@@ -6,6 +6,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import { CommunityGroupInfoSheet } from '../CommunityGroups/components/CommunityGroupInfoSheet';
 
+import DistressSignalAlert, { type DistressSignalAlertHandle } from './components/DistressSignalAlert';
 import LiveReportSidebar from './components/LiveReportSidebar';
 import MapControls from './components/MapControls';
 import RescueFormAlerts, { type RescueFormAlertsHandle } from './components/RescueFormAlerts';
@@ -17,7 +18,7 @@ import useSignals from './hooks/useSignals';
 import { useWaitlistWebSocket } from './hooks/useWaitlistWebSocket';
 import type { Signal, VisualizationSignals } from './types/signals';
 import { cinematicMapEntrance, flyToSignal } from './utils/flyingEffects';
-import { addCustomLayers, createGeoJSONCircle, getPinColor, makeTooltip } from './utils/mapHelpers';
+import { addCustomLayers, createGeoJSONCircle, getPinColor, makeTooltip, stopPinPulse } from './utils/mapHelpers';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -33,6 +34,9 @@ function VisualizationContent() {
     // Rescue Form Alerts ref
     const rescueFormAlertsRef = useRef<RescueFormAlertsHandle>(null);
 
+    // Distress Signal Alert ref
+    const distressSignalAlertRef = useRef<DistressSignalAlertHandle>(null);
+
     // Rescue Form Alert Handlers
     const handleShowWaitlistAlert = (focalPerson: string) => {
         rescueFormAlertsRef.current?.showWaitlistSuccess(focalPerson);
@@ -47,7 +51,15 @@ function VisualizationContent() {
     };
 
     const handleShowDispatchConfirmation = (formData: unknown, onConfirm: () => void) => {
-        rescueFormAlertsRef.current?.showDispatchConfirmation(formData, onConfirm);
+        rescueFormAlertsRef.current?.showDispatchConfirmation(formData, () => {
+            // Remove the signal circle when dispatch is confirmed
+            const map = mapRef.current;
+            if (map) {
+                removeSignalCircle(map);
+            }
+            // Execute the original callback
+            onConfirm();
+        });
     };
 
     // Keep a ref to the latest sidebar state so map event handlers can see the current value
@@ -75,6 +87,42 @@ function VisualizationContent() {
 
     // Set up waitlist WebSocket for real-time removal
     useWaitlistWebSocket();
+
+    // Track previous distress signals to detect new ones
+    const previousDistressSignalsRef = useRef<Set<string>>(new Set());
+
+    // Detect new distress signals and show alert
+    useEffect(() => {
+        const currentDistressSignals = new Set<string>();
+        const newDistressSignals: Signal[] = [];
+
+        // Check all signals for critical and user-initiated types
+        [...otherSignals, ...(OwnCommunitySignal ? [OwnCommunitySignal] : [])].forEach(signal => {
+            if (signal.properties.alertType === 'CRITICAL' || signal.properties.alertType === 'USER-INITIATED') {
+                const signalId = signal.properties.alertId || signal.properties.deviceId || '';
+                currentDistressSignals.add(signalId);
+
+                // If this is a new distress signal (not in previous set)
+                if (!previousDistressSignalsRef.current.has(signalId) && signalId) {
+                    newDistressSignals.push(signal);
+                }
+            }
+        });
+
+        // Show alert for new distress signals
+        if (newDistressSignals.length > 0) {
+            // Show alert for the first new signal (you could modify to show multiple)
+            const signal = newDistressSignals[0];
+            distressSignalAlertRef.current?.showDistressAlert({
+                focalPerson: signal.properties.focalPerson,
+                alertType: signal.properties.alertType,
+                deviceId: signal.properties.deviceId
+            });
+        }
+
+        // Update previous signals set
+        previousDistressSignalsRef.current = currentDistressSignals;
+    }, [otherSignals, OwnCommunitySignal]);
 
     const distressCoord: [number, number] = getDistressCoord();
     const popoverRef = useRef<typeof popover>(popover);
@@ -304,7 +352,7 @@ function VisualizationContent() {
      * Setup all map interactions (clicks, hovers, popover updates)
      */
     const setupMapInteractions = (map: mapboxgl.Map) => {
-        const signalLayers = ["signal-pins"];
+        const signalLayers = ["signal-pins", "signal-pins-pulse"];
 
         // Signal pin interactions
         signalLayers.forEach((layerId) => {
@@ -377,6 +425,8 @@ function VisualizationContent() {
         });
 
         return () => {
+            // Stop pulse animation before removing map
+            stopPinPulse();
             mapRef.current = null;
             map.remove();
         };
@@ -389,7 +439,6 @@ function VisualizationContent() {
         if (map && map.isStyleLoaded() && otherSignals.length > 0) {
             addCustomLayers(map, otherSignals, OwnCommunitySignal);
         }
-
     }, [otherSignals, OwnCommunitySignal]);
 
     /**
@@ -563,6 +612,12 @@ function VisualizationContent() {
 
             {/* Rescue Form Alerts */}
             <RescueFormAlerts ref={rescueFormAlertsRef} />
+
+            {/* Distress Signal Alert */}
+            <DistressSignalAlert 
+                ref={distressSignalAlertRef}
+                onGoToLiveReport={() => setIsLiveReportOpen(true)}
+            />
 
             {/* Signal Status Legend */}
             <SignalStatusLegend />
