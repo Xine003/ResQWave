@@ -151,23 +151,31 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
 
     // Handle input changes with validation
     const handleFirstNameChange = (value: string) => {
-        setFirstName(value);
-        setFirstNameError(validateFirstName(value));
+        // Allow only letters and spaces (prevent numbers/symbols)
+        const sanitized = value.replace(/[^a-zA-Z\s]/g, '');
+        setFirstName(sanitized);
+        setFirstNameError(validateFirstName(sanitized));
     };
 
     const handleLastNameChange = (value: string) => {
-        setLastName(value);
-        setLastNameError(validateLastName(value));
+        // Allow only letters and spaces (prevent numbers/symbols)
+        const sanitized = value.replace(/[^a-zA-Z\s]/g, '');
+        setLastName(sanitized);
+        setLastNameError(validateLastName(sanitized));
     };
 
     const handlePhoneNumberChange = (value: string) => {
-        setPhoneNumber(value);
-        setPhoneError(validatePhoneNumber(value));
+        // Strip spaces and non-digit characters; keep digits only and limit to 11 digits
+        const v = value.replace(/\s+/g, '').replace(/\D+/g, '').slice(0, 11);
+        setPhoneNumber(v);
+        setPhoneError(validatePhoneNumber(v));
     };
 
     const handleEmailChange = (value: string) => {
-        setEmail(value);
-        setEmailError(validateEmailAddress(value));
+        // Remove accidental spaces from email input
+        const v = value.replace(/\s+/g, '');
+        setEmail(v);
+        setEmailError(validateEmailAddress(v));
     };
 
     // Profile picture validation
