@@ -2,7 +2,7 @@ const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 const transporter = nodemailer.createTransport({
-  service: "gmail", // or "hotmail", "yahoo", "outlook"
+  service: "smtp.gmail.com", // or "hotmail", "yahoo", "outlook"
   port: 587,
   secure: false, // true for 465, false for other ports
   auth: {
