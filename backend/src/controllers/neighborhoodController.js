@@ -22,7 +22,7 @@ const uploadAltFocalPhoto = async (req, res) => {
     // Log the photo change
     const actorID = req.user?.focalPersonID || req.user?.id || neighborhood.focalPersonID || null;
     const actorRole = req.user?.role || "FocalPerson";
-    
+
     await addLogs({
       entityType: "FocalPerson",
       entityID: neighborhood.focalPersonID,
@@ -85,7 +85,7 @@ const deleteAltFocalPhoto = async (req, res) => {
       // Log the photo deletion
       const actorID = req.user?.focalPersonID || req.user?.id || neighborhood.focalPersonID || null;
       const actorRole = req.user?.role || "FocalPerson";
-      
+
       await addLogs({
         entityType: "FocalPerson",
         entityID: neighborhood.focalPersonID,

@@ -471,16 +471,21 @@ const ActivityLogModal = forwardRef<ActivityLogModalHandle, ActivityLogModalProp
                                                                             }}
                                                                         >
                                                                             {action.fields.map((field: LogField, fidx: number) => {
-                                                                                // Helper function to check if value is an array
+                                                                                // Helper function to check if value is an array or comma-separated string
                                                                                 const parseArrayValue = (value: string) => {
                                                                                     if (!value) return null;
+                                                                                    // Try parsing as JSON array first
                                                                                     try {
                                                                                         const parsed = JSON.parse(value);
                                                                                         if (Array.isArray(parsed)) {
                                                                                             return parsed;
                                                                                         }
                                                                                     } catch {
-                                                                                        // Not JSON, return null
+                                                                                        // Not JSON, check if it's comma-separated
+                                                                                    }
+                                                                                    // Check if it contains commas (likely comma-separated list)
+                                                                                    if (value.includes(',')) {
+                                                                                        return value.split(',').map(item => item.trim()).filter(Boolean);
                                                                                     }
                                                                                     return null;
                                                                                 };

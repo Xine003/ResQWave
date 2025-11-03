@@ -876,7 +876,7 @@ export default function AccountSettingsModal({ open, onClose, onSaved, onSavePro
                                                     });
                                                     // Handle photo deletion or update
                                                     let photoUpdated = false;
-                                                    
+
                                                     // If photo was deleted and no new file, send DELETE request
                                                     if (photoDeleted && !photoFile) {
                                                         await fetch(`${API_BASE_URL}/focalperson/${focalId}/photo`, {
