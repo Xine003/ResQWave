@@ -195,8 +195,9 @@ export function animatePinPulse(map: mapboxgl.Map): void {
         try {
             map.setPaintProperty('signal-pins-pulse', 'circle-radius', pulseRadius);
             map.setPaintProperty('signal-pins-pulse', 'circle-opacity', pulseOpacity);
-        } catch (error) {
+        } catch (_error) {
             // Layer might have been removed, stop animation
+            console.error('Error updating pulse animation:', _error);
             pulseAnimationFrame = null;
             return;
         }
