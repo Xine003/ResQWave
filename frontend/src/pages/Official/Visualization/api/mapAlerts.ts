@@ -18,10 +18,10 @@ export interface MapAlertResponse {
 
 // Parsed signal data for map display
 export interface MapSignal {
-    alertId: string;
+    alertId: string; // Can be empty if no active alert
     deviceId: string;
     deviceName: string;
-    alertType: string;
+    alertType: string; // Can be empty if no active alert
     alertStatus?: string; // Added for dispatched status
     terminalStatus: 'Online' | 'Offline';
     timeSent: string;
@@ -33,36 +33,53 @@ export interface MapSignal {
 
 /**
  * Parse coordinates from JSON address format
- * Format: {"address":"...","coordinates":"lng, lat"}
+ * Supports multiple formats:
+ * 1. {"lat": 14.77, "lng": 121.04, "address": "..."}
+ * 2. {"address":"...","coordinates":"lng, lat"}
  */
 export function parseCoordinates(addressJson: string): [number, number] | null {
     if (!addressJson) return null;
 
     try {
         const parsed = JSON.parse(addressJson);
+
+        // Format 1: Direct lat/lng properties (backend format)
+        if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
+            console.log('[parseCoordinates] Using lat/lng format:', [parsed.lng, parsed.lat]);
+            return [parsed.lng, parsed.lat]; // Return as [lng, lat] for Mapbox
+        }
+
+        // Format 2: Coordinates string
         if (parsed && parsed.coordinates) {
             const coords = parsed.coordinates.split(',').map((s: string) => parseFloat(s.trim()));
             if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+                console.log('[parseCoordinates] Using coordinates string format:', coords);
                 return [coords[0], coords[1]];
             }
         }
-    } catch {
+    } catch (err) {
+        console.warn('[parseCoordinates] JSON parsing failed, trying regex fallback:', err);
         // Parsing failed, try regex fallback
         const match = addressJson.match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
         if (match) {
             const first = parseFloat(match[1]);
             const second = parseFloat(match[2]);
             if (!isNaN(first) && !isNaN(second)) {
+                console.log('[parseCoordinates] Using regex fallback:', [first, second]);
                 return [first, second];
             }
         }
     }
 
+    console.warn('[parseCoordinates] Failed to parse coordinates from:', addressJson);
     return null;
 }
 
 /**
  * Extract readable address from JSON format
+ * Supports multiple formats:
+ * 1. {"lat": 14.77, "lng": 121.04, "address": "..."}
+ * 2. {"address":"...","coordinates":"lng, lat"}
  */
 export function extractAddress(addressJson: string): string {
     if (!addressJson) return 'N/A';
@@ -103,14 +120,17 @@ export function formatTime(timestamp: string): string {
 export function transformToMapSignal(alert: MapAlertResponse): MapSignal | null {
     const coordinates = parseCoordinates(alert.focalAddress);
 
-    if (!coordinates) return null;
+    if (!coordinates) {
+        console.warn('[transformToMapSignal] Skipping signal - no valid coordinates:', alert);
+        return null;
+    }
 
-    return {
-        alertId: alert.alertId,
+    const signal: MapSignal = {
+        alertId: alert.alertId || '', // Empty string if no alert
         deviceId: alert.terminalId,
         deviceName: alert.terminalName || 'N/A',
-        alertType: alert.alertType,
-        alertStatus: alert.alertStatus, // Include alert status (Dispatched, etc.)
+        alertType: alert.alertType || '', // Empty if no active alert
+        alertStatus: alert.alertStatus || '', // Include alert status (Dispatched, etc.)
         terminalStatus: alert.terminalStatus,
         timeSent: formatTime(alert.timeSent),
         focalPerson: `${alert.focalFirstName} ${alert.focalLastName}`.trim(),
@@ -118,6 +138,9 @@ export function transformToMapSignal(alert: MapAlertResponse): MapSignal | null 
         contactNumber: alert.focalContactNumber || 'N/A',
         coordinates
     };
+
+    console.log('[transformToMapSignal] Transformed signal:', signal);
+    return signal;
 }
 
 /**
@@ -162,7 +185,15 @@ export async function fetchAllMapAlerts(): Promise<MapSignal[]> {
             fetchWaitlistedMapAlerts()
         ]);
 
-        return [...unassigned, ...waitlisted];
+        const allAlerts = [...unassigned, ...waitlisted];
+        console.log('[MAP API] Fetched alerts:', {
+            unassigned: unassigned.length,
+            waitlisted: waitlisted.length,
+            total: allAlerts.length,
+            alerts: allAlerts
+        });
+
+        return allAlerts;
     } catch (error) {
         console.error('[MAP] Error fetching all alerts:', error);
         throw error;
