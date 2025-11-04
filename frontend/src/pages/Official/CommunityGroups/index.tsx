@@ -437,10 +437,7 @@ export function CommunityGroups() {
                     if (editingGroup) {
                       alertsRef.current?.showUpdateSuccess(saveInfo.groupName)
                     } else {
-                      alertsRef.current?.showCreateSuccess(
-                        saveInfo.groupName,
-                        saveInfo.generatedPassword
-                      )
+                      alertsRef.current?.showCreateSuccess(saveInfo.groupName)
                     }
                   }
 
