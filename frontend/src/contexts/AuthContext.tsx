@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [navigate])
 
   // Validate token ONLY ONCE on mount
+   
   useEffect(() => {
     const validateToken = async () => {
       // Skip token validation for focal routes (they have their own auth system)
@@ -109,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     validateToken()
-  }, []) // Remove location dependency - only run ONCE on mount
+  }, [location.pathname, navigate]) // Include dependencies to satisfy ESLint
 
   // Step 1: Unified login (both admin and dispatcher with 2FA)
   const login = async (id: string, password: string): Promise<boolean> => {
