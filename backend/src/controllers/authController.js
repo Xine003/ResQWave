@@ -141,7 +141,7 @@ const focalLogin = async (req, res) => {
 
     // Send OTP using Brevo
     try {
-      const sender = { email: 'rielkai@gmail.com', name: 'ResQWave' }; 
+      const sender = { email: 'rielkai01@gmail.com', name: 'ResQWave' }; 
       const receivers = [{ email: focal.email }];
 
       await tranEmailApi.sendTransacEmail({
@@ -223,20 +223,6 @@ const focalLogin = async (req, res) => {
     const code = crypto.randomInt(100000, 999999).toString();
     const expiry = new Date(Date.now() + 5 * 60 * 1000);
     await loginVerificationRepo.save({ userID: user.id, userType: role, code, expiry });
-
-    // Send email
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      tls: { rejectUnauthorized: false }
-    });
-
-    await transporter.sendMail({
-      from: `"ResQWave" <${process.env.EMAIL_USER}>`,
-      to: recipientEmail,
-      subject: "ResQWave Login Verification Code",
-      text: `Your verification code is ${code}. It expires in 5 minutes.`,
-    });
 
     console.log(` 2FA code: ${code}`);
 
