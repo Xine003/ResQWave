@@ -33,6 +33,7 @@ const createFocalPerson = async (req, res) => {
             address,
             altFirstName,
             altLastName,
+            altEmail,
             altContactNumber,
             noOfHouseholds,
             noOfResidents,
