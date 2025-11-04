@@ -39,8 +39,9 @@ export async function updateNeighborhood(
   }) as { message: string }
 
   // Get the neighborhood details to get the focal person ID
-  const neighborhoodDetails = await getNeighborhoodDetails(id) as any
-  const focalPersonId = neighborhoodDetails.focalPerson?.id
+  const neighborhoodDetails = await getNeighborhoodDetails(id) as Record<string, unknown>
+  const focalPersonData = neighborhoodDetails.focalPerson as Record<string, unknown> | null
+  const focalPersonId = focalPersonData?.id as string
 
   if (!focalPersonId) {
     throw new Error('Focal person not found for this neighborhood')

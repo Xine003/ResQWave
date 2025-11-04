@@ -1,6 +1,6 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { UserCheck, UserX } from "lucide-react"
+import { UserCheck, UserPlus, UserX } from "lucide-react"
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
 
 export type DispatcherAlertsHandle = {
@@ -170,7 +170,23 @@ export default forwardRef<DispatcherAlertsHandle>(function DispatcherAlerts(_pro
 	return (
 		<>
 			{/* Create Success Alert - Bottom Left */}
-			
+			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showCreate ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>
+				<Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+					<div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-green-600/25">
+						<UserPlus className="size-5 text-[#22c55e]" />
+					</div>
+					<AlertDescription className="text-[13px] leading-tight">
+						<div>{createMessage}</div>
+						{showTempPassword && (
+							<div className="mt-2 p-2 bg-blue-600/20 rounded border border-blue-600/30">
+								<div className="text-[12px] text-blue-200 mb-1">Temporary Password:</div>
+								<div className="font-mono text-[13px] text-blue-100 font-semibold">{tempPassword}</div>
+								<div className="text-[11px] text-blue-300 mt-1">Please save this and share with the dispatcher.</div>
+							</div>
+						)}
+					</AlertDescription>
+				</Alert>
+			</div>
 
 			{/* Update Success Alert - Bottom Left */}
 			<div className={`fixed left-[85px] bottom-[30px] z-50 transition-all duration-300 ease-out ${showUpdate ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}>

@@ -1,8 +1,12 @@
 // src/lib/api.ts
 // Utility for making API requests to the backend using the VITE_BACKEND_URL env variable
 
-
 export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+
+// Extended Error interface for API errors with response data
+interface ApiError extends Error {
+  response?: unknown;
+}
 
 // Global logout handler for 401/403 errors
 let logoutCallback: (() => void) | null = null;
@@ -103,7 +107,7 @@ export async function apiFetch<T = unknown>(
     const error = new Error(errorMessage);
     // Add the full error response as a property for more detailed error handling
     if (errorResponse) {
-      (error as any).response = errorResponse;
+      (error as ApiError).response = errorResponse;
     }
     throw error;
   }
