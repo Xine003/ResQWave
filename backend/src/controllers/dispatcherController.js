@@ -6,11 +6,12 @@ const {
     setCache,
     deleteCache
 } = require("../config/cache");
+const { generateTemporaryPassword, sendTemporaryPasswordEmail } = require("../utils/passwordUtils");
 
 // CREATE Dispatcher
 const createDispatcher = async (req, res) => {
     try {
-        const { name, email, contactNumber, password } = req.body;
+        const { name, email, contactNumber } = req.body;
         const photoFile = req.file || req.files?.photo?.[0];
 
         // Check if the email exists
@@ -39,8 +40,8 @@ const createDispatcher = async (req, res) => {
 
         const newID = "DSP" + String(newNumber).padStart(3, "0");
 
-        // Default password is Dispatcher ID when not provided
-        const plainPassword = password || newID;
+        // Generate Secure Temporary Password
+        const plainPassword = generateTemporaryPassword();
 
         // Hash Password
         const hashedPassword = await bcrypt.hash(plainPassword, 10);
@@ -61,13 +62,16 @@ const createDispatcher = async (req, res) => {
         await deleteCache("dispatchers:active");
         await deleteCache("dispatcher:archived");
 
-        // Return temporary password only when defaulted to ID
-        const responseBody = { message: "Dispatcher Created" };
-        if (!password) {
-            responseBody.temporaryPassword = plainPassword;
-        }
+        // Send Email (Fire and Forget)
+        sendTemporaryPasswordEmail({
+            to: email,
+            name: name,
+            password: plainPassword
+        }).catch(err => {
+            console.error(`Failed to send password email to ${email}:`, err);
+        });
 
-        res.status(201).json(responseBody);
+        res.status(201).json({ message: "Dispatcher Created. Password sent to email." });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server Error - CREATE Dispatcher" });

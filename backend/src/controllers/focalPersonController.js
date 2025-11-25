@@ -1,5 +1,7 @@
 const { AppDataSource } = require("../config/dataSource");
 const bcrypt = require("bcrypt");
+const { generateTemporaryPassword, sendTemporaryPasswordEmail } = require("../utils/passwordUtils");
+
 const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 const {
     getCache,
@@ -63,7 +65,6 @@ const createFocalPerson = async (req, res) => {
             lastName,
             email,
             contactNumber,
-            password,
             address,
             altFirstName,
             altLastName,
@@ -90,6 +91,8 @@ const createFocalPerson = async (req, res) => {
         if (terminal.archived) {
             return res.status(400).json({ message: "Terminal is Archived and cannot be used" });
         }
+
+        const originalTerminalAvailability = terminal.availability || "Available";
 
         // Uniqueness checks (email/contact must not exist anywhere in focal persons)
         // 1) Primary email
@@ -142,9 +145,9 @@ const createFocalPerson = async (req, res) => {
         }
         const newFocalID = PREFIX + String(newFocalNum).padStart(3, "0");
 
-        // Default password if not provided
-        const plainPassword = password || newFocalID;
-        const hashedPassword = await bcrypt.hash(plainPassword, 10);
+        // Generate secure temporary password that meets policy
+        const tempPassword = generateTemporaryPassword();
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
         // Handle file uploads
         const files = req.files || {};
@@ -268,13 +271,31 @@ const createFocalPerson = async (req, res) => {
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
 
+        try {
+            await sendTemporaryPasswordEmail({
+                to: email,
+                name: [firstName, lastName].filter(Boolean).join(" "),
+                password: tempPassword,
+            });
+        } catch (emailErr) {
+            console.error('[FocalPerson] Failed sending temporary password via Brevo:', emailErr);
+            await neighborhoodRepo.delete({ id: newNeighborhoodID });
+            await focalPersonRepo.delete({ id: newFocalID });
+            await terminalRepo.update({ id: terminalID }, { availability: originalTerminalAvailability });
+            await deleteCache("focalPersons:all");
+            await deleteCache("neighborhoods:all");
+            await deleteCache(`terminal:${terminalID}`);
+            await deleteCache("terminals:active");
+            await deleteCache("onlineTerminals");
+            await deleteCache("offlineTerminals");
+            return res.status(500).json({ message: "Failed to send temporary password email. Please try again." });
+        }
+
         const response = {
-            message: "Focal Person and Neighborhood Created",
+            message: "Focal Person and Neighborhood Created. Temporary password emailed.",
             newFocalID,
             newNeighborhoodID,
         };
-
-        if (!password) response.generatedPassword = plainPassword;
 
         return res.status(201).json(response);
     } catch (err) {

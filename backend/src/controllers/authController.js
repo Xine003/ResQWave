@@ -174,65 +174,6 @@ const focalLogin = async (req, res) => {
     // Explicitly indicate OTP was sent so the frontend can safely navigate
     res.json({ message: "Verification Send to Email", tempToken: focalTempToken, otpSent: true, locked, lockUntil });
 
-    // If not admin, try Dispatcher
-    if (!user) {
-      const dispatcher = await dispatcherRepo.findOne({
-        where: [{ email: identifier }, { contactNumber: identifier }],
-      });
-
-      if (dispatcher) {
-        // Check if locked
-        if (dispatcher.lockUntil && dispatcher.lockUntil > new Date()) {
-          const remaining = Math.ceil((dispatcher.lockUntil - new Date()) / 60000);
-          return res.status(403).json({ message: `Account Locked. Try again in ${remaining} Minutes` });
-        }
-
-        const isMatch = await bcrypt.compare(password, dispatcher.password || "");
-        if (!isMatch) {
-          dispatcher.failedAttempts = (dispatcher.failedAttempts || 0) + 1;
-
-          if (dispatcher.failedAttempts >= 5) {
-            dispatcher.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
-            await dispatcherRepo.save(dispatcher);
-            return res.status(403).json({ message: "Too Many Failed Attempts" });
-          }
-
-          await dispatcherRepo.save(dispatcher);
-          return res.status(400).json({ message: `Invalid Credentials. Attempts left: ${dispatcher.failedAttempts}/5` });
-        }
-
-        // Reset Attempts on Success
-        dispatcher.failedAttempts = 0;
-        dispatcher.lockUntil = null;
-        await dispatcherRepo.save(dispatcher);
-
-        role = "dispatcher";
-        user = dispatcher;
-        recipientEmail = dispatcher.email;
-      }
-    }
-
-    if (!user) {
-      return res.status(400).json({ message: "Invalid Credentials" });
-    }
-
-    // Clean previous OTPs for this user
-    await loginVerificationRepo.delete({ userID: user.id, userType: role });
-
-    // Generate and save OTP
-    const code = crypto.randomInt(100000, 999999).toString();
-    const expiry = new Date(Date.now() + 5 * 60 * 1000);
-    await loginVerificationRepo.save({ userID: user.id, userType: role, code, expiry });
-
-    console.log(` 2FA code: ${code}`);
-
-    const tempToken = jwt.sign(
-      { id: user.id, role, step: "2fa" },
-      process.env.JWT_SECRET,
-      { expiresIn: "5m" }
-    );
-
-    return res.json({ message: "Verification code sent", tempToken });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server Error - LOGIN 2FA" });
@@ -301,19 +242,19 @@ const verifyFocalLogin = async (req, res) => {
 
 const adminDispatcherLogin = async (req, res) => {
   try {
-    const { emailOrNumber, password } = (req.body || {});
-    const identifier = String(emailOrNumber || "").trim();
+    const { userID, password } = (req.body || {});
+    const identifier = String(userID || "").trim();
 
     if (!identifier || !password) {
-      return res.status(400).json({ message: "Username and password are required" });
+      return res.status(400).json({ message: "UserID and password are required" });
     }
 
     let role = null;
     let user = null;
     let recipientEmail = null;
 
-    // Try Admin by name (admin enters their name into emailOrNumber)
-    const admin = await adminRepo.findOne({ where: { name: identifier } });
+    // Try Admin by ID
+    const admin = await adminRepo.findOne({ where: { id: identifier } });
     if (admin) {
       // Check if locked
       if (admin.lockUntil && new Date(admin.lockUntil) > new Date()) {
@@ -342,7 +283,7 @@ const adminDispatcherLogin = async (req, res) => {
 
     // If not admin, try Dispatcher
     if (!user) {
-      const dispatcher = await dispatcherRepo.findOne({ where: [{ email: identifier }, { contactNumber: identifier }] });
+      const dispatcher = await dispatcherRepo.findOne({ where: { id: identifier } });
       if (dispatcher) {
         // Check if locked
         if (dispatcher.lockUntil && new Date(dispatcher.lockUntil) > new Date()) {
@@ -420,6 +361,7 @@ const adminDispatcherLogin = async (req, res) => {
     return res.status(500).json({ message: "Server Error - LOGIN 2FA" });
   }
 };
+
 // COMBINED 2FA VERIFY (Admin | Dispatcher)
 const adminDispatcherVerify = async (req, res) => {
   try {
