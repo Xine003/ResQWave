@@ -164,7 +164,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'reports',
-            element: <Reports />
+            element: (
+              <ProtectedRoute adminOnly={true}>
+                <Reports />
+              </ProtectedRoute>
+            )
           },
           {
             path: 'community-groups',
