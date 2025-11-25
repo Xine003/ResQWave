@@ -1,8 +1,8 @@
 import type {
-  LoginRequest,
-  UnifiedLoginResponse,
-  UnifiedVerificationRequest,
-  VerificationResponse
+    LoginRequest,
+    UnifiedLoginResponse,
+    UnifiedVerificationRequest,
+    VerificationResponse
 } from './types';
 import { ApiException } from './types';
 
@@ -51,7 +51,7 @@ export async function unifiedLogin(loginData: LoginRequest): Promise<UnifiedLogi
   return apiRequest<UnifiedLoginResponse>('/login', {
     method: 'POST',
     body: JSON.stringify({
-      emailOrNumber: loginData.ID,  // Can be admin name or dispatcher email/number
+      userID: loginData.ID,  // Admin ID or Dispatcher ID
       password: loginData.password
     }),
   })
@@ -70,7 +70,7 @@ export async function loginDispatcher(loginData: LoginRequest): Promise<Verifica
   return apiRequest<VerificationResponse>('/dispatcher/login', {
     method: 'POST',
     body: JSON.stringify({
-      emailOrNumber: loginData.ID,
+      userID: loginData.ID,
       password: loginData.password
     }),
   })

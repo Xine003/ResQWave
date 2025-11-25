@@ -119,7 +119,7 @@ export function LoginOfficial() {
             className="block text-white text-[15px] font-light"
             style={window.innerWidth <= 480 ? { fontSize: '0.85rem' } : {}}
           >
-            Email
+            ID
           </label>
           <Input
             type="text"

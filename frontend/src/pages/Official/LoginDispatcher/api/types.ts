@@ -1,6 +1,6 @@
 // API Types for Dispatcher/Admin Login
 export interface LoginRequest {
-  ID: string
+  ID: string  // Admin ID or Dispatcher ID
   password: string
 }
 
