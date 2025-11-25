@@ -12,46 +12,12 @@ interface Message {
     timestamp: Date;
 }
 
-const predefinedConversation: Message[] = [
-    {
-        id: 1,
-        text: "Hi there! I'm ResQWave Assistant. How can I help you today?",
-        sender: "bot",
-        timestamp: new Date(Date.now() - 60000),
-    },
-    {
-        id: 2,
-        text: "What is ResQWave?",
-        sender: "user",
-        timestamp: new Date(Date.now() - 50000),
-    },
-    {
-        id: 3,
-        text: "ResQWave is a LoRa-powered emergency communication system designed to help communities send SOS alerts, share updates, and guide rescuers during flood events. Our terminals work even when cellular networks fail.",
-        sender: "bot",
-        timestamp: new Date(Date.now() - 45000),
-    },
-    {
-        id: 4,
-        text: "How does it work during floods?",
-        sender: "user",
-        timestamp: new Date(Date.now() - 35000),
-    },
-    {
-        id: 5,
-        text: "During floods, communities can use ResQWave terminals to send distress signals via LoRa technology, which has a long range and doesn't rely on internet or cellular networks. The signals are received by our system and immediately dispatched to rescue teams.",
-        sender: "bot",
-        timestamp: new Date(Date.now() - 30000),
-    },
-];
-
 export function ChatbotConvo() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const conversationIndexRef = useRef(0);
 
     // Auto-scroll to bottom when new messages arrive
     const scrollToBottom = () => {
@@ -62,36 +28,26 @@ export function ChatbotConvo() {
         scrollToBottom();
     }, [messages]);
 
-    // Simulate the predefined conversation when chat opens
+    // Show initial greeting when chat opens
     useEffect(() => {
-        if (!isOpen || conversationIndexRef.current > 0) return;
+        if (!isOpen || messages.length > 0) return;
 
-        const displayNextMessage = () => {
-            if (conversationIndexRef.current < predefinedConversation.length) {
-                const currentMessage = predefinedConversation[conversationIndexRef.current];
+        const showGreeting = setTimeout(() => {
+            setIsTyping(true);
+            setTimeout(() => {
+                const greetingMessage: Message = {
+                    id: 1,
+                    text: "Hi there! I'm ResQWave Assistant. How can I help you today?",
+                    sender: "bot",
+                    timestamp: new Date(),
+                };
+                setMessages([greetingMessage]);
+                setIsTyping(false);
+            }, 1000);
+        }, 500);
 
-                if (currentMessage.sender === "bot") {
-                    setIsTyping(true);
-                }
-
-                setTimeout(() => {
-                    setMessages((prev) => [...prev, currentMessage]);
-                    setIsTyping(false);
-                    conversationIndexRef.current += 1;
-
-                    // Continue to next message
-                    if (conversationIndexRef.current < predefinedConversation.length) {
-                        setTimeout(displayNextMessage, 1500);
-                    }
-                }, currentMessage.sender === "bot" ? 1000 : 500);
-            }
-        };
-
-        // Start the conversation after a short delay
-        const initialTimeout = setTimeout(displayNextMessage, 500);
-
-        return () => clearTimeout(initialTimeout);
-    }, [isOpen]);
+        return () => clearTimeout(showGreeting);
+    }, [isOpen, messages.length]);
 
     const handleSendMessage = async () => {
         if (inputValue.trim() === "") return;
@@ -234,8 +190,8 @@ Answer the following question helpfully and concisely (2-3 sentences max): ${use
                                 >
                                     <div
                                         className={`max-w-[80%] rounded-2xl px-3 py-2 ${message.sender === "user"
-                                                ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white"
-                                                : "bg-gray-700/50 text-gray-100"
+                                            ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white"
+                                            : "bg-gray-700/50 text-gray-100"
                                             }`}
                                         style={{
                                             boxShadow:
@@ -247,8 +203,8 @@ Answer the following question helpfully and concisely (2-3 sentences max): ${use
                                         <p className="text-sm leading-relaxed">{message.text}</p>
                                         <p
                                             className={`text-xs mt-1 ${message.sender === "user"
-                                                    ? "text-blue-100"
-                                                    : "text-gray-400"
+                                                ? "text-blue-100"
+                                                : "text-gray-400"
                                                 }`}
                                         >
                                             {message.timestamp.toLocaleTimeString([], {
