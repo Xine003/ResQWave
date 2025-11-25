@@ -301,19 +301,19 @@ const verifyFocalLogin = async (req, res) => {
 
 const adminDispatcherLogin = async (req, res) => {
   try {
-    const { emailOrNumber, password } = (req.body || {});
-    const identifier = String(emailOrNumber || "").trim();
+    const { userID, password } = (req.body || {});
+    const identifier = String(userID || "").trim();
 
     if (!identifier || !password) {
-      return res.status(400).json({ message: "Username and password are required" });
+      return res.status(400).json({ message: "UserID and password are required" });
     }
 
     let role = null;
     let user = null;
     let recipientEmail = null;
 
-    // Try Admin by name (admin enters their name into emailOrNumber)
-    const admin = await adminRepo.findOne({ where: { name: identifier } });
+    // Try Admin by ID
+    const admin = await adminRepo.findOne({ where: { id: identifier } });
     if (admin) {
       // Check if locked
       if (admin.lockUntil && new Date(admin.lockUntil) > new Date()) {
@@ -342,7 +342,7 @@ const adminDispatcherLogin = async (req, res) => {
 
     // If not admin, try Dispatcher
     if (!user) {
-      const dispatcher = await dispatcherRepo.findOne({ where: [{ email: identifier }, { contactNumber: identifier }] });
+      const dispatcher = await dispatcherRepo.findOne({ where: { id: identifier } });
       if (dispatcher) {
         // Check if locked
         if (dispatcher.lockUntil && new Date(dispatcher.lockUntil) > new Date()) {
@@ -420,6 +420,7 @@ const adminDispatcherLogin = async (req, res) => {
     return res.status(500).json({ message: "Server Error - LOGIN 2FA" });
   }
 };
+
 // COMBINED 2FA VERIFY (Admin | Dispatcher)
 const adminDispatcherVerify = async (req, res) => {
   try {
