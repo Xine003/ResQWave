@@ -245,8 +245,6 @@ export function Dispatchers() {
           email?: string
           contactNumber?: string
           password?: string
-          photo?: File
-          removePhoto?: boolean
         } = {
           name: formData.name,
           email: formData.email,
@@ -256,14 +254,6 @@ export function Dispatchers() {
         // Only include password if provided (for editing, password is optional)
         if (formData.password && formData.password.trim()) {
           updateData.password = formData.password
-        }
-
-        // Handle photo updates
-        if (formData.photo) {
-          updateData.photo = formData.photo
-        } else if (dispatcherData.photo === null || dispatcherData.photo === undefined) {
-          // If no photo in dispatcherData, it means the photo was removed
-          updateData.removePhoto = true
         }
 
         await updateDispatcherById(editingDispatcher.id, updateData)
@@ -286,7 +276,6 @@ export function Dispatchers() {
           email: formData.email,
           contactNumber: formData.contactNumber,
           password: formData.password, // Pass the password if provided
-          photo: formData.photo
         })
 
         // Show success alert with or without temporary password

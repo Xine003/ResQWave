@@ -25,6 +25,9 @@ export function LoginOfficial() {
 
       if (success) {
         setIsLoading(false)
+        // Set OTP expiry to 5 minutes from now
+        const expiry = Date.now() + 5 * 60 * 1000;
+        sessionStorage.setItem('officialOtpExpiry', expiry.toString());
         // Both admin and dispatcher need 2FA - go to verification
         navigate("/verification-official")
       } else {

@@ -2,13 +2,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Eye, EyeOff, RefreshCcw, Trash, Upload } from "lucide-react"
-import { useCallback, useEffect, useState, useMemo } from "react"
+import { Eye, EyeOff } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import type { DispatcherDetails, DispatcherFormData } from "../types"
 import { CloseCreateDialog } from "./CloseCreateDialog"
 
 interface FormData {
-  photo: File | null
   firstName: string
   lastName: string
   contactNumber: string
@@ -49,7 +48,6 @@ export function CreateDispatcherSheet({
   onClearServerError
 }: DispatcherDrawerProps) {
   const [formData, setFormData] = useState<FormData>({
-    photo: null,
     firstName: "",
     lastName: "",
     contactNumber: "",
@@ -59,7 +57,6 @@ export function CreateDispatcherSheet({
   })
 
   const [localErrors, setLocalErrors] = useState<FormErrors>({})
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -144,7 +141,6 @@ export function CreateDispatcherSheet({
       const lastName = nameParts.slice(1).join(" ") || ""
 
       setFormData({
-        photo: null,
         firstName,
         lastName,
         contactNumber: editData.contactNumber,
@@ -152,8 +148,6 @@ export function CreateDispatcherSheet({
         password: "",
         confirmPassword: "",
       })
-      // Set existing photo as preview
-      setPhotoPreview(editData.photo || null)
       setLocalErrors({})
       setIsDirty(false)
       setShowPassword(false)
@@ -161,7 +155,6 @@ export function CreateDispatcherSheet({
     } else if (open && !isEditing) {
       // Reset for new dispatcher
       setFormData({
-        photo: null,
         firstName: "",
         lastName: "",
         contactNumber: "",
@@ -169,7 +162,6 @@ export function CreateDispatcherSheet({
         password: "",
         confirmPassword: "",
       })
-      setPhotoPreview(null)
       setLocalErrors({})
       setIsDirty(false)
       setShowPassword(false)
@@ -234,7 +226,7 @@ export function CreateDispatcherSheet({
     }
   }, [localErrors.contactNumber, serverErrors.contactNumber, onClearServerError, validateContactNumber])
 
-  const handleInputChange = useCallback((field: keyof FormData, value: string | File | null) => {
+  const handleInputChange = useCallback((field: keyof FormData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -254,10 +246,10 @@ export function CreateDispatcherSheet({
     }
 
     // Real-time validation for specific fields
-    if (field === 'email' && typeof value === 'string') {
+    if (field === 'email') {
       const error = validateEmail(value)
       setLocalErrors(prev => ({ ...prev, email: error }))
-    } else if (field === 'password' && typeof value === 'string') {
+    } else if (field === 'password') {
       const error = validatePassword(value)
       setLocalErrors(prev => ({ ...prev, password: error }))
       // Also revalidate confirm password if it exists
@@ -265,66 +257,13 @@ export function CreateDispatcherSheet({
         const confirmError = validateConfirmPassword(formData.confirmPassword, value)
         setLocalErrors(prev => ({ ...prev, confirmPassword: confirmError }))
       }
-    } else if (field === 'confirmPassword' && typeof value === 'string') {
+    } else if (field === 'confirmPassword') {
       const error = validateConfirmPassword(value, formData.password)
       setLocalErrors(prev => ({ ...prev, confirmPassword: error }))
     }
 
     setIsDirty(true)
   }, [localErrors, serverErrors, onClearServerError, formData.password, formData.confirmPassword, validateEmail, validatePassword, validateConfirmPassword])
-
-  const handlePhotoUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        alert("File size must be less than 10MB")
-        return
-      }
-
-      if (!file.type.match(/^image\/(jpeg|png)$/)) {
-        alert("Only JPG and PNG files are allowed")
-        return
-      }
-
-      handleInputChange("photo", file)
-
-      // Create preview
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setPhotoPreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }, [handleInputChange])
-
-  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    const file = event.dataTransfer.files[0]
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        alert("File size must be less than 10MB")
-        return
-      }
-
-      if (!file.type.match(/^image\/(jpeg|png)$/)) {
-        alert("Only JPG and PNG files are allowed")
-        return
-      }
-
-      handleInputChange("photo", file)
-
-      // Create preview
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setPhotoPreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }, [handleInputChange])
-
-  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-  }, [])
 
   const handleSave = useCallback(async () => {
     // Validate all fields
@@ -368,11 +307,6 @@ export function CreateDispatcherSheet({
       return
     }
 
-    // Determine if photo was removed during editing
-    const originalPhotoExists = isEditing && editData && editData.photo
-    const currentPhotoExists = photoPreview !== null
-    const photoWasRemoved = originalPhotoExists && !currentPhotoExists
-
     const dispatcherData: DispatcherDetails = {
       id: isEditing && editData ? editData.id : `CG-${Date.now()}`,
       name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
@@ -384,8 +318,6 @@ export function CreateDispatcherSheet({
         day: 'numeric'
       }),
       createdBy: isEditing && editData ? editData.createdBy : "Franxine Orias",
-      // For editing, if photo was removed, set to null; otherwise use preview or existing photo
-      photo: photoWasRemoved ? null : (photoPreview || (isEditing && editData ? editData.photo : undefined)),
     }
 
     // Prepare raw form data for API calls
@@ -394,7 +326,6 @@ export function CreateDispatcherSheet({
       email: formData.email.trim(),
       contactNumber: formData.contactNumber.trim(),
       password: formData.password.trim() || undefined, // Don't send empty password
-      photo: formData.photo || undefined,
     }
 
     // Call the parent's save handler and wait for result
@@ -408,7 +339,7 @@ export function CreateDispatcherSheet({
       }
       // If unsuccessful, the sheet stays open and server errors will be displayed via serverErrors prop
     }
-  }, [formData, isEditing, editData, onSave, onOpenChange, photoPreview, validateName, validateContactNumber, validateEmail, validatePassword, validateConfirmPassword])
+  }, [formData, isEditing, editData, onSave, onOpenChange, validateName, validateContactNumber, validateEmail, validatePassword, validateConfirmPassword])
 
   const handleClose = useCallback(() => {
     if (isDirty) {
@@ -437,93 +368,6 @@ export function CreateDispatcherSheet({
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-            {/* Photo Upload */}
-            <div className="space-y-3">
-              {/* Hidden file input */}
-              <input
-                id="photo-upload"
-                type="file"
-                accept="image/jpeg,image/png"
-                onChange={handlePhotoUpload}
-                className="hidden"
-                aria-label="Upload photo"
-              />
-
-              {!photoPreview ? (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => document.getElementById('photo-upload')?.click()}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault()
-                      document.getElementById('photo-upload')?.click()
-                    }
-                  }}
-                  onDrop={handleDrop}
-                  onDragOver={handleDragOver}
-                  className="bg-[#262626] border border-dashed border-[#404040] rounded-[8px] p-7 text-center flex flex-col items-center justify-center gap-[5px] hover:bg-[#2a2a2a] cursor-pointer"
-                >
-                  <div className="w-12 h-12 bg-[#1f2937] rounded-[8px] flex items-center justify-center">
-                    <Upload className="w-6 h-6 text-[#60A5FA]" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">Upload photo</p>
-                    <p className="text-gray-400 text-sm mt-1">
-                      Drag and drop or click to upload
-                      <br />
-                      JPG and PNG, file size no more than 10MB
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-[#0b0b0b] rounded-[6px] flex justify-center mt-1">
-                  <div className="relative w-full h-56 rounded-[8px] overflow-hidden bg-[#111]">
-                    {/* Blurred backdrop */}
-                    <img
-                      src={photoPreview}
-                      alt=""
-                      aria-hidden
-                      className="absolute inset-0 w-full h-full object-cover filter blur-[18px] brightness-50 scale-[1.2]"
-                    />
-                    {/* Foreground image */}
-                    <img
-                      src={photoPreview}
-                      alt="Uploaded"
-                      className="relative w-auto h-full max-w-[60%] m-auto block object-contain"
-                    />
-                    {/* Actions */}
-                    <div className="absolute bottom-3 right-3 flex gap-0">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => document.getElementById('photo-upload')?.click()}
-                        aria-label="Change photo"
-                        title="Change photo"
-                        className="bg-white border-[#2a2a2a] text-black hover:bg-white rounded-none w-8 h-8"
-                      >
-                        <RefreshCcw className="w-4 h-4 text-black" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setPhotoPreview(null)
-                          handleInputChange("photo", null)
-                        }}
-                        aria-label="Delete photo"
-                        title="Delete photo"
-                        className="bg-white border-[#2a2a2a] text-red-500 hover:bg-white rounded-none w-8 h-8"
-                      >
-                        <Trash className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Name Fields */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

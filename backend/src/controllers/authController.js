@@ -663,10 +663,22 @@ const resendAdminDispatcherCode = async (req, res) => {
     if (tempToken) {
       let decoded;
       try {
+        // Try to verify the token normally
         decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
-      } catch {
-        return res.status(401).json({ message: "Invalid or expired temp token" });
+      } catch (err) {
+        // If token is expired, decode it without verification to get the user ID
+        try {
+          decoded = jwt.decode(tempToken);
+          if (!decoded || !decoded.id || !decoded.role || decoded.step !== "2fa") {
+            return res.status(401).json({ message: "Invalid temp token" });
+          }
+          // Token is expired but we can still extract the user info for resend
+          console.log(`Resending code with expired token for user ${decoded.id}`);
+        } catch {
+          return res.status(401).json({ message: "Invalid temp token" });
+        }
       }
+      
       if (decoded.step !== "2fa" || !["admin", "dispatcher"].includes(decoded.role)) {
         return res.status(400).json({ message: "Invalid token context" });
       }

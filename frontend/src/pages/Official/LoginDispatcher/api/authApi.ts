@@ -1,8 +1,8 @@
 import type {
-    LoginRequest,
-    UnifiedLoginResponse,
-    UnifiedVerificationRequest,
-    VerificationResponse
+  LoginRequest,
+  UnifiedLoginResponse,
+  UnifiedVerificationRequest,
+  VerificationResponse
 } from './types';
 import { ApiException } from './types';
 
@@ -94,6 +94,14 @@ export async function getCurrentUser(): Promise<VerificationResponse['user']> {
   })
   
   return response.user
+}
+
+// Resend verification code for admin/dispatcher
+export async function resendAdminDispatcherCode(tempToken: string): Promise<{ tempToken: string; message: string }> {
+  return apiRequest<{ tempToken: string; message: string }>('/resend', {
+    method: 'POST',
+    body: JSON.stringify({ tempToken }),
+  })
 }
 
 // Logout - calls backend to invalidate session and clears stored authentication data
