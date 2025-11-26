@@ -78,7 +78,6 @@ export async function createDispatcher(dispatcherData: {
   email: string
   contactNumber: string
   password?: string
-  photo?: File
 }): Promise<{ message: string; temporaryPassword?: string }> {
   const token = localStorage.getItem('resqwave_token')
 
@@ -91,11 +90,6 @@ export async function createDispatcher(dispatcherData: {
   // Only include password if provided, otherwise backend will use default (dispatcher ID)
   if (dispatcherData.password) {
     formData.append('password', dispatcherData.password)
-  }
-
-  // Append photo if provided
-  if (dispatcherData.photo) {
-    formData.append('photo', dispatcherData.photo)
   }
 
   const response = await fetch(`${API_BASE_URL}/dispatcher`, {

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  archiveDispatcher,
-  createDispatcher,
-  deleteDispatcherPermanently,
-  getActiveDispatchers,
-  getArchivedDispatchers,
-  getDispatcher,
-  restoreDispatcher,
-  transformDispatcherDetailsResponse,
-  transformDispatcherResponse,
-  updateDispatcher
+    archiveDispatcher,
+    createDispatcher,
+    deleteDispatcherPermanently,
+    getActiveDispatchers,
+    getArchivedDispatchers,
+    getDispatcher,
+    restoreDispatcher,
+    transformDispatcherDetailsResponse,
+    transformDispatcherResponse,
+    updateDispatcher
 } from '../api/dispatcherApi'
 import type { Dispatcher, DispatcherDetails } from '../types'
 
@@ -104,7 +104,6 @@ export function useDispatchers() {
     email: string
     contactNumber: string
     password?: string
-    photo?: File
   }) => {
     try {
       setError(null)
@@ -239,8 +238,6 @@ export function useDispatchers() {
     email?: string
     contactNumber?: string
     password?: string
-    photo?: File
-    removePhoto?: boolean
   }) => {
     try {
       setError(null)
@@ -276,9 +273,6 @@ export function useDispatchers() {
               ...(dispatcherData.name && { name: dispatcherData.name }),
               ...(dispatcherData.email && { email: dispatcherData.email }),
               ...(dispatcherData.contactNumber && { contactNumber: dispatcherData.contactNumber }),
-              // Handle photo updates optimistically
-              ...(dispatcherData.photo && { photo: URL.createObjectURL(dispatcherData.photo) }),
-              ...(dispatcherData.removePhoto && { photo: undefined }),
             }
           }))
         }
@@ -291,20 +285,9 @@ export function useDispatchers() {
       if (dispatcherData.email) formData.append('email', dispatcherData.email)
       if (dispatcherData.contactNumber) formData.append('contactNumber', dispatcherData.contactNumber)
       if (dispatcherData.password) formData.append('password', dispatcherData.password)
-      if (dispatcherData.photo) formData.append('photo', dispatcherData.photo)
-      if (dispatcherData.removePhoto) formData.append('removePhoto', 'true')
 
       try {
         const result = await updateDispatcher(id, formData)
-
-        // After successful API call, fetch fresh data to ensure consistency
-        // but only refresh the detailed info for this specific dispatcher
-        if (dispatcherData.photo || dispatcherData.removePhoto) {
-          // For photo changes, we need to get the fresh data from the server
-          const freshDetails = await getDispatcher(id)
-          const transformedDetails = transformDispatcherDetailsResponse(freshDetails)
-          setInfoById(prev => ({ ...prev, [id]: transformedDetails }))
-        }
 
         return result
       } catch (apiError) {

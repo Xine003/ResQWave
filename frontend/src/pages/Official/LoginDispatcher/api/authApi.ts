@@ -51,7 +51,7 @@ export async function unifiedLogin(loginData: LoginRequest): Promise<UnifiedLogi
   return apiRequest<UnifiedLoginResponse>('/login', {
     method: 'POST',
     body: JSON.stringify({
-      emailOrNumber: loginData.ID,  // Can be admin name or dispatcher email/number
+      userID: loginData.ID,  // Admin ID or Dispatcher ID
       password: loginData.password
     }),
   })
@@ -70,7 +70,7 @@ export async function loginDispatcher(loginData: LoginRequest): Promise<Verifica
   return apiRequest<VerificationResponse>('/dispatcher/login', {
     method: 'POST',
     body: JSON.stringify({
-      emailOrNumber: loginData.ID,
+      userID: loginData.ID,
       password: loginData.password
     }),
   })
@@ -94,6 +94,14 @@ export async function getCurrentUser(): Promise<VerificationResponse['user']> {
   })
   
   return response.user
+}
+
+// Resend verification code for admin/dispatcher
+export async function resendAdminDispatcherCode(tempToken: string): Promise<{ tempToken: string; message: string }> {
+  return apiRequest<{ tempToken: string; message: string }>('/resend', {
+    method: 'POST',
+    body: JSON.stringify({ tempToken }),
+  })
 }
 
 // Logout - calls backend to invalidate session and clears stored authentication data
