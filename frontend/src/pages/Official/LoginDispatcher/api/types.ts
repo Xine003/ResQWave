@@ -51,13 +51,16 @@ export interface ApiError {
 
 export class ApiException extends Error {
   status?: number
+  data?: any
   
   constructor(
     message: string,
-    status?: number
+    status?: number,
+    data?: any
   ) {
     super(message)
     this.name = 'ApiException'
     this.status = status
+    this.data = data
   }
 }
