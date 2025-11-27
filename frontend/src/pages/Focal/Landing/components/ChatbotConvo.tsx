@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Send, X, MessageCircle } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI("AIzaSyDsF-daUxWOaQULlD5GFeDHrya7Ghe5N0U");
+// Initialize Gemini AI with token from environment variable
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 interface Message {
     id: number;
