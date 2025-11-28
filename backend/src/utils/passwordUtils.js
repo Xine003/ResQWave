@@ -101,7 +101,8 @@ async function sendTemporaryPasswordEmail({
     } else if (role === "focal") {
         profileSection = `
             <p style="margin:0; font-size:14px;">
-                <strong>Email / Contact Number:</strong> ${focalEmail} / ${focalNumber}<br/>
+                <strong>Email:</strong> ${focalEmail}<br/>
+                <strong>Contact Number:</strong> ${focalNumber}<br/>
                 <strong>Temporary Password:</strong> ${password}
             </p>
         `;
