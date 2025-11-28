@@ -14,7 +14,7 @@ const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 const adminRepo = AppDataSource.getRepository("Admin")
 
 // Configuration Constants
-const RESET_CODE_EXP_MINUTES = 10; 
+const RESET_CODE_EXP_MINUTES = 5; 
 const MAX_CODE_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
 
@@ -179,39 +179,22 @@ const verifyResetCode = async(req, res) => {
         const resetEntry = await passwordResetRepo.findOne({where: {userID} });
         if (!resetEntry) return res.status(400).json({message: 'No active reset session'});
 
-        //Check Lockout
-        if (resetEntry.lockUntil && new Date(resetEntry.lockUntil) > new Date()) {
-            const remainingMs = new Date(resetEntry.lockUntil) - new Date();
-            const remainingMin = Math.ceil(remainingMs / 60000);
-            return res.status(429).json({message: `Too many attempts. Try again in ${remainingMin} minute(s).`, locked: true, lockUntil: resetEntry.lockUntil});
-        }
-
-        // Expired? Invalidate Session
-        if (new Date() > new Date(resetEntry.expiry)) {
-            return res.status(400).json({message: 'Code Expired'});
-        }
-
-        // Compare Codes
+        // Check if code matches
         if (resetEntry.code !== code) {
-            resetEntry.failedAttempts = (resetEntry.failedAttempts || 0) + 1;
-            // Lock if threshold reached
-            if (resetEntry.failedAttempts >= MAX_CODE_ATTEMPTS) {
-                resetEntry.lockUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
-            }
-            await passwordResetRepo.save(resetEntry);
-            const attemptsLeft = Math.max(0, MAX_CODE_ATTEMPTS - resetEntry.failedAttempts);3
-            return res.status(resetEntry.lockUntil ? 429 : 400).json({
-                message: resetEntry.lockUntil ? 'Too many fialed attempts. Temporarily locked' : `Invalid code. Attempts left: ${attemptsLeft}`,
-                failedAttempts: resetEntry.failedAttempts,
-                locked: Boolean(resetEntry.lockUntil),
-                lockUntil: resetEntry.lockUntil || null
+            return res.status(400).json({
+                message: 'Invalid code. Please try again.'
             });
         }
 
-        // Success: Do not remove yet (Remove on password reset); reset attempts
-        resetEntry.failedAttempts = 0;
-        resetEntry.lockUntil = null;
-        await passwordResetRepo.save(resetEntry);
+        // Code is correct - now check if expired
+        if (resetEntry.expiry && new Date() > new Date(resetEntry.expiry)) {
+            return res.status(400).json({
+                message: 'Code has expired. Please request a new one.',
+                expired: true
+            });
+        }
+
+        // Success: Code is correct and not expired
         res.json({message: 'Code Verified. You may reset your password.'});
     } catch (err) {
         console.error(err);
@@ -223,24 +206,16 @@ const resetPassword = async (req, res) => {
   try {
     const { userID, code, newPassword } = req.body;
 
-        // Get reset entry by userID first (allows attempt tracking on wrong code)
+        // Get reset entry by userID
         const resetEntry = await passwordResetRepo.findOne({ where: { userID } });
         if (!resetEntry) return res.status(400).json({ message: 'No active reset session' });
 
-        // Check lock
-        if (resetEntry.lockUntil && new Date(resetEntry.lockUntil) > new Date()) {
-            return res.status(429).json({ message: 'Locked due to too many attempts', lockUntil: resetEntry.lockUntil });
-        }
-
+        // Check code
         if (resetEntry.code !== code) {
-            resetEntry.failedAttempts = (resetEntry.failedAttempts || 0) + 1;
-            if (resetEntry.failedAttempts >= MAX_CODE_ATTEMPTS) {
-                resetEntry.lockUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
-            }
-            await passwordResetRepo.save(resetEntry);
-            return res.status(resetEntry.lockUntil ? 429 : 400).json({ message: 'Invalid Code', failedAttempts: resetEntry.failedAttempts, lockUntil: resetEntry.lockUntil });
+            return res.status(400).json({ message: 'Invalid Code' });
         }
 
+    // Check expiry
     if (new Date() > resetEntry.expiry) {
       return res.status(400).json({ message: "Code Expired" });
     }
