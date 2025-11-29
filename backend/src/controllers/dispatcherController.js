@@ -66,7 +66,9 @@ const createDispatcher = async (req, res) => {
         sendTemporaryPasswordEmail({
             to: email,
             name: name,
-            password: plainPassword
+            password: plainPassword,
+            role: "dispatcher",
+            id: newID
         }).catch(err => {
             console.error(`Failed to send password email to ${email}:`, err);
         });

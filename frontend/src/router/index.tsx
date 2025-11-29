@@ -9,13 +9,14 @@ import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/Verif
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/SignAccount/ForgotPassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
 import {
-  CommunityGroups,
-  LoginOfficial,
-  Reports,
-  Tabular,
-  VerificationOfficial,
-  Visualization
+    CommunityGroups,
+    LoginOfficial,
+    Reports,
+    Tabular,
+    VerificationOfficial,
+    Visualization
 } from '../pages/Official';
+import { ForgotPasswordFlow } from '../pages/Official/LoginDispatcher/ForgotPasswordFlow';
 // TypeScript declaration for window property
 declare global {
   interface Window {
@@ -153,6 +154,10 @@ export const router = createBrowserRouter([
       {
         path: '/verification-official',
         element: <VerificationOfficial />,
+      },
+      {
+        path: '/forgot-password-dispatcher',
+        element: <ForgotPasswordFlow />,
       },
       {
         path: '/',

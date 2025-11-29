@@ -1,8 +1,8 @@
 import type {
-  LoginRequest,
-  UnifiedLoginResponse,
-  UnifiedVerificationRequest,
-  VerificationResponse
+    LoginRequest,
+    UnifiedLoginResponse,
+    UnifiedVerificationRequest,
+    VerificationResponse
 } from './types';
 import { ApiException } from './types';
 
@@ -29,7 +29,8 @@ async function apiRequest<T>(
     if (!response.ok) {
       throw new ApiException(
         data.message || `HTTP Error ${response.status}`,
-        response.status
+        response.status,
+        data
       )
     }
 
@@ -128,4 +129,40 @@ export async function logout(): Promise<void> {
   localStorage.removeItem('resqwave_user')
   sessionStorage.removeItem('tempToken')
   sessionStorage.removeItem('userType')
+}
+
+// Password Reset Flow APIs
+
+// Request password reset - sends code to email
+export async function requestPasswordReset(emailOrNumber: string): Promise<{
+  success: boolean;
+  message: string;
+  userID: number;
+  expiresInMinutes: number;
+  maskedEmail: string;
+}> {
+  return apiRequest('/official/reset', {
+    method: 'POST',
+    body: JSON.stringify({ emailOrNumber }),
+  })
+}
+
+// Verify reset code
+export async function verifyResetCode(userID: number, code: string): Promise<{
+  message: string;
+}> {
+  return apiRequest('/verifyResetCode', {
+    method: 'POST',
+    body: JSON.stringify({ userID, code }),
+  })
+}
+
+// Reset password with new password
+export async function resetPassword(userID: number, code: string, newPassword: string): Promise<{
+  message: string;
+}> {
+  return apiRequest('/resetPassword', {
+    method: 'POST',
+    body: JSON.stringify({ userID, code, newPassword }),
+  })
 }

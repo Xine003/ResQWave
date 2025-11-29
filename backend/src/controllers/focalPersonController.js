@@ -275,6 +275,9 @@ const createFocalPerson = async (req, res) => {
             await sendTemporaryPasswordEmail({
                 to: email,
                 name: [firstName, lastName].filter(Boolean).join(" "),
+                role: "focal",
+                focalEmail: email,
+                focalNumber: contactNumber,
                 password: tempPassword,
             });
         } catch (emailErr) {

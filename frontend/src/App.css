@@ -181,3 +181,34 @@ select {
   background: #2C64C5 !important;
 }
 
+/* Forgot Password Flow Slide Animations */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.4s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out;
+}
+
