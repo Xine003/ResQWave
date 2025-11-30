@@ -17,6 +17,10 @@ export function ChatbotConvo() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState("");
     const [isTyping, setIsTyping] = useState(false);
+    const [quickActions, setQuickActions] = useState<string[]>([]);
+    const [quickActionsLoading, setQuickActionsLoading] = useState(false);
+    const [greetingShown, setGreetingShown] = useState(false);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom when new messages arrive
@@ -30,10 +34,10 @@ export function ChatbotConvo() {
 
     // Show initial greeting when chat opens
     useEffect(() => {
-        if (!isOpen || messages.length > 0) return;
-
-        const showGreeting = setTimeout(() => {
+        if (isOpen && messages.length === 0) {
+            // Show initial greeting and fetch dynamic quick actions
             setIsTyping(true);
+            setGreetingShown(false);
             setTimeout(() => {
                 const greetingMessage: Message = {
                     id: 1,
@@ -43,33 +47,66 @@ export function ChatbotConvo() {
                 };
                 setMessages([greetingMessage]);
                 setIsTyping(false);
+                setGreetingShown(true);
+                // Fetch initial quick actions from Gemini
+                const initialContext = `You are ResQWave Assistant, an AI helper for ResQWave - a LoRa-powered emergency communication system designed to help communities send SOS alerts, share updates, and guide rescuers during flood events. Our terminals work even when cellular networks fail.`;
+                fetchQuickActions(initialContext, greetingMessage.text);
             }, 1000);
-        }, 500);
-
-        return () => clearTimeout(showGreeting);
+        }
     }, [isOpen, messages.length]);
 
-    const handleSendMessage = async () => {
-        if (inputValue.trim() === "") return;
+    // Function to get suggested actions from Gemini
+    async function fetchQuickActions(context: string, lastBotMessage: string) {
+        setQuickActionsLoading(true);
+        try {
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            // Enhanced prompt for more diverse, creative, and contextually relevant Quick Actions
+            const prompt = `You are ResQWave Assistant. Based on the following conversation context and the last bot response, suggest up to 3 unique, creative, and contextually relevant quick action button labels for the user to tap next. Avoid repeating the same suggestions every time, and vary your choices to cover different features, tips, and emergency actions. Only return a JSON array of strings, no explanation.
+
+            Context:
+            ${context}
+
+            Last bot response:
+            ${lastBotMessage}
+
+            Example output: ["Send SOS alert", "Show safety tips", "Evacuation advice", "Check terminal status", "Update community info", "View dashboard map", "Family emergency plan", "Power outage safety", "Contact focal person", "Acknowledge received signal"]
+
+            IMPORTANT: Each time you generate quick actions, make sure the suggestions are varied and not always the same. Prioritize diversity and relevance to the current context.`;
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            // Try to parse JSON array from Gemini response
+            const actions = JSON.parse(text);
+            if (Array.isArray(actions)) {
+                setQuickActions(actions.slice(0, 3));
+            }
+        } catch (err) {
+            setQuickActions([]); // No fallback, just empty if Gemini fails
+        } finally {
+            setQuickActionsLoading(false);
+        }
+    }
+
+    const handleSendMessage = async (messageText?: string) => {
+        const textToSend = messageText ?? inputValue;
+        if (textToSend.trim() === "") return;
 
         const userMessage: Message = {
             id: messages.length + 1,
-            text: inputValue,
+            text: textToSend,
             sender: "user",
             timestamp: new Date(),
         };
 
-        const userQuestion = inputValue;
         setMessages((prev) => [...prev, userMessage]);
         setInputValue("");
         setIsTyping(true);
+        setQuickActions([]); // Hide quick actions immediately after user clicks one
 
         try {
-            // Use Gemini 1.5 Flash model (stable version)
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-                // Create context about ResQWave for better responses
-                const context = `You are ResQWave Assistant, an AI helper for ResQWave - a LoRa-powered emergency communication system designed to help communities send SOS alerts, share updates, and guide rescuers during flood events. Our terminals work even when cellular networks fail.
+            // Create context about ResQWave for better responses
+            const context = `You are ResQWave Assistant, an AI helper for ResQWave - a LoRa-powered emergency communication system designed to help communities send SOS alerts, share updates, and guide rescuers during flood events. Our terminals work even when cellular networks fail.
 
             Chatbot Capabilities:
 
@@ -128,8 +165,7 @@ export function ChatbotConvo() {
                     * Staying informed: Listen to official announcements, monitor the ResQWave dashboard or community updates, and avoid spreading rumors.
                 - If the user asks for safety tips, preparedness advice, or emergency instructions, provide clear, actionable guidance based on these predefined answers.
     
-            Answer the following question helpfully and concisely (2-3 sentences max): ${userQuestion}`;
-
+            Answer the following question helpfully and concisely (2-3 sentences max): ${textToSend}`;
             const result = await model.generateContent(context);
             const response = await result.response;
             const aiResponse = response.text();
@@ -142,6 +178,9 @@ export function ChatbotConvo() {
             };
 
             setMessages((prev) => [...prev, botMessage]);
+            setIsTyping(false); // Hide typing indicator immediately after bot message
+            // Update Quick Actions asynchronously after bot message
+            fetchQuickActions(context, aiResponse);
         } catch (error) {
             console.error("Error calling Gemini AI:", error);
             console.error("Error details:", error instanceof Error ? error.message : String(error));
@@ -154,7 +193,7 @@ export function ChatbotConvo() {
                 timestamp: new Date(),
             };
             setMessages((prev) => [...prev, botMessage]);
-        } finally {
+            setQuickActions(["Send SOS alert", "Show safety tips", "Evacuation advice"]);
             setIsTyping(false);
         }
     };
@@ -186,7 +225,7 @@ export function ChatbotConvo() {
                             maxWidth: "calc(100vw - 48px)",
                             background: "rgba(30, 30, 35, 0.95)",
                             backdropFilter: "blur(20px)",
-                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                            border: "1px solid rgba(255, 255, 255, 0.1)"
                         }}
                     >
                         {/* Chat Header */}
@@ -194,7 +233,7 @@ export function ChatbotConvo() {
                             className="px-4 py-3 border-b flex items-center justify-between"
                             style={{
                                 background: "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
-                                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                                borderBottom: "1px solid rgba(255, 255, 255, 0.1)"
                             }}
                         >
                             <div className="flex items-center gap-3">
@@ -235,14 +274,13 @@ export function ChatbotConvo() {
                             {messages.map((message) => (
                                 <div
                                     key={message.id}
-                                    className={`mb-3 flex ${message.sender === "user" ? "justify-end" : "justify-start"
-                                        }`}
+                                    className={`mb-3 flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
                                 >
                                     <div
                                         className={`max-w-[80%] rounded-2xl px-3 py-2 ${message.sender === "user"
-                                            ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white"
+                                            ? "bg-linear-to-br from-blue-600 to-blue-500 text-white"
                                             : "bg-gray-700/50 text-gray-100"
-                                            }`}
+                                        }`}
                                         style={{
                                             boxShadow:
                                                 message.sender === "user"
@@ -255,7 +293,7 @@ export function ChatbotConvo() {
                                             className={`text-xs mt-1 ${message.sender === "user"
                                                 ? "text-blue-100"
                                                 : "text-gray-400"
-                                                }`}
+                                            }`}
                                         >
                                             {message.timestamp.toLocaleTimeString([], {
                                                 hour: "2-digit",
@@ -294,30 +332,47 @@ export function ChatbotConvo() {
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input Area */}
+                        {/* Input Area with Quick Actions */}
                         <div
                             className="px-4 py-3 border-t"
                             style={{
                                 background: "rgba(20, 20, 25, 0.6)",
-                                borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                                borderTop: "1px solid rgba(255, 255, 255, 0.1)"
                             }}
                         >
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={inputValue}
-                                    onChange={(e) => setInputValue(e.target.value)}
-                                    onKeyPress={handleKeyPress}
-                                    placeholder="Type your message..."
-                                    className="flex-1 bg-gray-800/50 text-white rounded-full px-4 py-2 text-sm outline-none border border-gray-700 focus:border-blue-500 transition-colors"
-                                />
-                                <button
-                                    onClick={handleSendMessage}
-                                    className="bg-gradient-to-br from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white rounded-full p-2 transition-all duration-200 hover:scale-105 active:scale-95"
-                                    style={{ boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}
-                                >
-                                    <Send size={18} />
-                                </button>
+                            <div className="flex flex-col gap-2">
+                                {/* Quick Actions Buttons */}
+                                {greetingShown && quickActions.length > 0 && (
+                                    <div className="flex flex-col gap-2 mb-2 w-full">
+                                        {quickActions.map((action, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => handleSendMessage(action)}
+                                                className="w-full bg-gray-700/50 text-white px-3 py-2 rounded-md text-[14.4px] font-medium shadow hover:bg-blue-600 hover:text-white transition-all duration-150"
+                                                style={{ minWidth: "100%" }}
+                                            >
+                                                {action}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder="Type your message..."
+                                        className="flex-1 bg-gray-800/50 text-white rounded-full px-4 py-2 text-sm outline-none border border-gray-700 focus:border-blue-500 transition-colors"
+                                    />
+                                    <button
+                                        onClick={() => handleSendMessage()}
+                                        className="bg-linear-to-br from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white rounded-full p-2 transition-all duration-200 hover:scale-105 active:scale-95"
+                                        style={{ boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}
+                                    >
+                                        <Send size={18} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -327,7 +382,7 @@ export function ChatbotConvo() {
                 {!isOpen && (
                     <button
                         onClick={() => setIsOpen(true)}
-                        className="bg-gradient-to-br from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white rounded-full p-4 shadow-2xl transition-all duration-200 hover:scale-110 active:scale-95"
+                        className="bg-linear-to-br from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white rounded-full p-4 shadow-2xl transition-all duration-200 hover:scale-110 active:scale-95"
                         style={{ boxShadow: "0 8px 24px rgba(59, 130, 246, 0.4)" }}
                     >
                         <MessageCircle size={28} />
