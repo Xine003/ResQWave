@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { OfficialLayout } from '@/components/Official/officialLayout';
+import { OfficialLayout } from '@/components/Official/OfficialLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AuthProvider } from '@/contexts/AuthContext';
 import React from 'react';
@@ -9,12 +9,12 @@ import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/Verif
 import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/SignAccount/ForgotPassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
 import {
-    CommunityGroups,
-    LoginOfficial,
-    Reports,
-    Tabular,
-    VerificationOfficial,
-    Visualization
+  CommunityGroups,
+  LoginOfficial,
+  Reports,
+  Tabular,
+  VerificationOfficial,
+  Visualization
 } from '../pages/Official';
 import { ForgotPasswordFlow } from '../pages/Official/LoginDispatcher/ForgotPasswordFlow';
 // TypeScript declaration for window property
