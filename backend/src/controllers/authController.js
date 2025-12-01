@@ -94,6 +94,11 @@ const focalLogin = async (req, res) => {
       return res.status(400).json({ message: "Invalid Credentials" });
     }
 
+    // Check if focal person is archived
+    if (focal.archived) {
+      return res.status(403).json({message: "Account is not active. Please contact dispatcher."});
+    }
+
     // If password is 'dummy', only return lockout status, do not increment failedAttempts
     if (password === 'dummy') {
       if (focal.lockUntil && new Date(focal.lockUntil) > new Date()) {
@@ -285,6 +290,10 @@ const adminDispatcherLogin = async (req, res) => {
     if (!user) {
       const dispatcher = await dispatcherRepo.findOne({ where: { id: identifier } });
       if (dispatcher) {
+        // Check if archived
+        if (dispatcher.archived) {
+          return res.status(403).json({message: "Account is not active. Please contact the admin."});
+        }
         // Check if locked
         if (dispatcher.lockUntil && new Date(dispatcher.lockUntil) > new Date()) {
           const remaining = Math.ceil((new Date(dispatcher.lockUntil) - new Date()) / 60000);
@@ -663,7 +672,6 @@ const resendAdminDispatcherCode = async (req, res) => {
     if (tempToken) {
       let decoded;
       try {
-        // Try to verify the token normally
         decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
       } catch (err) {
         // If token is expired, decode it without verification to get the user ID
@@ -678,7 +686,6 @@ const resendAdminDispatcherCode = async (req, res) => {
           return res.status(401).json({ message: "Invalid temp token" });
         }
       }
-      
       if (decoded.step !== "2fa" || !["admin", "dispatcher"].includes(decoded.role)) {
         return res.status(400).json({ message: "Invalid token context" });
       }
