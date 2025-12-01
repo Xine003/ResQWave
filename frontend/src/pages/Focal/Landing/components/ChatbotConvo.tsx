@@ -57,7 +57,13 @@ Chatbot Capabilities:
         * Family emergency plan: Agree on a safe meeting place, share contact information, and make sure everyone knows how to use the ResQWave terminal for alerts.
         * Power outage safety: Use battery-powered lights, avoid candles, unplug electronics, and keep your phone charged for emergency updates.
         * Evacuation advice: Follow instructions from local officials, bring your emergency kit, and help neighbors who may need assistance.
-        * Staying informed: Listen to official announcements, monitor the ResQWave dashboard or community updates, and avoid spreading rumors.`;
+        * Staying informed: Listen to official announcements, monitor the ResQWave dashboard or community updates, and avoid spreading rumors.
+
+6. Contact Information
+    - When users ask about contacting ResQWave, support, or need help, always provide:
+        * Email: resqwaveinfo@gmail.com
+        * Include this in responses about technical support, questions, or assistance
+    - Example responses: "For additional support, you can reach us at resqwaveinfo@gmail.com" or "Contact our team at resqwaveinfo@gmail.com for further assistance"`;
 
 interface Message {
     id: number;
