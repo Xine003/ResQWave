@@ -112,6 +112,7 @@ const {
   deleteCache
 } = require("../config/cache");
 const { diffFields, addLogs, toJSONSafe } = require("../utils/logs");
+const { addAdminLog } = require("../utils/adminLogs");
 
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const terminalRepo = AppDataSource.getRepository("Terminal");
@@ -517,6 +518,19 @@ const updateNeighborhood = async (req, res) => {
       actorRole,
     });
 
+    // If dispatcher/admin made changes, also log to admin logs
+    if ((req.user?.role === "dispatcher" || req.user?.role === "admin") && nbChanges.length > 0) {
+      await addAdminLog({
+        action: "edit",
+        entityType: "Neighborhood",
+        entityID: id,
+        entityName: `Neighborhood ${id}`,
+        changes: nbChanges,
+        dispatcherID: req.user.id,
+        dispatcherName: req.user.name
+      });
+    }
+
     // Focal person changes
     if (fpBefore && fpAfter) {
       const fpChanges = diffFields(fpBefore, fpAfter, [
@@ -538,6 +552,21 @@ const updateNeighborhood = async (req, res) => {
         actorID,
         actorRole,
       });
+
+      // If dispatcher/admin made focal person changes, also log to admin logs
+      if ((req.user?.role === "dispatcher" || req.user?.role === "admin") && fpChanges.length > 0) {
+        await addAdminLog({
+          action: "edit",
+          entityType: "FocalPerson",
+          entityID: neighborhood.focalPersonID,
+          entityName: fpAfter.firstName && fpAfter.lastName 
+            ? `${fpAfter.firstName} ${fpAfter.lastName}`.trim() 
+            : neighborhood.focalPersonID,
+          changes: fpChanges,
+          dispatcherID: req.user.id,
+          dispatcherName: req.user.name
+        });
+      }
     }
 
     await deleteCache(`neighborhood:${id}`);
@@ -575,7 +604,32 @@ const archivedNeighborhood = async (req, res) => {
 
     // 2) Archive focal person linked to this neighborhood (optional, mirrors community behavior)
     if (nb.n_focalPersonID) {
+      const focal = await focalPersonRepo.findOne({ where: { id: nb.n_focalPersonID } });
       await focalPersonRepo.update({ id: nb.n_focalPersonID }, { archived: true });
+
+      // Log focal person archive by dispatcher
+      if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+        await addAdminLog({
+          action: "archive",
+          entityType: "FocalPerson",
+          entityID: nb.n_focalPersonID,
+          entityName: focal ? `${focal.firstName || ''} ${focal.lastName || ''}`.trim() : nb.n_focalPersonID,
+          dispatcherID: req.user.id,
+          dispatcherName: req.user.name
+        });
+      }
+    }
+
+    // Log neighborhood archive by dispatcher
+    if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+      await addAdminLog({
+        action: "archive",
+        entityType: "Neighborhood",
+        entityID: id,
+        entityName: `Neighborhood ${id}`,
+        dispatcherID: req.user.id,
+        dispatcherName: req.user.name
+      });
     }
 
     // 3) Free/unlink terminal
@@ -629,7 +683,32 @@ const deleteNeighborhood = async (req, res) => {
 
     // Delete Linked Focal Person
     if (nb.n_focalPersonID) {
+      const focal = await focalPersonRepo.findOne({ where: { id: nb.n_focalPersonID } });
       await focalPersonRepo.delete({ id: nb.n_focalPersonID });
+
+      // Log focal person deletion by dispatcher
+      if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+        await addAdminLog({
+          action: "delete",
+          entityType: "FocalPerson",
+          entityID: nb.n_focalPersonID,
+          entityName: focal ? `${focal.firstName || ''} ${focal.lastName || ''}`.trim() : nb.n_focalPersonID,
+          dispatcherID: req.user.id,
+          dispatcherName: req.user.name
+        });
+      }
+    }
+
+    // Log neighborhood deletion by dispatcher
+    if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+      await addAdminLog({
+        action: "delete",
+        entityType: "Neighborhood",
+        entityID: id,
+        entityName: `Neighborhood ${id}`,
+        dispatcherID: req.user.id,
+        dispatcherName: req.user.name
+      });
     }
 
     await neighborhoodRepo.delete({ id });
