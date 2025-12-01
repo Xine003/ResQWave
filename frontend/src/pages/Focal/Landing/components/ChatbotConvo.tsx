@@ -64,6 +64,9 @@ interface Message {
     text: string;
     sender: "user" | "bot";
     timestamp: Date;
+    translatedText?: string;
+    showTranslation?: boolean;
+    isTranslating?: boolean;
 }
 
 export function ChatbotConvo() {
@@ -76,6 +79,42 @@ export function ChatbotConvo() {
     const [greetingShown, setGreetingShown] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Handle translation to Tagalog
+    const handleTranslate = async (messageId: number) => {
+        const message = messages.find(m => m.id === messageId);
+        if (!message || message.sender === "user") return;
+
+        // Toggle visibility if already translated
+        if (message.translatedText) {
+            setMessages(prev => prev.map(m =>
+                m.id === messageId ? { ...m, showTranslation: !m.showTranslation } : m
+            ));
+            return;
+        }
+
+        // Set translating state
+        setMessages(prev => prev.map(m =>
+            m.id === messageId ? { ...m, isTranslating: true } : m
+        ));
+
+        try {
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const prompt = `Translate the following English text to Tagalog (Filipino). Keep it natural and conversational. Return ONLY the Tagalog translation, no explanation:\n\n${message.text}`;
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const translatedText = response.text().trim();
+
+            setMessages(prev => prev.map(m =>
+                m.id === messageId ? { ...m, translatedText, showTranslation: true, isTranslating: false } : m
+            ));
+        } catch (error) {
+            console.error('Translation error:', error);
+            setMessages(prev => prev.map(m =>
+                m.id === messageId ? { ...m, isTranslating: false } : m
+            ));
+        }
+    };
 
     // Auto-scroll to bottom when new messages arrive
     const scrollToBottom = () => {
@@ -101,7 +140,7 @@ export function ChatbotConvo() {
             (async () => {
                 try {
                     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-                    const prompt = `Generate 3 general questions about ResQWave (LoRa emergency system). Keep each 6-9 words. Topics: Purpose, Benefits, Technology, Who uses it. Return ONLY JSON array. Example: ["What is ResQWave?", "How does it work?", "Who can use it?"]`;
+                    const prompt = `Generate 3 specific, clear questions about ResQWave. Each must be a complete question (6-9 words) that users would actually ask. Focus on: purpose, benefits, technology, who can use it, how it works. Return ONLY JSON array. Examples: ["What is the purpose of ResQWave?", "How does the LoRa technology work?", "Who can use the ResQWave system?", "What are the main benefits of ResQWave?"]`;
                     const result = await model.generateContent(prompt);
                     const response = await result.response;
                     let text = response.text().trim();
@@ -195,7 +234,7 @@ export function ChatbotConvo() {
             const quickActionsPromise = (async () => {
                 try {
                     const quickActionsModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-                    const prompt = `User asked: "${textToSend}". Using ResQWave context (LoRa emergency system for floods with SOS terminals, water sensors, dashboard), generate 3 relevant quick actions. Return ONLY valid JSON array. Example: ["How to send SOS", "LED indicator meanings", "Dashboard features"]`;
+                    const prompt = `User asked: "${textToSend}". Generate 3 specific follow-up questions (6-9 words each) related to ResQWave emergency system. Each must be a clear, complete question users would ask. Return ONLY valid JSON array. Examples: ["How do I send an SOS alert?", "What do the LED indicators mean?", "How can I access the dashboard?", "What features are available?"]`;
                     const result = await quickActionsModel.generateContent(prompt);
                     const response = await result.response;
                     let text = response.text().trim();
@@ -337,18 +376,37 @@ export function ChatbotConvo() {
                                                     : "0 2px 6px rgba(0, 0, 0, 0.2)",
                                         }}
                                     >
-                                        <p className="text-sm leading-relaxed">{message.text}</p>
-                                        <p
-                                            className={`text-xs mt-1 ${message.sender === "user"
-                                                ? "text-blue-100"
-                                                : "text-gray-400"
-                                                }`}
-                                        >
-                                            {message.timestamp.toLocaleTimeString([], {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            })}
+                                        <p className="text-sm leading-relaxed">
+                                            {message.sender === "bot" && message.showTranslation && message.translatedText
+                                                ? message.translatedText
+                                                : message.text}
                                         </p>
+                                        <div className="flex items-center justify-between mt-1">
+                                            <p
+                                                className={`text-xs ${message.sender === "user"
+                                                    ? "text-blue-100"
+                                                    : "text-gray-400"
+                                                    }`}
+                                            >
+                                                {message.timestamp.toLocaleTimeString([], {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </p>
+                                            {message.sender === "bot" && (
+                                                <button
+                                                    onClick={() => handleTranslate(message.id)}
+                                                    className="text-xs text-blue-400 hover:text-blue-300 ml-2 underline"
+                                                    disabled={message.isTranslating}
+                                                >
+                                                    {message.isTranslating
+                                                        ? "Translating..."
+                                                        : message.showTranslation
+                                                            ? "Hide translation"
+                                                            : "See translation"}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
