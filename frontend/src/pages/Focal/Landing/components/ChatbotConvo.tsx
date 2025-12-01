@@ -35,22 +35,46 @@ export function ChatbotConvo() {
     // Show initial greeting when chat opens
     useEffect(() => {
         if (isOpen && messages.length === 0) {
-            // Show initial greeting and fetch dynamic quick actions
+            // Show initial greeting and fetch dynamic quick actions in parallel
             setIsTyping(true);
             setGreetingShown(false);
+            
+            // Start fetching quick actions immediately
+            const initialContext = `You are ResQWave Assistant, an AI helper for ResQWave - a LoRa-powered emergency communication system designed to help communities send SOS alerts, share updates, and guide rescuers during flood events. Our terminals work even when cellular networks fail.`;
+            const greetingText = "Hi there! I'm ResQWave Assistant. How can I help you today?";
+            
+            // Fetch quick actions in parallel (don't wait for timeout)
+            (async () => {
+                try {
+                    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                    const prompt = `ResQWave is a LoRa-powered emergency system for flood disasters with SOS terminals, water sensors, and rescue coordination dashboard. Generate 3 relevant quick action suggestions. Return ONLY a valid JSON array with no markdown. Examples: ["How to send SOS alert", "Flood safety tips", "What is ResQWave", "Terminal LED meanings", "Dashboard features", "Emergency preparedness"]`;
+                    const result = await model.generateContent(prompt);
+                    const response = await result.response;
+                    let text = response.text().trim();
+                    // Remove markdown code blocks if present
+                    text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+                    const actions = JSON.parse(text);
+                    if (Array.isArray(actions)) {
+                        setQuickActions(actions.slice(0, 3));
+                    }
+                } catch (err) {
+                    console.error('Quick actions error:', err);
+                    setQuickActions([]);
+                } finally {
+                    setQuickActionsLoading(false);
+                }
+            })();
+            
             setTimeout(() => {
                 const greetingMessage: Message = {
                     id: 1,
-                    text: "Hi there! I'm ResQWave Assistant. How can I help you today?",
+                    text: greetingText,
                     sender: "bot",
                     timestamp: new Date(),
                 };
                 setMessages([greetingMessage]);
                 setIsTyping(false);
                 setGreetingShown(true);
-                // Fetch initial quick actions from Gemini
-                const initialContext = `You are ResQWave Assistant, an AI helper for ResQWave - a LoRa-powered emergency communication system designed to help communities send SOS alerts, share updates, and guide rescuers during flood events. Our terminals work even when cellular networks fail.`;
-                fetchQuickActions(initialContext, greetingMessage.text);
             }, 1000);
         }
     }, [isOpen, messages.length]);
@@ -166,6 +190,28 @@ export function ChatbotConvo() {
                 - If the user asks for safety tips, preparedness advice, or emergency instructions, provide clear, actionable guidance based on these predefined answers.
     
             Answer the following question helpfully and concisely (2-3 sentences max): ${textToSend}`;
+            
+            // Start fetching quick actions immediately in parallel (don't wait for bot response)
+            const quickActionsPromise = (async () => {
+                try {
+                    const quickActionsModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                    const prompt = `User asked: "${textToSend}". Generate 3 contextual quick action suggestions for ResQWave. Return ONLY a valid JSON array with no markdown. Example: ["View map", "Emergency tips", "Send alert"]`;
+                    const result = await quickActionsModel.generateContent(prompt);
+                    const response = await result.response;
+                    let text = response.text().trim();
+                    // Remove markdown code blocks if present
+                    text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+                    const actions = JSON.parse(text);
+                    if (Array.isArray(actions)) {
+                        return actions.slice(0, 3);
+                    }
+                    return [];
+                } catch (err) {
+                    console.error('Quick actions error:', err);
+                    return [];
+                }
+            })();
+
             const result = await model.generateContent(context);
             const response = await result.response;
             const aiResponse = response.text();
@@ -179,8 +225,11 @@ export function ChatbotConvo() {
 
             setMessages((prev) => [...prev, botMessage]);
             setIsTyping(false); // Hide typing indicator immediately after bot message
-            // Update Quick Actions asynchronously after bot message
-            fetchQuickActions(context, aiResponse);
+            
+            // Wait for quick actions to finish and update UI
+            const actions = await quickActionsPromise;
+            setQuickActions(actions);
+            setQuickActionsLoading(false);
         } catch (error) {
             console.error("Error calling Gemini AI:", error);
             console.error("Error details:", error instanceof Error ? error.message : String(error));
