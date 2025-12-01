@@ -9,6 +9,7 @@ const {
     deleteCache
 } = require("../config/cache");
 const { diffFields, addLogs } = require("../utils/logs");
+const { addAdminLog } = require("../utils/adminLogs");
 const registrationRepo = AppDataSource.getRepository("FocalPersonRegistration");
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const focalRepo = AppDataSource.getRepository("FocalPerson");
@@ -257,6 +258,28 @@ const createFocalPerson = async (req, res) => {
         });
 
         await neighborhoodRepo.save(neighborhood);
+
+        // Log focal person creation by dispatcher/admin
+        if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+            await addAdminLog({
+                action: "create",
+                entityType: "FocalPerson",
+                entityID: newFocalID,
+                entityName: `${firstName} ${lastName}`.trim(),
+                dispatcherID: req.user.id,
+                dispatcherName: req.user.name
+            });
+
+            // Also log neighborhood creation
+            await addAdminLog({
+                action: "create",
+                entityType: "Neighborhood",
+                entityID: newNeighborhoodID,
+                entityName: `Neighborhood ${newNeighborhoodID}`,
+                dispatcherID: req.user.id,
+                dispatcherName: req.user.name
+            });
+        }
 
         // Mark terminal occupied
         await terminalRepo.update({ id: terminalID }, { availability: "Occupied" });
@@ -705,6 +728,19 @@ const updateFocalPerson = async (req, res) => {
                 actorID,
                 actorRole,
             });
+
+            // If dispatcher/admin made changes, also log to admin logs
+            if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+                await addAdminLog({
+                    action: "edit",
+                    entityType: "FocalPerson",
+                    entityID: id,
+                    entityName: `${focalPerson.firstName || ''} ${focalPerson.lastName || ''}`.trim(),
+                    changes,
+                    dispatcherID: req.user.id,
+                    dispatcherName: req.user.name
+                });
+            }
         }
 
         // Invalidate
