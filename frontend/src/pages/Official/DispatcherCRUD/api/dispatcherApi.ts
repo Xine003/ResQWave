@@ -174,6 +174,27 @@ export async function deleteDispatcherPermanently(
   });
 }
 
+// Check if email exists in database
+export async function checkEmailExists(
+  email: string,
+  excludeId?: string
+): Promise<{ exists: boolean }> {
+  try {
+    // Get all active dispatchers and check if email exists
+    const dispatchers = await getActiveDispatchers();
+    const emailExists = dispatchers.some(dispatcher => 
+      dispatcher.email.toLowerCase() === email.toLowerCase() && 
+      dispatcher.id !== excludeId
+    );
+    return { exists: emailExists };
+  } catch (error) {
+    // If there's an error fetching dispatchers, assume email doesn't exist
+    // to avoid blocking legitimate users
+    console.error('Error checking email existence:', error);
+    return { exists: false };
+  }
+}
+
 // Helper function to safely format dates
 function formatDateSafe(dateString: string): string {
   try {

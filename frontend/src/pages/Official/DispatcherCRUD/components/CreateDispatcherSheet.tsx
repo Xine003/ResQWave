@@ -7,8 +7,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { checkEmailExists } from "../api/dispatcherApi";
 import type { DispatcherDetails, DispatcherFormData } from "../types";
 import { CloseCreateDialog } from "./CloseCreateDialog";
 
@@ -69,6 +70,7 @@ export function CreateDispatcherSheet({
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   // Merge local errors with server errors, with server errors taking precedence
   const errors = useMemo(
@@ -151,6 +153,45 @@ export function CreateDispatcherSheet({
     },
     [isEditing],
   );
+
+  // Validate email uniqueness on blur
+  const handleEmailBlur = useCallback(async () => {
+    const email = formData.email.trim();
+    
+    // First check basic email validation
+    const basicError = validateEmail(email);
+    if (basicError) {
+      setLocalErrors(prev => ({ ...prev, email: basicError }));
+      return;
+    }
+
+    // If email is valid, check for uniqueness
+    if (email) {
+      setIsCheckingEmail(true);
+      try {
+        const excludeId = isEditing && editData ? editData.id : undefined;
+        const result = await checkEmailExists(email, excludeId);
+        
+        if (result.exists) {
+          setLocalErrors(prev => ({ 
+            ...prev, 
+            email: "Email is already in use by another dispatcher" 
+          }));
+        } else {
+          // Clear email error if it was about duplication
+          setLocalErrors(prev => {
+            const { email: _, ...rest } = prev;
+            return rest;
+          });
+        }
+      } catch (error) {
+        console.error('Error checking email uniqueness:', error);
+        // Don't show error to user for network issues during blur validation
+      } finally {
+        setIsCheckingEmail(false);
+      }
+    }
+  }, [formData.email, validateEmail, isEditing, editData]);
 
   // Check if form is valid
   const isFormValid = (): boolean => {
@@ -525,22 +566,31 @@ export function CreateDispatcherSheet({
 
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-white text-xs">
-                Email
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="email" className="text-white text-xs">
+                  Email
+                </Label>
+                {isCheckingEmail && (
+                  <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
+                )}
+              </div>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
+                onBlur={handleEmailBlur}
+                disabled={isCheckingEmail}
                 className={`bg-[#171717] text-white rounded-[5px] focus:ring-1 focus:ring-gray-600 ${
                   errors.email
                     ? "border-red-500 focus:border-red-500"
                     : "border-[#2a2a2a] focus:border-gray-600"
-                }`}
+                } ${isCheckingEmail ? "opacity-75" : ""}`}
               />
               {errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                <div className="text-red-400 text-xs flex items-center gap-1">
+                  {errors.email}
+                </div>
               )}
             </div>
 
