@@ -470,9 +470,54 @@ function VisualizationContent() {
 
     map.on("load", () => {
       initializeMapCanvas(map);
-      addCustomLayers(map, otherSignals, OwnCommunitySignal);
 
-      // Add flood polygons using Mapbox vector tileset
+      // Add Caloocan boundary layer (bottom layer)
+      try {
+        const caloocanSourceId = "caloocan-boundary";
+        const caloocanLayerId = "caloocan-boundary-layer";
+        const caloocanStrokeLayerId = "caloocan-boundary-stroke";
+
+        // Add vector tile source for Caloocan boundary (same pattern as flood tileset)
+        if (!map.getSource(caloocanSourceId)) {
+          map.addSource(caloocanSourceId, {
+            type: "vector",
+            url: "mapbox://rodelll.7z50w5dx",
+          });
+        }
+
+        // Add fill layer for Caloocan boundary
+        if (!map.getLayer(caloocanLayerId)) {
+          map.addLayer({
+            id: caloocanLayerId,
+            type: "fill",
+            source: caloocanSourceId,
+            "source-layer": "caloocan-1t6tt5", // Using correct tileset name
+            paint: {
+              "fill-color": "#0019bd", // Light blue color
+              "fill-opacity": 0.05, // More transparent
+            },
+          });
+        }
+
+        // Add stroke layer for Caloocan boundary
+        if (!map.getLayer(caloocanStrokeLayerId)) {
+          map.addLayer({
+            id: caloocanStrokeLayerId,
+            type: "line",
+            source: caloocanSourceId,
+            "source-layer": "caloocan-1t6tt5", // Using correct tileset name
+            paint: {
+              "line-color": "#0019bd", // Light blue stroke
+              "line-width": 1,
+              "line-opacity": 0.4, // More transparent
+            },
+          });
+        }
+      } catch (e) {
+        console.warn("[Visualization] could not add Caloocan boundary", e);
+      }
+
+      // Add flood polygons using Mapbox vector tileset (top layer - on top of Caloocan)
       try {
         const sourceId = "floods-metro-manila";
         const polygonLayerId = "flood-polygons-metro-manila";
@@ -514,6 +559,9 @@ function VisualizationContent() {
       } catch (e) {
         console.warn("[Visualization] could not add flood polygons", e);
       }
+
+      // Add signal pins as the topmost layer
+      addCustomLayers(map, otherSignals, OwnCommunitySignal);
 
       setupInfoBubble(map);
       setupMapInteractions(map);
