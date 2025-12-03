@@ -659,6 +659,92 @@ const archivedNeighborhood = async (req, res) => {
   }
 };
 
+// UNARCHIVE Neighborhood
+const unarchivedNeighborhood = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const nb = await neighborhoodRepo
+      .createQueryBuilder("n")
+      .select(["n.id", "n.terminalID", "n.archived", "n.focalPersonID"])
+      .where("n.id = :id", { id })
+      .getRawOne();
+
+    if (!nb) return res.status(404).json({ message: "Neighborhood Not Found" });
+    if (!nb.n_archived) return res.json({ message: "Neighborhood is not archived" });
+
+    // Check if there's a terminal to link (optional, or require terminalID in body)
+    const { terminalID } = req.body || {};
+    
+    if (terminalID) {
+      // Validate terminal if provided
+      const terminal = await terminalRepo.findOne({ where: { id: terminalID } });
+      if (!terminal) return res.status(404).json({ message: "Terminal Not Found" });
+      if (terminal.archived) return res.status(400).json({ message: "Cannot link to archived terminal" });
+      if (String(terminal.availability || "").toLowerCase() === "occupied") {
+        return res.status(400).json({ message: "Terminal already occupied" });
+      }
+
+      // Link terminal and mark as occupied
+      await neighborhoodRepo.update({ id }, { terminalID, archived: false });
+      await terminalRepo.update({ id: terminalID }, { availability: "Occupied" });
+
+      // Invalidate terminal caches
+      await deleteCache(`terminal:${terminalID}`);
+      await deleteCache("terminals:active");
+      await deleteCache("onlineTerminals");
+      await deleteCache("offlineTerminals");
+    } else {
+      // Unarchive without linking a terminal
+      await neighborhoodRepo.update({ id }, { archived: false });
+    }
+
+    // Unarchive focal person linked to this neighborhood
+    if (nb.n_focalPersonID) {
+      const focal = await focalPersonRepo.findOne({ where: { id: nb.n_focalPersonID } });
+      await focalPersonRepo.update({ id: nb.n_focalPersonID }, { archived: false });
+
+      // Log focal person unarchive by dispatcher
+      if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+        await addAdminLog({
+          action: "unarchive",
+          entityType: "FocalPerson",
+          entityID: nb.n_focalPersonID,
+          entityName: focal ? `${focal.firstName || ''} ${focal.lastName || ''}`.trim() : nb.n_focalPersonID,
+          dispatcherID: req.user.id,
+          dispatcherName: req.user.name
+        });
+      }
+    }
+
+    // Log neighborhood unarchive by dispatcher
+    if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+      await addAdminLog({
+        action: "unarchive",
+        entityType: "Neighborhood",
+        entityID: id,
+        entityName: `Neighborhood ${id}`,
+        dispatcherID: req.user.id,
+        dispatcherName: req.user.name
+      });
+    }
+
+    // Invalidate all relevant caches
+    await deleteCache(`neighborhood:${id}`);
+    await deleteCache("neighborhoods:active");
+    await deleteCache("neighborhoods:archived");
+
+    return res.json({ 
+      message: terminalID 
+        ? "Neighborhood Unarchived, Focal Person Unarchived, Terminal Linked" 
+        : "Neighborhood Unarchived, Focal Person Unarchived" 
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server Error - UNARCHIVE Neighborhood", error: err.message });
+  }
+};
+
 // DELETE Neighborhood
 const deleteNeighborhood = async (req, res) => {
   try {
@@ -812,6 +898,7 @@ module.exports = {
   viewOtherNeighborhoods,
   updateNeighborhood,
   archivedNeighborhood,
+  unarchivedNeighborhood,
   getArchivedNeighborhoods,
   uploadAltFocalPhoto,
   getAltFocalPhoto,
