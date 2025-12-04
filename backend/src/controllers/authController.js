@@ -92,7 +92,9 @@ const focalLogin = async (req, res) => {
       if (password === "dummy") {
         return res.json({ locked: false });
       }
-      return res.status(400).json({ message: "Invalid Credentials" });
+      return res
+        .status(400)
+        .json({ message: "Invalid credentials! Please try again." });
     }
 
     // Check if focal person is archived
@@ -401,7 +403,9 @@ const adminDispatcherLogin = async (req, res) => {
     }
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid Credentials" });
+      return res
+        .status(400)
+        .json({ message: "Invalid credentials! Please try again." });
     }
 
     // Clean previous OTPs for this user

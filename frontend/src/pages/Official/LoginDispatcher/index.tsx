@@ -108,7 +108,7 @@ export function LoginOfficial() {
               <AlertTitle>
                 {" "}
                 {error.includes("credentials")
-                  ? "Wrong credentials"
+                  ? "Login failed"
                   : "Login failed"}
               </AlertTitle>
               <AlertDescription>
