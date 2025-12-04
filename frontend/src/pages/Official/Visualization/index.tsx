@@ -473,25 +473,25 @@ function VisualizationContent() {
 
       // Add Caloocan boundary layer (bottom layer)
       try {
-        const caloocanSourceId = "caloocan-boundary";
-        const caloocanLayerId = "caloocan-boundary-layer";
-        const caloocanStrokeLayerId = "caloocan-boundary-stroke";
+        const caloocan175SourceId = "caloocan-175-boundary";
+        const caloocan175LayerId = "caloocan-175-boundary-layer";
+        const caloocan175StrokeLayerId = "caloocan-175-boundary-stroke";
 
-        // Add vector tile source for Caloocan boundary (same pattern as flood tileset)
-        if (!map.getSource(caloocanSourceId)) {
-          map.addSource(caloocanSourceId, {
+        // Add vector tile source for 175 Caloocan boundary
+        if (!map.getSource(caloocan175SourceId)) {
+          map.addSource(caloocan175SourceId, {
             type: "vector",
-            url: "mapbox://rodelll.7z50w5dx",
+            url: "mapbox://rodelll.aenwq122",
           });
         }
 
-        // Add fill layer for Caloocan boundary
-        if (!map.getLayer(caloocanLayerId)) {
+        // Add fill layer for 175 Caloocan boundary
+        if (!map.getLayer(caloocan175LayerId)) {
           map.addLayer({
-            id: caloocanLayerId,
+            id: caloocan175LayerId,
             type: "fill",
-            source: caloocanSourceId,
-            "source-layer": "caloocan-1t6tt5", // Using correct tileset name
+            source: caloocan175SourceId,
+            "source-layer": "175_boundary-cz8oek", // Using correct tileset name
             paint: {
               "fill-color": "#0019bd", // Light blue color
               "fill-opacity": 0.05, // More transparent
@@ -499,22 +499,22 @@ function VisualizationContent() {
           });
         }
 
-        // Add stroke layer for Caloocan boundary
-        if (!map.getLayer(caloocanStrokeLayerId)) {
+        // Add stroke layer for 175 Caloocan boundary
+        if (!map.getLayer(caloocan175StrokeLayerId)) {
           map.addLayer({
-            id: caloocanStrokeLayerId,
+            id: caloocan175StrokeLayerId,
             type: "line",
-            source: caloocanSourceId,
-            "source-layer": "caloocan-1t6tt5", // Using correct tileset name
+            source: caloocan175SourceId,
+            "source-layer": "175_boundary-cz8oek", // Using correct tileset name
             paint: {
               "line-color": "#0019bd", // Light blue stroke
-              "line-width": 1,
+              "line-width": 3,
               "line-opacity": 0.4, // More transparent
             },
           });
         }
       } catch (e) {
-        console.warn("[Visualization] could not add Caloocan boundary", e);
+        console.warn("[Visualization] could not add 175 Caloocan boundary", e);
       }
 
       // Add flood polygons using Mapbox vector tileset (top layer - on top of Caloocan)
