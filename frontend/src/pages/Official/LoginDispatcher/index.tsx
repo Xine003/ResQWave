@@ -190,7 +190,7 @@ export function LoginOfficial() {
                 }}
               />
               <span
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer hover:text-gray-300"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#BABABA] hover:text-white transition-colors duration-300"
                 onClick={() => setShowPassword((prev) => !prev)}
                 tabIndex={0}
                 role="button"
