@@ -4,17 +4,16 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AuthProvider } from '@/contexts/AuthContext';
 import React from 'react';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
-import { Landing, LoginFocal, RegisterAccount } from '../pages/Focal';
+import { FocalForgotPasswordFlow, FocalForgotPasswordVerification, Landing, LoginFocal, RegisterAccount } from '../pages/Focal';
 import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount';
-import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/SignAccount/ForgotPassword';
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
 import {
-  CommunityGroups,
-  LoginOfficial,
-  Reports,
-  Tabular,
-  VerificationOfficial,
-  Visualization
+    CommunityGroups,
+    LoginOfficial,
+    Reports,
+    Tabular,
+    VerificationOfficial,
+    Visualization
 } from '../pages/Official';
 import { ForgotPasswordFlow } from '../pages/Official/LoginDispatcher/ForgotPasswordFlow';
 // TypeScript declaration for window property
@@ -76,14 +75,20 @@ export const router = createBrowserRouter([
           </FocalAuthProvider>
         ),
       },
+      // Focal forgot password flow (public)
+      {
+        path: '/forgot-password-focal',
+        element: <FocalForgotPasswordFlow />,
+      },
+      // Focal forgot password verification (public)
+      {
+        path: '/forgot-password-verification-focal',
+        element: <FocalForgotPasswordVerification />,
+      },
       // Focal Routes (protected)
       {
         element: <FocalProtectedRoute />,
         children: [
-          {
-            path: '/forgot-password-focal',
-            element: <ForgotPasswordVerification />,
-          },
           {
             path: '/verify-account-focal',
             element: <VerifyAccount />,

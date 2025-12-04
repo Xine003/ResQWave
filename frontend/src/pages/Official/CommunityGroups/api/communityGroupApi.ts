@@ -647,3 +647,36 @@ export function transformNeighborhoodToCommunityGroup(
     registeredAt: formatDate(neighborhood.registeredAt),
   };
 }
+
+/**
+ * Check if email exists in focal persons database
+ */
+export async function checkFocalEmailExists(
+  email: string,
+  excludeFocalId?: string
+): Promise<{ exists: boolean }> {
+  try {
+    // Get all focal persons and check if email exists
+    const response = await apiFetch("/focalperson", { method: "GET" });
+    const focalPersons = response as Array<{
+      id: string;
+      email: string;
+      altEmail?: string;
+    }>;
+    
+    const emailExists = focalPersons.some(focal => {
+      const matchesMainEmail = focal.email?.toLowerCase() === email.toLowerCase();
+      const matchesAltEmail = focal.altEmail?.toLowerCase() === email.toLowerCase();
+      const isDifferentFocal = focal.id !== excludeFocalId;
+      
+      return (matchesMainEmail || matchesAltEmail) && isDifferentFocal;
+    });
+    
+    return { exists: emailExists };
+  } catch (error) {
+    // If there's an error fetching focal persons, assume email doesn't exist
+    // to avoid blocking legitimate users
+    console.error('Error checking focal email existence:', error);
+    return { exists: false };
+  }
+}

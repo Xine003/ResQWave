@@ -3,26 +3,27 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
 } from "@/components/ui/sheet";
 import { Loader2, Map, Trash, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  createCommunityGroup,
-  getAllTerminals,
-  getAvailableTerminals,
-  updateNeighborhood,
-  type Terminal,
+    checkFocalEmailExists,
+    createCommunityGroup,
+    getAllTerminals,
+    getAvailableTerminals,
+    updateNeighborhood,
+    type Terminal,
 } from "../api/communityGroupApi";
 import type { CommunityGroupDrawerProps } from "../types";
 import type { CommunityFormData } from "../types/forms";
@@ -159,6 +160,10 @@ export function CommunityGroupDrawer({
   const [altPhotoDeleted, setAltPhotoDeleted] = useState(false);
   const [initialAltPhotoExists, setInitialAltPhotoExists] = useState(false);
 
+  // Email validation states
+  const [isCheckingFocalEmail, setIsCheckingFocalEmail] = useState(false);
+  const [isCheckingAltEmail, setIsCheckingAltEmail] = useState(false);
+
   // File input refs
   const focalFileInputRef = useRef<HTMLInputElement | null>(null);
   const altFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -278,6 +283,84 @@ export function CommunityGroupDrawer({
     },
     [errors],
   );
+
+  // Validate focal person email uniqueness on blur
+  const handleFocalEmailBlur = useCallback(async () => {
+    const email = formData.focalPersonEmail.trim();
+    
+    // First check basic email validation
+    const basicError = validateEmail(email) ? null : "Please enter a valid email address";
+    if (basicError) {
+      setErrors(prev => ({ ...prev, focalPersonEmail: basicError }));
+      return;
+    }
+
+    // If email is valid, check for uniqueness
+    if (email) {
+      setIsCheckingFocalEmail(true);
+      try {
+        const excludeId = isEditing && editData?.focalPerson?.id ? editData.focalPerson.id : undefined;
+        const result = await checkFocalEmailExists(email, excludeId);
+        
+        if (result.exists) {
+          setErrors(prev => ({ 
+            ...prev, 
+            focalPersonEmail: "Email is already in use by another focal person" 
+          }));
+        } else {
+          // Clear email error if it was about duplication
+          setErrors(prev => {
+            const { focalPersonEmail: _, ...rest } = prev;
+            return rest;
+          });
+        }
+      } catch (error) {
+        console.error('Error checking focal email uniqueness:', error);
+        // Don't show error to user for network issues during blur validation
+      } finally {
+        setIsCheckingFocalEmail(false);
+      }
+    }
+  }, [formData.focalPersonEmail, isEditing, editData]);
+
+  // Validate alternative focal person email uniqueness on blur
+  const handleAltEmailBlur = useCallback(async () => {
+    const email = formData.altFocalPersonEmail.trim();
+    
+    // First check basic email validation
+    const basicError = validateEmail(email) ? null : "Please enter a valid email address";
+    if (basicError) {
+      setErrors(prev => ({ ...prev, altFocalPersonEmail: basicError }));
+      return;
+    }
+
+    // If email is valid, check for uniqueness
+    if (email) {
+      setIsCheckingAltEmail(true);
+      try {
+        const excludeId = isEditing && editData?.focalPerson?.id ? editData.focalPerson.id : undefined;
+        const result = await checkFocalEmailExists(email, excludeId);
+        
+        if (result.exists) {
+          setErrors(prev => ({ 
+            ...prev, 
+            altFocalPersonEmail: "Email is already in use by another focal person" 
+          }));
+        } else {
+          // Clear email error if it was about duplication
+          setErrors(prev => {
+            const { altFocalPersonEmail: _, ...rest } = prev;
+            return rest;
+          });
+        }
+      } catch (error) {
+        console.error('Error checking alt email uniqueness:', error);
+        // Don't show error to user for network issues during blur validation
+      } finally {
+        setIsCheckingAltEmail(false);
+      }
+    }
+  }, [formData.altFocalPersonEmail, isEditing, editData]);
 
   // Fetch terminals when sheet opens
   useEffect(() => {
@@ -1407,7 +1490,15 @@ export function CommunityGroupDrawer({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-white text-sm">Email</Label>
+            <Label className="text-white text-sm">
+              Email
+              {isCheckingFocalEmail && (
+                <span className="ml-2 text-gray-400 text-xs">
+                  <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
+                  Checking...
+                </span>
+              )}
+            </Label>
             <Input
               type="email"
               value={formData.focalPersonEmail}
@@ -1415,6 +1506,7 @@ export function CommunityGroupDrawer({
                 updateFormData({ focalPersonEmail: e.target.value });
                 validateField("focalPersonEmail", e.target.value);
               }}
+              onBlur={handleFocalEmailBlur}
               className={`bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600 ${
                 errors.focalPersonEmail ? "border-red-500" : ""
               }`}
@@ -1733,7 +1825,15 @@ export function CommunityGroupDrawer({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-white text-sm">Email</Label>
+            <Label className="text-white text-sm">
+              Email
+              {isCheckingAltEmail && (
+                <span className="ml-2 text-gray-400 text-xs">
+                  <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
+                  Checking...
+                </span>
+              )}
+            </Label>
             <Input
               type="email"
               value={formData.altFocalPersonEmail}
@@ -1741,6 +1841,7 @@ export function CommunityGroupDrawer({
                 updateFormData({ altFocalPersonEmail: e.target.value });
                 validateField("altFocalPersonEmail", e.target.value);
               }}
+              onBlur={handleAltEmailBlur}
               className={`bg-[#171717] border-[#404040] text-white placeholder:text-gray-400 rounded-[5px] focus:ring-1 focus:ring-gray-600 focus:border-gray-600 ${
                 errors.altFocalPersonEmail ? "border-red-500" : ""
               }`}
