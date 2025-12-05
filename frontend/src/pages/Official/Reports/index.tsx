@@ -5,12 +5,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { ReportsTable } from "./components";
 import { useReports } from "./hooks/useReports";
 
 export function Reports() {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("completed");
+  const [archivedReports, setArchivedReports] = useState<any[]>([]);
   const {
     pendingReports,
     completedReports,
@@ -18,6 +21,29 @@ export function Reports() {
     error,
     refreshAllReports,
   } = useReports();
+
+  // Archive function (frontend-only for now)
+  const handleArchive = (reportId: string) => {
+    const reportToArchive = completedReports.find(report => report.emergencyId === reportId);
+    if (reportToArchive) {
+      setArchivedReports(prev => [...prev, reportToArchive]);
+      // In a real implementation, this would call an API to archive the report
+      refreshAllReports(); // This would remove it from completed reports
+    }
+  };
+
+  // Restore function
+  const handleRestore = (reportId: string) => {
+    setArchivedReports(prev => prev.filter(report => report.emergencyId !== reportId));
+    // In a real implementation, this would call an API to restore the report
+    refreshAllReports();
+  };
+
+  // Delete function
+  const handleDelete = (reportId: string) => {
+    setArchivedReports(prev => prev.filter(report => report.emergencyId !== reportId));
+    // In a real implementation, this would call an API to permanently delete the report
+  };
 
   return (
     <div className="p-2 flex flex-col bg-[#171717] gap-0 h-[calc(100vh-73px)] max-h-[calc(100vh-73px)] overflow-hidden">
@@ -104,12 +130,12 @@ export function Reports() {
                       </span>
                     </TabsTrigger>
                     <TabsTrigger
-                      value="pending"
+                      value={isAdmin() ? "archive" : "pending"}
                       className="text-white text-base px-6 py-2 rounded transition-colors cursor-pointer hover:bg-[#333333]"
                     >
-                      Pending
+                      {isAdmin() ? "Archive" : "Pending"}
                       <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">
-                        {pendingReports.length}
+                        {isAdmin() ? archivedReports.length : pendingReports.length}
                       </span>
                     </TabsTrigger>
                   </TabsList>
@@ -122,6 +148,15 @@ export function Reports() {
                   type="completed"
                   data={completedReports}
                   onReportCreated={refreshAllReports}
+                  onArchive={handleArchive}
+                />
+              ) : activeTab === "archive" ? (
+                <ReportsTable
+                  type="archive"
+                  data={archivedReports}
+                  onReportCreated={refreshAllReports}
+                  onRestore={handleRestore}
+                  onDelete={handleDelete}
                 />
               ) : (
                 <ReportsTable
