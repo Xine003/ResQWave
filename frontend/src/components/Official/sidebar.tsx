@@ -2,7 +2,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 // import { useAuth } from "@/contexts/AuthContext";
 import { ClipboardCheck, Radio, RadioReceiver, UserCog, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import SettingsPopover from "./settingsPopover";
+import SettingsPopover from "./SettingsPopover";
 import resqwave_logo from "/resqwave_logo.png";
 
 const baseNavigationItems = [
@@ -12,6 +12,11 @@ const baseNavigationItems = [
     path: "/visualization",
   },
   {
+    icon: ClipboardCheck,
+    label: "Reports",
+    path: "/reports",
+  },
+  {
     icon: Users,
     label: "Neighborhood Groups",
     path: "/community-groups",
@@ -19,11 +24,6 @@ const baseNavigationItems = [
 ];
 
 const adminOnlyItems = [
-  {
-    icon: ClipboardCheck,
-    label: "Reports",
-    path: "/reports",
-  },
   {
     icon: UserCog,
     label: "Dispatchers",

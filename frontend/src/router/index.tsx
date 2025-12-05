@@ -8,12 +8,12 @@ import { FocalForgotPasswordFlow, FocalForgotPasswordVerification, Landing, Logi
 import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount';
 import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
 import {
-    CommunityGroups,
-    LoginOfficial,
-    Reports,
-    Tabular,
-    VerificationOfficial,
-    Visualization
+  CommunityGroups,
+  LoginOfficial,
+  Reports,
+  Tabular,
+  VerificationOfficial,
+  Visualization
 } from '../pages/Official';
 import { ForgotPasswordFlow } from '../pages/Official/LoginDispatcher/ForgotPasswordFlow';
 // TypeScript declaration for window property
@@ -174,11 +174,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'reports',
-            element: (
-              <ProtectedRoute adminOnly={true}>
-                <Reports />
-              </ProtectedRoute>
-            )
+            element: <Reports />
           },
           {
             path: 'community-groups',
