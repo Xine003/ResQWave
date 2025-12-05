@@ -8,12 +8,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { ReportsTable } from "./components";
+import type { TransformedCompletedReport } from "./hooks/useReports";
 import { useReports } from "./hooks/useReports";
 
 export function Reports() {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("completed");
-  const [archivedReports, setArchivedReports] = useState<any[]>([]);
+  const [archivedReports, setArchivedReports] = useState<TransformedCompletedReport[]>([]);
   const {
     pendingReports,
     completedReports,

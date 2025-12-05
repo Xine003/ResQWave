@@ -3,27 +3,27 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { Loader2, Map, Trash, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    checkFocalEmailExists,
-    createCommunityGroup,
-    getAllTerminals,
-    getAvailableTerminals,
-    updateNeighborhood,
-    type Terminal,
+  checkFocalEmailExists,
+  createCommunityGroup,
+  getAllTerminals,
+  getAvailableTerminals,
+  updateNeighborhood,
+  type Terminal,
 } from "../api/communityGroupApi";
 import type { CommunityGroupDrawerProps } from "../types";
 import type { CommunityFormData } from "../types/forms";
