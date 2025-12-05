@@ -89,24 +89,52 @@ export function ResetPassword({
 
   return (
     <div>
-      <main className="flex flex-1 flex-col items-center w-full px-10 sm:px-0 mt-[120px] relative z-20">
-        <div className="flex flex-col items-center gap-4 mb-8 w-full max-w-[460px] mx-auto">
-          <h1 className="text-[2.6875rem] sm:text-[1.45rem] font-semibold text-white mb-1">
+      <main
+        className="flex flex-1 flex-col items-center w-full px-10 sm:px-0"
+        style={{ marginTop: "120px", zIndex: 20, position: "relative" }}
+      >
+        <div
+          className="flex flex-col items-center gap-4 mb-8"
+          style={{
+            width: "100%",
+            maxWidth: window.innerWidth <= 480 ? "95vw" : "460px",
+            marginLeft: "auto",
+            marginRight: "auto",
+            boxSizing: "border-box",
+          }}
+        >
+          <h1
+            className="text-[43px] font-semibold text-white mb-1"
+            style={window.innerWidth <= 480 ? { fontSize: "1.45rem" } : {}}
+          >
             Reset Password
           </h1>
-          <p className="text-[#BABABA] text-center text-base sm:text-[0.82rem] mb-2 leading-relaxed">
-            Protect your focal person account with a strong unique password. We
+          <p
+            className="text-[#BABABA] text-center text-base mb-2 leading-relaxed"
+            style={window.innerWidth <= 480 ? { fontSize: "0.82rem" } : {}}
+          >
+            Protect your account with a strong unique password. We
             <br />
             recommend following the password requirements below.
           </p>
         </div>
 
         <form
-          className="flex flex-col gap-3 w-full max-w-[490px] mx-auto"
+          className="flex flex-col gap-3 w-full mx-auto"
+          style={{
+            maxWidth: window.innerWidth <= 480 ? "95vw" : "490px",
+            width: "100%",
+            marginLeft: "auto",
+            marginRight: "auto",
+            boxSizing: "border-box",
+          }}
           onSubmit={handleSubmit}
         >
           <div className="mb-2">
-            <label className="block text-white text-[15px] sm:text-[0.85rem] font-light mb-2">
+            <label
+              className="block text-white text-[15px] font-light mb-2"
+              style={window.innerWidth <= 480 ? { fontSize: "0.85rem" } : {}}
+            >
               New Password
             </label>
             <div className="relative">
@@ -114,105 +142,155 @@ export function ResetPassword({
                 type={showNewPassword ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="bg-[#171717] border border-[#404040] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12 h-[55px] sm:h-[38px] text-[16px] sm:text-[13px] w-full"
-                disabled={isLoading}
+                className="bg-[#171717] border border-[#404040] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12"
+                style={{
+                  fontSize: window.innerWidth <= 480 ? "13px" : "16px",
+                  height: window.innerWidth <= 480 ? "38px" : "55px",
+                  width: "100%",
+                }}
               />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 flex items-center pr-3"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                tabIndex={-1}
+              <span
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
+                onClick={() => setShowNewPassword((prev) => !prev)}
+                role="button"
+                tabIndex={0}
+                aria-label={showNewPassword ? "Hide password" : "Show password"}
               >
                 {showNewPassword ? (
-                  <EyeOff className="h-4 w-4 text-gray-400" />
+                  <EyeOff size={window.innerWidth <= 480 ? 15 : 22} />
                 ) : (
-                  <Eye className="h-4 w-4 text-gray-400" />
+                  <Eye size={window.innerWidth <= 480 ? 15 : 22} />
                 )}
-              </button>
+              </span>
             </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-white text-[15px] sm:text-[0.85rem] font-light mb-2">
-              Confirm New Password
+          <div className="mb-3">
+            <label
+              className="block text-white text-[15px] font-light mb-2"
+              style={window.innerWidth <= 480 ? { fontSize: "0.85rem" } : {}}
+            >
+              Confirm Password
             </label>
             <div className="relative">
               <Input
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="bg-[#171717] border border-[#404040] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12 h-[55px] sm:h-[38px] text-[16px] sm:text-[13px] w-full"
-                disabled={isLoading}
+                className="bg-[#171717] border border-[#404040] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12"
+                style={{
+                  fontSize: window.innerWidth <= 480 ? "13px" : "16px",
+                  height: window.innerWidth <= 480 ? "38px" : "55px",
+                  width: "100%",
+                }}
               />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 flex items-center pr-3"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                tabIndex={-1}
+              <span
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                role="button"
+                tabIndex={0}
+                aria-label={
+                  showConfirmPassword ? "Hide password" : "Show password"
+                }
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="h-4 w-4 text-gray-400" />
+                  <EyeOff size={window.innerWidth <= 480 ? 15 : 22} />
                 ) : (
-                  <Eye className="h-4 w-4 text-gray-400" />
+                  <Eye size={window.innerWidth <= 480 ? 15 : 22} />
                 )}
-              </button>
+              </span>
             </div>
-            {/* Password match indicator */}
-            {confirmPassword.length > 0 && (
-              <div
-                className={`text-sm mt-1 ${
-                  passwordsMatch ? "text-green-400" : "text-red-400"
-                }`}
-              >
-                {passwordsMatch ? "✓ Passwords match" : "✗ Passwords do not match"}
-              </div>
-            )}
           </div>
 
           {/* Password Requirements */}
           {newPassword.length > 0 && (
-            <div className="mb-4 p-3 bg-[#27272A] rounded-lg border border-[#404040]">
-              <h3 className="text-white text-sm font-medium mb-2">
+            <div className="mb-3 p-3 bg-black/20 rounded-[5px] border border-[#404040]">
+              <p className="text-white text-sm font-medium mb-2">
                 Password Requirements:
-              </h3>
-              <div className="space-y-1">
-                {requirements.map((req, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <CheckCircle2Icon
-                      className={`h-3 w-3 ${
-                        req.met ? "text-green-400" : "text-gray-500"
-                      }`}
-                    />
+              </p>
+              <ul className="space-y-1">
+                {requirements.map((req, idx) => (
+                  <li key={idx} className="flex items-center gap-2 text-sm">
+                    {req.met ? (
+                      <CheckCircle2Icon size={16} className="text-green-500" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border border-gray-500" />
+                    )}
                     <span
-                      className={`text-xs ${
-                        req.met ? "text-green-400" : "text-gray-400"
-                      }`}
+                      className={req.met ? "text-green-500" : "text-gray-400"}
                     >
                       {req.label}
                     </span>
-                  </div>
+                  </li>
                 ))}
-              </div>
+                {confirmPassword.length > 0 && (
+                  <li className="flex items-center gap-2 text-sm mt-1">
+                    {passwordsMatch ? (
+                      <CheckCircle2Icon size={16} className="text-green-500" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border border-gray-500" />
+                    )}
+                    <span
+                      className={
+                        passwordsMatch ? "text-green-500" : "text-gray-400"
+                      }
+                    >
+                      Passwords match
+                    </span>
+                  </li>
+                )}
+              </ul>
             </div>
           )}
 
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              onClick={onBack}
-              className="flex-1 h-[52px] sm:h-[50px] bg-transparent border border-[#404040] text-white hover:bg-[#404040] hover:border-[#525252] rounded-xl text-[17px] sm:text-[16px] font-medium transition-all duration-200"
-              disabled={isLoading}
-            >
-              Back
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1 h-[52px] sm:h-[50px] bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] hover:from-[#1E40AF] hover:to-[#1E3A8A] text-white rounded-xl text-[17px] sm:text-[16px] font-medium transition-all duration-200 shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!allRequirementsMet || !passwordsMatch || isLoading}
-            >
-              {isLoading ? "Updating..." : "Update password"}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            disabled={isLoading || !allRequirementsMet || !passwordsMatch}
+            className="text-white py-6 rounded-md font-medium text-base flex items-center justify-center gap-2
+             bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
+             hover:from-[#2C64C5] hover:to-[#2C64C5]
+             transition duration-300 cursor-pointer mt-1"
+            style={{
+              opacity:
+                isLoading || !allRequirementsMet || !passwordsMatch ? 0.7 : 1,
+              width: "100%",
+              fontSize: window.innerWidth <= 480 ? "0.95rem" : undefined,
+            }}
+          >
+            {isLoading && (
+              <span className="inline-block mr-2">
+                <svg
+                  className="animate-spin h-6 w-6 text-white"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+              </span>
+            )}
+            {isLoading ? "Confirming..." : "Confirm"}
+          </Button>
+
+          <button
+            type="button"
+            className="text-[#A3A3A3] hover:text-[#929090] mt-2 text-md bg-transparent border-none cursor-pointer"
+            onClick={onBack}
+            style={window.innerWidth <= 480 ? { fontSize: "0.97rem" } : {}}
+          >
+            Back
+          </button>
         </form>
       </main>
     </div>

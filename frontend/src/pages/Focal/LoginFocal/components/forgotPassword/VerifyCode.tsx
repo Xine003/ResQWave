@@ -212,99 +212,179 @@ export function VerifyCode({
 
   return (
     <div>
-      <main className="flex flex-1 flex-col items-center w-full px-10 sm:px-0 mt-[120px] relative z-20">
-        <div className="flex flex-col items-center gap-4 mb-8 w-full max-w-[460px] mx-auto">
-          <h1 className="text-[2.6875rem] sm:text-[1.45rem] font-semibold text-white mb-1">
-            Verify your identity
+      <main
+        className="flex flex-1 flex-col items-center w-full px-10 sm:px-0"
+        style={{ marginTop: "120px", zIndex: 20, position: "relative" }}
+      >
+        <div
+          className="flex flex-col items-center gap-4 mb-8"
+          style={{
+            width: "100%",
+            maxWidth: window.innerWidth <= 480 ? "95vw" : "460px",
+            marginLeft: "auto",
+            marginRight: "auto",
+            boxSizing: "border-box",
+          }}
+        >
+          <div className="mb-2">
+            <span className="text-[#BABABA] text-sm">
+              Code expires in:{" "}
+              <span className="font-semibold text-white">
+                {formatTime(expiresIn)}
+              </span>
+            </span>
+          </div>
+
+          <h1
+            className="text-[35px] font-semibold text-white mb-1"
+            style={window.innerWidth <= 480 ? { fontSize: "1.45rem" } : {}}
+          >
+            Enter verification code
           </h1>
-          <p className="text-[#BABABA] text-center text-base sm:text-[0.82rem] mb-2 leading-relaxed">
-            We sent a 6-digit verification code to{" "}
-            <span className="text-white font-medium">{maskedEmail}</span>
+          <p
+            className="text-[#BABABA] text-center text-base mb-2 leading-relaxed"
+            style={window.innerWidth <= 480 ? { fontSize: "0.82rem" } : {}}
+          >
+            Please enter the verification code we sent to
             <br />
-            Enter the code below to continue.
+            {maskedEmail}.
           </p>
         </div>
 
         <form
-          className="flex flex-col gap-3 w-full max-w-[490px] mx-auto"
+          className="flex flex-col gap-3 w-full mx-auto items-center"
+          style={{
+            maxWidth: window.innerWidth <= 480 ? "95vw" : "490px",
+            width: "100%",
+            marginLeft: "auto",
+            marginRight: "auto",
+            boxSizing: "border-box",
+          }}
           onSubmit={handleVerify}
         >
-          {/* Timer Display */}
-          <div className="flex justify-center mb-2">
-            {expiresIn > 0 ? (
-              <div className="text-[#BABABA] text-sm">
-                Code expires in{" "}
-                <span className="text-blue-400 font-mono">
-                  {formatTime(expiresIn)}
-                </span>
-              </div>
-            ) : (
-              <div className="text-red-400 text-sm">Code has expired</div>
-            )}
-          </div>
-
-          {/* OTP Input */}
-          <div className="flex justify-center mb-4">
-            <InputOTP
-              value={code}
-              onChange={(value) => {
-                setCode(value);
-                if (error) setError("");
-              }}
-              maxLength={6}
-              disabled={isVerifying}
+          <InputOTP
+            maxLength={6}
+            value={code}
+            onChange={(val) => {
+              setCode(val);
+              if (error) {
+                setError("");
+              }
+            }}
+            containerClassName="justify-center gap-3"
+            style={{ marginBottom: error ? "8px" : "16px" }}
+          >
+            <InputOTPGroup>
+              <InputOTPSlot
+                index={0}
+                className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? "border-red-500" : "border-[#404040]"}`}
+              />
+              <InputOTPSlot
+                index={1}
+                className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? "border-red-500" : "border-[#404040]"}`}
+              />
+            </InputOTPGroup>
+            <InputOTPSeparator>
+              <span className="text-white text-2xl">•</span>
+            </InputOTPSeparator>
+            <InputOTPGroup>
+              <InputOTPSlot
+                index={2}
+                className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? "border-red-500" : "border-[#404040]"}`}
+              />
+              <InputOTPSlot
+                index={3}
+                className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? "border-red-500" : "border-[#404040]"}`}
+              />
+            </InputOTPGroup>
+            <InputOTPSeparator>
+              <span className="text-white text-2xl">•</span>
+            </InputOTPSeparator>
+            <InputOTPGroup>
+              <InputOTPSlot
+                index={4}
+                className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? "border-red-500" : "border-[#404040]"}`}
+              />
+              <InputOTPSlot
+                index={5}
+                className={`bg-[#171717] h-[65px] w-[65px] text-2xl text-white border ${error ? "border-red-500" : "border-[#404040]"}`}
+              />
+            </InputOTPGroup>
+          </InputOTP>
+          {error && (
+            <p
+              className="text-red-500 text-sm mb-3 text-center"
+              style={window.innerWidth <= 480 ? { fontSize: "0.75rem" } : {}}
             >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-              </InputOTPGroup>
-              <InputOTPSeparator />
-              <InputOTPGroup>
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
+              {error}
+            </p>
+          )}
 
-          {error && <p className="text-red-400 text-sm text-center mb-2">{error}</p>}
-
-          {/* Buttons */}
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              onClick={onBack}
-              className="flex-1 h-[52px] sm:h-[50px] bg-transparent border border-[#404040] text-white hover:bg-[#404040] hover:border-[#525252] rounded-xl text-[17px] sm:text-[16px] font-medium transition-all duration-200"
-              disabled={isVerifying}
-            >
-              Back
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1 h-[52px] sm:h-[50px] bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] hover:from-[#1E40AF] hover:to-[#1E3A8A] text-white rounded-xl text-[17px] sm:text-[16px] font-medium transition-all duration-200 shadow-lg shadow-blue-500/25"
-              disabled={isVerifying || code.length !== 6}
-            >
-              {isVerifying ? "Verifying..." : "Verify code"}
-            </Button>
-          </div>
-
-          {/* Resend Section */}
-          <div className="flex flex-col items-center gap-2 pt-4 border-t border-[#404040] mt-4">
-            <p className="text-[#BABABA] text-sm">Didn't receive the code?</p>
-            <Button
+          <div className="text-center mb-3">
+            <span className="text-[#BABABA] text-sm">
+              Didn't receive any code?{" "}
+            </span>
+            <button
               type="button"
               onClick={handleResend}
-              className="bg-transparent text-blue-400 hover:text-blue-300 underline h-auto p-0 text-sm font-medium"
-              disabled={isResending || expiresIn > 240} // Allow resend in last 60 seconds or when expired
+              disabled={isResending || expiresIn > 0}
+              className={`text-[#3B82F6] text-sm bg-transparent border-none disabled:opacity-60 ${
+                isResending || expiresIn > 0
+                  ? "cursor-default"
+                  : "hover:text-[#2C64C5] cursor-pointer"
+              }`}
             >
-              {isResending
-                ? "Sending..."
-                : expiresIn > 240
-                  ? `Resend available in ${formatTime(expiresIn - 240)}`
-                  : "Resend code"}
-            </Button>
+              {isResending ? "Resending..." : "Resend"}
+            </button>
           </div>
+
+          <Button
+            type="submit"
+            disabled={isVerifying || code.length !== 6}
+            className="text-white py-6 rounded-md font-medium text-base flex items-center justify-center gap-2
+             bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
+             hover:from-[#2C64C5] hover:to-[#2C64C5]
+             transition duration-300 cursor-pointer mt-1"
+            style={{
+              opacity: isVerifying || code.length !== 6 ? 0.7 : 1,
+              width: "100%",
+              fontSize: window.innerWidth <= 480 ? "0.95rem" : undefined,
+            }}
+          >
+            {isVerifying && (
+              <span className="inline-block mr-2">
+                <svg
+                  className="animate-spin h-6 w-6 text-white"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+              </span>
+            )}
+            {isVerifying ? "Verifying..." : "Verify"}
+          </Button>
+
+          <button
+            type="button"
+            className="text-[#A3A3A3] hover:text-[#929090] mt-2 text-md bg-transparent border-none cursor-pointer"
+            onClick={onBack}
+            style={window.innerWidth <= 480 ? { fontSize: "0.97rem" } : {}}
+          >
+            Back
+          </button>
         </form>
       </main>
     </div>

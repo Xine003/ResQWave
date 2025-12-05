@@ -79,7 +79,7 @@ export function FindAccount({ onNext, onBack, onError }: FindAccountProps) {
             className="text-[43px] font-semibold text-white mb-1"
             style={window.innerWidth <= 480 ? { fontSize: "1.45rem" } : {}}
           >
-            Find your account
+            Find account
           </h1>
           <p
             className="text-[#BABABA] text-center text-base mb-2 leading-relaxed"
@@ -87,7 +87,7 @@ export function FindAccount({ onNext, onBack, onError }: FindAccountProps) {
           >
             Enter your email address or your phone number to
             <br />
-            recover your focal person account.
+            recover your account.
           </p>
         </div>
 
@@ -102,52 +102,83 @@ export function FindAccount({ onNext, onBack, onError }: FindAccountProps) {
           }}
           onSubmit={handleSubmit}
         >
-          <div className="flex flex-col gap-3">
-            <Input
-              type="text"
-              value={emailOrNumber}
-              onChange={(e) => {
-                setEmailOrNumber(e.target.value);
-                if (error) setError("");
-              }}
-              placeholder="Enter email or phone number"
-              className="h-[52px] text-[17px] bg-[#18181B] border border-[#404040] text-white placeholder:text-[#9CA3AF] rounded-xl focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all duration-200"
-              style={{
-                fontSize: window.innerWidth <= 480 ? "16px" : "17px",
-                height: window.innerWidth <= 480 ? "50px" : "52px",
-              }}
-              disabled={isLoading}
-            />
-            {error && (
-              <p className="text-red-400 text-sm ml-1">{error}</p>
-            )}
-          </div>
+          <label
+            className="block text-white text-[15px] font-light"
+            style={window.innerWidth <= 480 ? { fontSize: "0.85rem" } : {}}
+          >
+            Email or Phone Number
+          </label>
+          <Input
+            type="text"
+            value={emailOrNumber}
+            onChange={(e) => {
+              setEmailOrNumber(e.target.value);
+              if (error) setError("");
+            }}
+            className={`bg-[#171717] border ${error ? "border-red-500" : "border-[#404040]"} rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+            style={{
+              fontSize: window.innerWidth <= 480 ? "13px" : "16px",
+              height: window.innerWidth <= 480 ? "38px" : "55px",
+              width: "100%",
+              marginBottom: error ? "8px" : "12px",
+            }}
+          />
+          {error && (
+            <p
+              className="text-red-500 text-sm mb-3"
+              style={window.innerWidth <= 480 ? { fontSize: "0.75rem" } : {}}
+            >
+              {error}
+            </p>
+          )}
 
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              onClick={onBack}
-              className="flex-1 h-[52px] bg-transparent border border-[#404040] text-white hover:bg-[#404040] hover:border-[#525252] rounded-xl text-[17px] font-medium transition-all duration-200"
-              style={{
-                fontSize: window.innerWidth <= 480 ? "16px" : "17px",
-                height: window.innerWidth <= 480 ? "50px" : "52px",
-              }}
-              disabled={isLoading}
-            >
-              Back to login
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1 h-[52px] bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] hover:from-[#1E40AF] hover:to-[#1E3A8A] text-white rounded-xl text-[17px] font-medium transition-all duration-200 shadow-lg shadow-blue-500/25"
-              style={{
-                fontSize: window.innerWidth <= 480 ? "16px" : "17px",
-                height: window.innerWidth <= 480 ? "50px" : "52px",
-              }}
-              disabled={isLoading}
-            >
-              {isLoading ? "Sending..." : "Send code"}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="text-white py-6 rounded-md font-medium text-base flex items-center justify-center gap-2
+             bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
+             hover:from-[#2C64C5] hover:to-[#2C64C5]
+             transition duration-300 cursor-pointer mt-1"
+            style={{
+              opacity: isLoading ? 0.7 : 1,
+              width: "100%",
+              fontSize: window.innerWidth <= 480 ? "0.95rem" : undefined,
+            }}
+          >
+            {isLoading && (
+              <span className="inline-block mr-2">
+                <svg
+                  className="animate-spin h-6 w-6 text-white"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+              </span>
+            )}
+            {isLoading ? "Sending..." : "Next"}
+          </Button>
+
+          <button
+            type="button"
+            className="text-[#A3A3A3] hover:text-[#929090] mt-2 text-md bg-transparent border-none cursor-pointer"
+            onClick={onBack}
+            style={window.innerWidth <= 480 ? { fontSize: "0.97rem" } : {}}
+          >
+            Back
+          </button>
         </form>
       </main>
     </div>

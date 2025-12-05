@@ -136,83 +136,75 @@ export default forwardRef<FocalForgotPasswordAlertsHandle>(
 
     return (
       <>
-        {/* Code Sent Alert (bottom-left) */}
+        {/* Code Sent Alert - Bottom Left */}
         <div
-          className={`fixed transition-all duration-500 ease-in-out z-[9999] ${
-            showCodeSent
-              ? "bottom-6 left-6 opacity-100 translate-y-0"
-              : "bottom-6 left-6 opacity-0 translate-y-4 pointer-events-none"
-          }`}
+          className={`fixed left-[30px] bottom-[30px] z-[100] transition-all duration-300 ease-out ${showCodeSent ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}
         >
-          <Alert className="bg-green-900 border-green-700 text-green-100 shadow-lg min-w-[300px] max-w-sm">
-            <Mail className="h-4 w-4" />
-            <AlertDescription className="text-sm font-medium">
+          <Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-600/25">
+              <Mail className="size-5 text-[#3B82F6]" />
+            </div>
+            <AlertDescription className="text-[13px] leading-tight">
               {codeSentMessage}
             </AlertDescription>
           </Alert>
         </div>
 
-        {/* Code Verified Alert (bottom-left) */}
+        {/* Code Verified Alert - Bottom Left */}
         <div
-          className={`fixed transition-all duration-500 ease-in-out z-[9999] ${
-            showCodeVerified
-              ? "bottom-6 left-6 opacity-100 translate-y-0"
-              : "bottom-6 left-6 opacity-0 translate-y-4 pointer-events-none"
-          }`}
+          className={`fixed left-[30px] bottom-[30px] z-[100] transition-all duration-300 ease-out ${showCodeVerified ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}
         >
-          <Alert className="bg-blue-900 border-blue-700 text-blue-100 shadow-lg min-w-[300px] max-w-sm">
-            <CheckCircle2Icon className="h-4 w-4" />
-            <AlertDescription className="text-sm font-medium">
-              Code verified successfully!
+          <Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-green-600/25">
+              <ShieldCheck className="size-5 text-[#22c55e]" />
+            </div>
+            <AlertDescription className="text-[13px] leading-tight">
+              Verification code confirmed successfully!
             </AlertDescription>
           </Alert>
         </div>
 
-        {/* Code Resent Alert (bottom-left) */}
+        {/* Code Resent Alert - Bottom Left */}
         <div
-          className={`fixed transition-all duration-500 ease-in-out z-[9999] ${
-            showCodeResent
-              ? "bottom-6 left-6 opacity-100 translate-y-0"
-              : "bottom-6 left-6 opacity-0 translate-y-4 pointer-events-none"
-          }`}
+          className={`fixed left-[30px] bottom-[30px] z-[100] transition-all duration-300 ease-out ${showCodeResent ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}
         >
-          <Alert className="bg-yellow-900 border-yellow-700 text-yellow-100 shadow-lg min-w-[300px] max-w-sm">
-            <Mail className="h-4 w-4" />
-            <AlertDescription className="text-sm font-medium">
-              Verification code resent!
+          <Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-600/25">
+              <Mail className="size-5 text-[#3B82F6]" />
+            </div>
+            <AlertDescription className="text-[13px] leading-tight">
+              New verification code sent to your email!
             </AlertDescription>
           </Alert>
         </div>
 
-        {/* Password Updated Alert (bottom-left) */}
+        {/* Password Updated Alert - Bottom Left */}
         <div
-          className={`fixed transition-all duration-500 ease-in-out z-[9999] ${
-            showPasswordUpdated
-              ? "bottom-6 left-6 opacity-100 translate-y-0"
-              : "bottom-6 left-6 opacity-0 translate-y-4 pointer-events-none"
-          }`}
+          className={`fixed left-[30px] bottom-[30px] z-[100] transition-all duration-300 ease-out ${showPasswordUpdated ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}
         >
-          <Alert className="bg-green-900 border-green-700 text-green-100 shadow-lg min-w-[300px] max-w-sm">
-            <ShieldCheck className="h-4 w-4" />
-            <AlertDescription className="text-sm font-medium">
+          <Alert className="min-w-[280px] max-w-[520px] bg-[#171717] border border-[#2a2a2a] text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-green-600/25">
+              <div className="relative">
+                <KeyRound className="size-5 text-[#22c55e]" />
+                <CheckCircle2Icon className="absolute -top-1 -right-1 size-3 text-[#22c55e]" />
+              </div>
+            </div>
+            <AlertDescription className="text-[13px] leading-tight">
               Password updated successfully!
             </AlertDescription>
           </Alert>
         </div>
 
-        {/* Error Alert (bottom-left) */}
+        {/* Error Alert - Bottom Left */}
         <div
-          className={`fixed transition-all duration-500 ease-in-out z-[9999] ${
-            showError
-              ? "bottom-6 left-6 opacity-100 translate-y-0"
-              : "bottom-6 left-6 opacity-0 translate-y-4 pointer-events-none"
-          }`}
+          className={`fixed left-[30px] bottom-[30px] z-[100] transition-all duration-300 ease-out ${showError ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"}`}
         >
-          <Alert className="bg-red-900 border-red-700 text-red-100 shadow-lg min-w-[300px] max-w-sm">
-            <KeyRound className="h-4 w-4" />
-            <AlertDescription className="text-sm font-medium">
-              {errorMessage}
-            </AlertDescription>
+          <Alert className="min-w-[280px] max-w-[600px] bg-[#171717] border border-red-600/50 text-white rounded-[5px] !items-center !grid-cols-[auto_1fr] !gap-x-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[5px] bg-red-600/25">
+              <AlertDescription className="text-[13px] leading-tight text-red-200">
+                <span className="font-medium">Error:</span> {errorMessage}
+              </AlertDescription>
+            </div>
           </Alert>
         </div>
       </>
