@@ -3,22 +3,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { ReportsTable } from "./components";
+import type { TransformedCompletedReport } from "./hooks/useReports";
 import { useReports } from "./hooks/useReports";
-
-interface CompletedReport {
-  emergencyId: string;
-  communityName: string;
-  alertType: string;
-  dispatcher: string;
-  dateTimeOccurred: string;
-  accomplishedOn: string;
-  address: string;
-}
 
 export function Reports() {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("completed");
-  const [archivedReports, setArchivedReports] = useState<CompletedReport[]>([]);
+  const [archivedReports, setArchivedReports] = useState<
+    TransformedCompletedReport[]
+  >([]);
   const {
     pendingReports,
     completedReports,
