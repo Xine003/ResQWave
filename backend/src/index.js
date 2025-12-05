@@ -20,6 +20,7 @@ const focalRegistrationRoutes = require("./routes/focalRegistrationRoutes");
 const logsRoute = require("./routes/logRoutes");
 const adminLogRoutes = require("./routes/adminLogRoutes");
 const sensorDataRoutes = require("./routes/sensorDataRoutes");
+const lmsRoutes = require("./routes/lmsRoutes");
 const { authMiddleware, requireRole } = require("./middleware/authMiddleware");
 const { getTerminalsForMap } = require("./controllers/terminalController");
 const { createCriticalAlert, createUserInitiatedAlert } = require("./controllers/alertController");
@@ -63,6 +64,7 @@ AppDataSource.initialize()
     app.use("/", verificationRoutes);
     app.use("/", focalRegistrationRoutes);
     app.use("/", sensorDataRoutes); // public route for sensor data
+    app.use("/lms", lmsRoutes); // public routes for the data
 
     // Public endpoint for map data (landing page)
     app.get("/terminals/map", getTerminalsForMap);
