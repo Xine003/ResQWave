@@ -1,25 +1,16 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { useState } from "react";
-import { AlertTypeChart, ReportsTable } from "./components";
+import { ReportsTable } from "./components";
 import { useReports } from "./hooks/useReports";
 
 export function Reports() {
   const [activeTab, setActiveTab] = useState("completed");
-  const [timeRange, setTimeRange] = useState("last3months");
   const {
     pendingReports,
     completedReports,
@@ -29,7 +20,7 @@ export function Reports() {
   } = useReports();
 
   return (
-    <div className="p-4 flex flex-col bg-[#171717] gap-1 h-[calc(100vh-73px)] max-h-[calc(100vh-73px)] overflow-hidden">
+    <div className="p-2 flex flex-col bg-[#171717] gap-0 h-[calc(100vh-73px)] max-h-[calc(100vh-73px)] overflow-hidden">
       {loading && (
         <div className="flex items-center justify-center h-32">
           <div className="text-white">Loading reports...</div>
@@ -43,10 +34,9 @@ export function Reports() {
       )}
 
       {!loading && !error && (
-        <div className="flex-1 flex flex-col min-h-0 gap-1">
-          {/* Top section with chart - 40% of available height */}
-          <div className="h-[40%] min-h-[200px]">
-            {/* Alert Type Chart - Full width */}
+        <div className="flex-1 flex flex-col min-h-0 gap-0">
+          {/* Chart section commented out for now */}
+          {/* <div className="h-[40%] min-h-[200px]">
             <Card
               className="border-border flex flex-col h-full"
               style={{ backgroundColor: "#211f1f" }}
@@ -89,11 +79,11 @@ export function Reports() {
                 <AlertTypeChart timeRange={timeRange} />
               </CardContent>
             </Card>
-          </div>
+          </div> */}
 
-          {/* Reports Table - 60% of available height */}
-          <Card className="flex flex-col border-0 h-[60%] overflow-hidden min-h-0 max-h-[60%]">
-            <CardHeader className="flex-shrink-0 flex flex-row items-center gap-2">
+          {/* Reports Table - Full height now */}
+          <Card className="flex flex-col border-0 flex-1 overflow-hidden min-h-0">
+            <CardHeader className="shrink-0 flex flex-row items-center gap-2">
               <CardTitle className="text-foreground text-2xl">
                 Reports
               </CardTitle>
