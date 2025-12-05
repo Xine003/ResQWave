@@ -1,19 +1,24 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { ReportsTable } from "./components";
 import { useReports } from "./hooks/useReports";
 
+interface CompletedReport {
+  emergencyId: string;
+  communityName: string;
+  alertType: string;
+  dispatcher: string;
+  dateTimeOccurred: string;
+  accomplishedOn: string;
+  address: string;
+}
+
 export function Reports() {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("completed");
-  const [archivedReports, setArchivedReports] = useState<any[]>([]);
+  const [archivedReports, setArchivedReports] = useState<CompletedReport[]>([]);
   const {
     pendingReports,
     completedReports,
@@ -24,9 +29,11 @@ export function Reports() {
 
   // Archive function (frontend-only for now)
   const handleArchive = (reportId: string) => {
-    const reportToArchive = completedReports.find(report => report.emergencyId === reportId);
+    const reportToArchive = completedReports.find(
+      (report) => report.emergencyId === reportId
+    );
     if (reportToArchive) {
-      setArchivedReports(prev => [...prev, reportToArchive]);
+      setArchivedReports((prev) => [...prev, reportToArchive]);
       // In a real implementation, this would call an API to archive the report
       refreshAllReports(); // This would remove it from completed reports
     }
@@ -34,14 +41,18 @@ export function Reports() {
 
   // Restore function
   const handleRestore = (reportId: string) => {
-    setArchivedReports(prev => prev.filter(report => report.emergencyId !== reportId));
+    setArchivedReports((prev) =>
+      prev.filter((report) => report.emergencyId !== reportId)
+    );
     // In a real implementation, this would call an API to restore the report
     refreshAllReports();
   };
 
   // Delete function
   const handleDelete = (reportId: string) => {
-    setArchivedReports(prev => prev.filter(report => report.emergencyId !== reportId));
+    setArchivedReports((prev) =>
+      prev.filter((report) => report.emergencyId !== reportId)
+    );
     // In a real implementation, this would call an API to permanently delete the report
   };
 
@@ -135,7 +146,9 @@ export function Reports() {
                     >
                       {isAdmin() ? "Archive" : "Pending"}
                       <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">
-                        {isAdmin() ? archivedReports.length : pendingReports.length}
+                        {isAdmin()
+                          ? archivedReports.length
+                          : pendingReports.length}
                       </span>
                     </TabsTrigger>
                   </TabsList>
