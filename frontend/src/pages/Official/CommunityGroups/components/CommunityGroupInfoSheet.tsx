@@ -8,6 +8,7 @@ import {
 import { ExpandIcon, Plus, X, ZoomOut } from "lucide-react";
 
 import { useEffect, useState } from "react";
+import { getTerminal } from "../../Terminal/api/terminalApi";
 import type { CommunityGroupInfoSheetProps } from "../types";
 
 export function CommunityGroupInfoSheet({
@@ -18,7 +19,6 @@ export function CommunityGroupInfoSheet({
   // Image viewer state
   useEffect(() => {
     if (open && communityData) {
-      console.debug("[InfoSheet] communityData:", communityData);
     }
   }, [open, communityData]);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -31,10 +31,34 @@ export function CommunityGroupInfoSheet({
   }>({});
   const [photosLoading, setPhotosLoading] = useState(false);
 
+  // Terminal name state
+  const [terminalName, setTerminalName] = useState<string>("N/A");
+  const [terminalLoading, setTerminalLoading] = useState(false);
+
   // Discrete zoom steps and class mappings (no inline styles)
   const zoomSteps = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3] as const;
   type Zoom = (typeof zoomSteps)[number];
   const [viewerZoom, setViewerZoom] = useState<Zoom>(1);
+
+  // Fetch terminal name
+  useEffect(() => {
+    if (!communityData?.terminalId || !open) return;
+    
+    const fetchTerminalName = async () => {
+      setTerminalLoading(true);
+      try {
+        const terminalData = await getTerminal(communityData.terminalId);
+        setTerminalName(terminalData.name || "N/A");
+      } catch (error) {
+        console.error("Error fetching terminal name:", error);
+        setTerminalName("N/A");
+      } finally {
+        setTerminalLoading(false);
+      }
+    };
+
+    fetchTerminalName();
+  }, [communityData?.terminalId, open]);
 
   // Load photos only if URLs are present and need auth (otherwise just use the URLs directly)
   useEffect(() => {
@@ -162,7 +186,7 @@ export function CommunityGroupInfoSheet({
           <div className="flex justify-between items-center bg-[#171717] px-4 py-4 rounded-[5px]">
             <span className="text-white/80 text-sm">Terminal Name</span>
             <span className="text-white text-sm">
-              {communityData.terminalId}
+              {terminalLoading ? "Loading..." : terminalName}
             </span>
           </div>
 
