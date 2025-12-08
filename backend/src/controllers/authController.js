@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const { AppDataSource } = require("../config/dataSource");
+const { sendLockoutEmail } = require("../utils/lockUtils");
 const SibApiV3Sdk = require("sib-api-v3-sdk");
 require("dotenv").config();
 
@@ -251,6 +252,7 @@ const verifyFocalLogin = async (req, res) => {
       if (focal.failedAttempts >= 5) {
         focal.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
         await focalRepo.save(focal);
+        await sendLockoutEmail(focal.email, focal.name);
         return res.status(400).json({
           locked: true,
           message: "Too many failed attempts. Account locked.",
@@ -335,6 +337,7 @@ const adminDispatcherLogin = async (req, res) => {
         if (admin.failedAttempts >= 5) {
           admin.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
           await adminRepo.save(admin);
+          await sendLockoutEmail(admin.email, admin.name);
           return res.status(403).json({ message: "Too Many Failed Attempts" });
         }
         await adminRepo.save(admin);
@@ -384,6 +387,7 @@ const adminDispatcherLogin = async (req, res) => {
           if (dispatcher.failedAttempts >= 5) {
             dispatcher.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
             await dispatcherRepo.save(dispatcher);
+            await sendLockoutEmail(dispatcher.email, dispatcher.name);
             return res.status(403).json({
               message: `Too many failed attempts. Please try again after: ${dispatcher.lockUntil}`,
             });
@@ -515,6 +519,7 @@ const adminDispatcherVerify = async (req, res) => {
           } else {
             await dispatcherRepo.save(user);
           }
+          await sendLockoutEmail(user.email, user.name);
           return res.status(403).json({
             message: "Too many failed attempts. Account locked for 15 minutes.",
           });
