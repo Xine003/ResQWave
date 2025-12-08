@@ -41,6 +41,7 @@ import {
 } from "../utils/reportExportUtils";
 import "./ReportsTable.css";
 import { RescueCompletionForm } from "./RescueCompletionForm";
+import { RescueFormInfoSheet } from "./RescueFormInfoSheet";
 
 interface CompletedReport {
   emergencyId: string;
@@ -97,6 +98,10 @@ export function ReportsTable({
     CommunityGroupDetails | undefined
   >(undefined);
   const [loadingCommunityData, setLoadingCommunityData] = useState(false);
+
+  // Rescue form info sheet state
+  const [rescueFormInfoOpen, setRescueFormInfoOpen] = useState(false);
+  const [selectedEmergencyId, setSelectedEmergencyId] = useState<string | null>(null);
 
   const handleCreateReport = async (reportData: ReportData) => {
     setIsLoadingDetails(true);
@@ -181,6 +186,11 @@ export function ReportsTable({
     } finally {
       setIsGeneratingPdf(false);
     }
+  };
+
+  const handleViewRescueForm = (reportData: ReportData) => {
+    setSelectedEmergencyId(reportData.emergencyId);
+    setRescueFormInfoOpen(true);
   };
 
   const handleViewNeighborhoodInfo = async (reportData: ReportData) => {
@@ -334,7 +344,10 @@ export function ReportsTable({
                   <Info className="mr-2 h-4 w-4 text-white" />
                   <span className="text-xs">{loadingCommunityData ? "Loading..." : "View Neighborhood Info"}</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+                <DropdownMenuItem 
+                  className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+                  onClick={() => handleViewRescueForm(row.original)}
+                >
                   <Info className="mr-2 h-4 w-4 text-white" />
                   <span className="text-xs">View Rescue Form</span>
                 </DropdownMenuItem>
@@ -379,7 +392,10 @@ export function ReportsTable({
                       <Info className="mr-2 h-4 w-4 text-white" />
                       <span className="text-xs">{loadingCommunityData ? "Loading..." : "View Neighborhood Info"}</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+                    <DropdownMenuItem 
+                      className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+                      onClick={() => handleViewRescueForm(row.original)}
+                    >
                       <Info className="mr-2 h-4 w-4 text-white" />
                       <span className="text-xs">View Rescue Form</span>
                     </DropdownMenuItem>
@@ -410,7 +426,10 @@ export function ReportsTable({
                       <Info className="mr-2 h-4 w-4 text-white" />
                       <span className="text-xs">{loadingCommunityData ? "Loading..." : "View Neighborhood Info"}</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+                    <DropdownMenuItem 
+                      className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+                      onClick={() => handleViewRescueForm(row.original)}
+                    >
                       <Info className="mr-2 h-4 w-4 text-white" />
                       <span className="text-xs">View Rescue Form</span>
                     </DropdownMenuItem>
@@ -446,7 +465,10 @@ export function ReportsTable({
                       <Info className="h-4 w-4 mr-2" />
                       {loadingCommunityData ? "Loading..." : "View Neighborhood Info"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+                    <DropdownMenuItem 
+                      className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+                      onClick={() => handleViewRescueForm(row.original)}
+                    >
                       <Info className="h-4 w-4 mr-2" />
                       View Rescue Form
                     </DropdownMenuItem>
@@ -484,7 +506,10 @@ export function ReportsTable({
                       <Info className="mr-2 h-4 w-4 text-white" />
                       <span className="text-xs">{loadingCommunityData ? "Loading..." : "View Neighborhood Info"}</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+                    <DropdownMenuItem 
+                      className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+                      onClick={() => handleViewRescueForm(row.original)}
+                    >
                       <Info className="mr-2 h-4 w-4 text-white" />
                       <span className="text-xs">View Rescue Form</span>
                     </DropdownMenuItem>
@@ -751,6 +776,13 @@ export function ReportsTable({
         open={communityInfoOpen}
         onOpenChange={setCommunityInfoOpen}
         communityData={communityData}
+      />
+
+      {/* Rescue Form Info Sheet */}
+      <RescueFormInfoSheet
+        open={rescueFormInfoOpen}
+        onOpenChange={setRescueFormInfoOpen}
+        emergencyId={selectedEmergencyId}
       />
     </div>
   );
