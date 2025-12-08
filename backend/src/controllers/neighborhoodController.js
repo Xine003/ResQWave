@@ -663,6 +663,7 @@ const archivedNeighborhood = async (req, res) => {
 const unarchivedNeighborhood = async (req, res) => {
   try {
     const { id } = req.params;
+    const { terminalID } = req.body;
 
     const nb = await neighborhoodRepo
       .createQueryBuilder("n")
@@ -674,30 +675,27 @@ const unarchivedNeighborhood = async (req, res) => {
     if (!nb.n_archived) return res.json({ message: "Neighborhood is not archived" });
 
     // Check if there's a terminal to link (optional, or require terminalID in body)
-    const { terminalID } = req.body || {};
-    
-    if (terminalID) {
-      // Validate terminal if provided
-      const terminal = await terminalRepo.findOne({ where: { id: terminalID } });
-      if (!terminal) return res.status(404).json({ message: "Terminal Not Found" });
-      if (terminal.archived) return res.status(400).json({ message: "Cannot link to archived terminal" });
-      if (String(terminal.availability || "").toLowerCase() === "occupied") {
-        return res.status(400).json({ message: "Terminal already occupied" });
-      }
-
-      // Link terminal and mark as occupied
-      await neighborhoodRepo.update({ id }, { terminalID, archived: false });
-      await terminalRepo.update({ id: terminalID }, { availability: "Occupied" });
-
-      // Invalidate terminal caches
-      await deleteCache(`terminal:${terminalID}`);
-      await deleteCache("terminals:active");
-      await deleteCache("onlineTerminals");
-      await deleteCache("offlineTerminals");
-    } else {
-      // Unarchive without linking a terminal
-      await neighborhoodRepo.update({ id }, { archived: false });
+    if (!terminalID) {
+      return res.status(400).json({message: "Terminal ID is required to unarchive neighborhood"});
     }
+    
+    // Validate Terminal
+    const terminal = await terminalRepo.findOne({where: {id: terminalID } });
+    if (!terminal) return res.status(404).json({message: "Terminal Not Found"});
+    if (terminal.archived) return res.status(400).json({message: "Cannot link to archived terminal"});
+    if (String(terminal.availability).toLowerCase() === "occupied") {
+      return res.status(400).json({message: "Terminal already occupied" });
+    }
+
+    // Link terminal and mark as occupied, unarchive neighborhood
+    await neighborhoodRepo.update({id}, {terminalID, archived: false});
+    await terminalRepo.update({id: terminalID}, {availability: "Occupied"});
+
+    // Invalidate terminal caches
+    await deleteCache(`terminal:${terminalID}`);
+    await deleteCache("terminals:active");
+    await deleteCache("onlineTerminals");
+    await deleteCache("offlineTerminals");
 
     // Unarchive focal person linked to this neighborhood
     if (nb.n_focalPersonID) {
@@ -735,9 +733,7 @@ const unarchivedNeighborhood = async (req, res) => {
     await deleteCache("neighborhoods:archived");
 
     return res.json({ 
-      message: terminalID 
-        ? "Neighborhood Unarchived, Focal Person Unarchived, Terminal Linked" 
-        : "Neighborhood Unarchived, Focal Person Unarchived" 
+      message: "Neighborhood Unarchived, Focal Person Unarchived, Terminal Linked"
     });
   } catch (err) {
     console.error(err);
