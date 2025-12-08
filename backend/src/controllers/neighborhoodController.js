@@ -637,6 +637,21 @@ const archivedNeighborhood = async (req, res) => {
     if (terminalId) {
       await terminalRepo.update({ id: terminalId }, { availability: "Available" });
       await neighborhoodRepo.update({ id }, { terminalID: null });
+
+      // Log terminal update by dispatcher
+      if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+        await addAdminLog({
+          action: "archive",
+          entityType: "Terminal",
+          entityID: terminalId,
+          entityName: `Terminal ${terminalId}`,
+          changes: [
+            { field: "terminalID", oldValue: terminalId, newValue: "No Terminal" }
+          ],
+          dispatcherID: req.user.id,
+          dispatcherName: req.user.name
+        });
+      }
     }
 
     // Invalidate all relevant caches
@@ -722,6 +737,21 @@ const unarchivedNeighborhood = async (req, res) => {
         entityType: "Neighborhood",
         entityID: id,
         entityName: `Neighborhood ${id}`,
+        dispatcherID: req.user.id,
+        dispatcherName: req.user.name
+      });
+    }
+
+    // Log terminal unarchive by dispatcher
+    if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+      await addAdminLog({
+        action: "unarchive",
+        entityType: "Terminal",
+        entityID: terminalID,
+        entityName: `Terminal ${terminalID}`,
+        changes: [
+          { field: "terminalID", oldValue: "No Terminal", newValue: terminalID }
+        ],
         dispatcherID: req.user.id,
         dispatcherName: req.user.name
       });
