@@ -423,7 +423,7 @@ const adminDispatcherLogin = async (req, res) => {
 
     // Send email
     try {
-      const sender = { email: "rielkai01@gmail.com", name: "ResQWave" }; // or your verified Brevo sender
+      const sender = { email: "resqwaveinfo@gmail.com", name: "ResQWave Team" }; // or your verified Brevo sender
       const receivers = [{ email: recipientEmail }];
 
       await tranEmailApi.sendTransacEmail({
@@ -743,7 +743,7 @@ const resendFocalLoginCode = async (req, res) => {
 
     // Send email
     try {
-      const sender = { email: "rielkai01@gmail.com", name: "ResQWave" };
+      const sender = { email: "resqwaveinfo@gmail.com", name: "ResQWave Team" };
       const receivers = [{ email: focal.email }];
 
       await tranEmailApi.sendTransacEmail({
@@ -875,7 +875,7 @@ const resendAdminDispatcherCode = async (req, res) => {
 
     // Send Email
     try {
-      const sender = { email: "rielkai01@gmail.com", name: "ResQWave" }; // must be verified in Brevo
+      const sender = { email: "resqwaveinfo@gmail.com", name: "ResQWave Team" }; // must be verified in Brevo
       const receivers = [{ email: recipientEmail }];
 
       await tranEmailApi.sendTransacEmail({
