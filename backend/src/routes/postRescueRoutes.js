@@ -12,6 +12,9 @@ const {
     fixRescueFormStatus,
     getAlertTypeChartData,
     getDetailedReportData,
+    archivePostRescueForm,
+    getArchivedPostRescueForm,
+    deletePostRescueForm,
 } = require("../controllers/postRescueFormController");
 
 
@@ -22,6 +25,9 @@ router.get("/chart/alert-types", getAlertTypeChartData);
 router.get("/report/:alertId", getDetailedReportData);
 router.get("/aggregated", getAggregatedRescueReports);
 router.get("/table/aggregated", getAggregatedPostRescueForm);
+router.get("/archived", getArchivedPostRescueForm);
+router.delete("/archive/:alertID", archivePostRescueForm);
+router.delete("/delete/:alertID", deletePostRescueForm);
 router.delete("/cache", clearReportsCache);
 router.post("/migrate/alert-types", migrateOriginalAlertTypes);
 router.post("/fix/rescue-form-status", fixRescueFormStatus);
