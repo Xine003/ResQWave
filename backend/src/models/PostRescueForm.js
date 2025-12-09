@@ -36,6 +36,10 @@ module.exports = new EntitySchema ({
         completedAt: {
             type: "timestamp",
             updateDate: true,
+        },
+        archived: {
+            type: "boolean",
+            default: false,
         }
     },
     relations: {
