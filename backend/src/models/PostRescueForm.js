@@ -19,8 +19,7 @@ module.exports = new EntitySchema ({
             nullable: false
         },
         resourcesUsed: {
-            type: "varchar",
-            length: 255,
+            type: "json",
             nullable: false,
         },
         actionTaken: {

@@ -216,6 +216,15 @@ const getAggregatedRescueReports = async (req, res) => {
       const completedAt = r.prfCompletedAt || null;
       const rescueCompleted = !!completedAt;
 
+      let resourcesUsed = r.resourcesUsed;
+      if (typeof resourcesUsed === 'string') {
+          try {
+              resourcesUsed = JSON.parse(resourcesUsed);
+          } catch (e) {
+              // keep as string if parse fails
+          }
+      }
+
       let rescueCompletionTime = null;
       if (timeOfRescue && completedAt) {
         const start = new Date(timeOfRescue).getTime();
@@ -251,7 +260,7 @@ const getAggregatedRescueReports = async (req, res) => {
         rescueCompleted,
         rescueCompletionTime, // human (e.g., "1h 12m")
         noOfPersonnel: r.noOfPersonnel || null,
-        resourcesUsed: r.resourcesUsed || null,
+        resourcesUsed: resourcesUsed || null,
         actionsTaken: r.actionsTaken || null,
       };
     });
@@ -709,6 +718,15 @@ const getDetailedReportData = async (req, res) => {
             return res.status(404).json({ message: "Report data not found for the given Alert ID" });
         }
 
+        let resourcesUsed = reportData.resourcesUsed;
+        if (typeof resourcesUsed === 'string') {
+            try {
+                resourcesUsed = JSON.parse(resourcesUsed);
+            } catch (e) {
+                // keep as string
+            }
+        }
+
         // Format the response data
         const formattedData = {
             alertId: reportData.alertId,
@@ -751,7 +769,7 @@ const getDetailedReportData = async (req, res) => {
             rescueFormId: reportData.rescueFormId || 'N/A',
             postRescueFormId: reportData.postRescueFormId || 'N/A',
             noOfPersonnelDeployed: reportData.noOfPersonnelDeployed || 'N/A',
-            resourcesUsed: reportData.resourcesUsed || 'N/A',
+            resourcesUsed: resourcesUsed || 'N/A',
             actionTaken: reportData.actionTaken || 'N/A',
             completedAt: reportData.completedAt ? new Date(reportData.completedAt).toLocaleString() : 'N/A',
             rescueCompletionTime: reportData.completedAt ? new Date(reportData.completedAt).toLocaleTimeString() : 'N/A'
