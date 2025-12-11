@@ -3,7 +3,6 @@ const alertRepo = AppDataSource.getRepository("Alert");
 const postRescueRepo = AppDataSource.getRepository("PostRescueForm");
 const rescueFormRepo = AppDataSource.getRepository("RescueForm");
 const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
-const communityGroupRepo = AppDataSource.getRepository("CommunityGroup");
 const {
   getCache,
   setCache,
@@ -321,10 +320,11 @@ const getAggregatedPostRescueForm = async (req, res) => {
             .leftJoin("prf.alerts", "alert")
             .leftJoin("rescueforms", "rf", "rf.emergencyID = alert.id")
             .leftJoin("focalpersons", "fp", "fp.id = rf.focalPersonID")
-            .leftJoin("dispatchers", "dispatcher", "dispatcher.id = rf.dispatcherID");
+            .leftJoin("dispatchers", "dispatcher", "dispatcher.id = rf.dispatcherID")
+            .where("prf.archived = :archived", { archived: false });
 
         if (alertID) {
-            qb = qb.where("prf.alertID = :alertID", { alertID });
+            qb = qb.andWhere("prf.alertID = :alertID", { alertID });
         }
 
         const rows = await qb
@@ -912,6 +912,7 @@ const getArchivedPostRescueForm = async (req, res) => {
             .select([
                 "rf.emergencyID AS emergencyId",
                 "terminal.name AS terminalName",
+                "alert.terminalID AS terminalId",
                 "fp.firstName AS focalFirstName",
                 "fp.lastName AS focalLastName",
                 "alert.dateTimeSent AS dateTimeOccurred",

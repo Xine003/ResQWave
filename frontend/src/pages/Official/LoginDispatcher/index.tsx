@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import { CircleAlert, Eye, EyeOff } from "lucide-react";
+import { AlertCircleIcon, Eye, EyeOff } from "lucide-react";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HeaderOfficial } from "./components/HeaderOfficial";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export function LoginOfficial() {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export function LoginOfficial() {
     } catch (error: unknown) {
       const err = error as { message?: string };
       setError(
-        err?.message || "An error occurred during login. Please try again.",
+        err?.message || "An error occurred during login. Please try again."
       );
       setIsLoading(false);
     }
@@ -69,13 +70,13 @@ export function LoginOfficial() {
           }}
         >
           <h1
-            className="text-[43px] font-semibold text-white mb-1"
+            className="text-[45px] font-semibold text-white"
             style={window.innerWidth <= 480 ? { fontSize: "1.45rem" } : {}}
           >
             Sign in
           </h1>
           <p
-            className="text-[#BABABA] text-center text-base mb-2 leading-relaxed"
+            className="text-[#BABABA] text-center text-base leading-relaxed"
             style={window.innerWidth <= 480 ? { fontSize: "0.82rem" } : {}}
           >
             Log in using your account credentials.
@@ -89,40 +90,31 @@ export function LoginOfficial() {
         {/* Error Alert UI - styled like focal login */}
         {error && (
           <div
-            className="flex items-center gap-3 bg-[#291415] border border-[#F92626] text-red-200 rounded-md px-3 py-3 mb-4 animate-in fade-in w-full mx-auto"
+            className="flex items-center gap-3 animate-in fade-in  mx-auto"
             style={{
               maxWidth: window.innerWidth <= 480 ? "95vw" : "490px",
               minWidth: window.innerWidth <= 480 ? "0" : undefined,
               width: "100%",
-              boxSizing: "border-box",
               fontSize: window.innerWidth <= 480 ? "0.78rem" : undefined,
-              paddingLeft: window.innerWidth <= 480 ? "5vw" : "1rem",
-              paddingRight: window.innerWidth <= 480 ? "5vw" : "1rem",
               marginLeft: "auto",
               marginRight: "auto",
             }}
           >
-            <CircleAlert
-              className="text-[#F92626]"
-              size={window.innerWidth <= 480 ? 15 : 22}
-            />
-            <div>
-              <span
-                className="font-bold text-[#F92626]"
-                style={window.innerWidth <= 480 ? { fontSize: "0.85rem" } : {}}
-              >
+            <Alert
+              className=" bg-[#291415] border border-[#F92626]  rounded-md  mb-4"
+              variant="destructive"
+            >
+              <AlertCircleIcon />
+              <AlertTitle>
+                {" "}
                 {error.includes("credentials")
-                  ? "Wrong credentials"
+                  ? "Login failed"
                   : "Login failed"}
-              </span>
-              <br />
-              <span
-                className="text-[#F92626] text-[13px]"
-                style={window.innerWidth <= 480 ? { fontSize: "0.75rem" } : {}}
-              >
-                {error}
-              </span>
-            </div>
+              </AlertTitle>
+              <AlertDescription>
+                <p> {error}</p>
+              </AlertDescription>
+            </Alert>
           </div>
         )}
 
@@ -154,7 +146,7 @@ export function LoginOfficial() {
               if (error) setError("");
             }}
             aria-invalid={!!error}
-            className="bg-[#171717] border border-[#404040] mb-1 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="bg-[#171717] border border-[#404040] mb-1 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             style={{
               fontSize: window.innerWidth <= 480 ? "13px" : "16px",
               height: window.innerWidth <= 480 ? "38px" : "55px",
@@ -186,7 +178,7 @@ export function LoginOfficial() {
                   if (error) setError("");
                 }}
                 aria-invalid={!!error}
-                className="bg-[#171717] border border-[#404040] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12"
+                className="bg-[#171717] border border-[#404040] rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12"
                 style={{
                   fontSize: window.innerWidth <= 480 ? "13px" : "16px",
                   height: window.innerWidth <= 480 ? "38px" : "55px",
@@ -198,12 +190,20 @@ export function LoginOfficial() {
                 }}
               />
               <span
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#BABABA] hover:text-white transition-colors duration-300"
                 onClick={() => setShowPassword((prev) => !prev)}
                 tabIndex={0}
                 role="button"
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                style={{ zIndex: 2 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowPassword((prev) => !prev);
+                  }
+                }}
+                style={{
+                  zIndex: 10,
+                }}
               >
                 {showPassword ? (
                   <EyeOff size={window.innerWidth <= 480 ? 15 : 22} />
@@ -218,9 +218,9 @@ export function LoginOfficial() {
             type="submit"
             disabled={isLoading}
             className="text-white py-6 rounded-md font-medium text-base flex items-center justify-center gap-2
-             bg-gradient-to-t from-[#3B82F6] to-[#70A6FF] 
-             hover:from-[#2C64C5] hover:to-[#2C64C5]
-             transition duration-300 cursor-pointer mt-1"
+             bg-linear-to-t from-[#3B82F6] to-[#70A6FF] 
+             hover:from-[#1052BE] hover:to-[#70A6FF]
+             transition duration-300 ease-in cursor-pointer mt-1"
             style={{
               opacity: isLoading ? 0.7 : 1,
               width: "100%",
@@ -258,7 +258,7 @@ export function LoginOfficial() {
 
         <div className="text-center mt-4">
           <button
-            className="text-[#A3A3A3] hover:text-[#929090] mt-2 text-md bg-transparent border-none cursor-pointer"
+            className="text-[#BABABA] hover:text-white mt-2 text-md bg-transparent border-none cursor-pointer transition-colors duration-300"
             onClick={() => navigate("/forgot-password-dispatcher")}
             style={window.innerWidth <= 480 ? { fontSize: "0.97rem" } : {}}
           >

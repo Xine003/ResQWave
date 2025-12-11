@@ -1,9 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs-focal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRef, useState } from "react";
@@ -15,6 +10,9 @@ export function Reports() {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("completed");
   const alertsRef = useRef<ReportAlertsHandle>(null);
+  const [archivedReports, setArchivedReports] = useState<
+    TransformedCompletedReport[]
+  >([]);
   const {
     pendingReports,
     completedReports,
@@ -163,7 +161,9 @@ export function Reports() {
                     >
                       {isAdmin() ? "Archive" : "Pending"}
                       <span className="ml-2 px-2 py-0.5 bg-[#707070] rounded text-xs">
-                        {isAdmin() ? archivedReports.length : pendingReports.length}
+                        {isAdmin()
+                          ? archivedReports.length
+                          : pendingReports.length}
                       </span>
                     </TabsTrigger>
                   </TabsList>
