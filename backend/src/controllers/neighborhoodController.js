@@ -658,6 +658,7 @@ const archivedNeighborhood = async (req, res) => {
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
     await deleteCache("neighborhoods:archived");
+    await deleteCache("adminDashboardStats");
 
     // Invalidate terminal caches to reflect availability change immediately
     if (terminalId) {
@@ -761,6 +762,7 @@ const unarchivedNeighborhood = async (req, res) => {
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
     await deleteCache("neighborhoods:archived");
+    await deleteCache("adminDashboardStats");
 
     return res.json({ 
       message: "Neighborhood Unarchived, Focal Person Unarchived, Terminal Linked"
@@ -829,6 +831,7 @@ const deleteNeighborhood = async (req, res) => {
     await deleteCache(`neighborhood:${id}`);
     await deleteCache("neighborhoods:active");
     await deleteCache("neighborhoods:archived");
+    await deleteCache("adminDashboardStats");
 
     // Invalidate terminal caches to reflect availability change immediately
     if (nb.n_terminalID) {

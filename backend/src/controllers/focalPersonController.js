@@ -293,6 +293,7 @@ const createFocalPerson = async (req, res) => {
         await deleteCache("terminals:active");
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
+        await deleteCache("adminDashboardStats");
 
         try {
             await sendTemporaryPasswordEmail({
@@ -314,6 +315,7 @@ const createFocalPerson = async (req, res) => {
             await deleteCache("terminals:active");
             await deleteCache("onlineTerminals");
             await deleteCache("offlineTerminals");
+            await deleteCache("adminDashboardStats");
             return res.status(500).json({ message: "Failed to send temporary password email. Please try again." });
         }
 
@@ -470,6 +472,7 @@ const approveFocalRegistration = async (req, res) => {
         await deleteCache("terminals:active");
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
+        await deleteCache("adminDashboardStats");
 
         // Delete Registration after successful transfer
         await registrationRepo.delete({ id: registration.id });
