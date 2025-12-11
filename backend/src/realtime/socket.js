@@ -84,6 +84,7 @@ function setupSocket(server, options = {}) {
         });
         const saved = await alertRepo.save(entity);
         await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         // Get neighborhood and focal person separately (no relation defined in model)
         const neighborhood = await neighborhoodRepo.findOne({ 

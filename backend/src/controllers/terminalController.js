@@ -83,6 +83,7 @@ const createTerminal = async (req, res) => {
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
         await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         res.status(201).json({ message: "Terminal Created", terminal });
     } catch (err) {
@@ -332,6 +333,7 @@ const updateTerminal = async (req, res) => {
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         res.json({ message: "Terminal Updated", terminal });
     } catch (err) {
@@ -394,6 +396,7 @@ const archivedTerminal = async (req, res) => {
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
         await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         res.json({ message: "Terminal Archived and Now Available" });
     } catch (err) {
@@ -441,6 +444,7 @@ const unarchiveTerminal = async (req, res) => {
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
         await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         return res.json({ message: "Terminal Unarchived and Available" });
     } catch (err) {
@@ -537,6 +541,7 @@ const permanentDeleteTerminal = async (req, res) => {
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
         await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         res.json({
             message: "Terminal Permanently Deleted",

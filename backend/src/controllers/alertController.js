@@ -45,6 +45,7 @@ const createCriticalAlert = async (req, res) => {
 
 		await alertRepo.save(alert);
         await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 		res.status(201).json({ message: "Critical alert created", alert });
 	} catch (err) {
 		console.error(err);
@@ -73,6 +74,7 @@ const createUserInitiatedAlert = async (req, res) => {
 
 		await alertRepo.save(alert);
         await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 		res.status(201).json({ message: "User-initiated alert created", alert });
 	} catch (err) {
 		console.error(err);
