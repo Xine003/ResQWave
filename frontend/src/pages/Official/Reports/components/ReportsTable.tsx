@@ -39,6 +39,7 @@ import {
     exportOfficialReportToPdf,
     type OfficialReportData,
 } from "../utils/reportExportUtils";
+import { PostRescueFormInfoSheet } from "./PostRescueFormInfoSheet";
 import "./ReportsTable.css";
 import { RescueCompletionForm } from "./RescueCompletionForm";
 import { RescueFormInfoSheet } from "./RescueFormInfoSheet";
@@ -106,6 +107,10 @@ export function ReportsTable({
   // Rescue form info sheet state
   const [rescueFormInfoOpen, setRescueFormInfoOpen] = useState(false);
   const [selectedEmergencyId, setSelectedEmergencyId] = useState<string | null>(null);
+
+  // Post-rescue form info sheet state
+  const [postRescueFormInfoOpen, setPostRescueFormInfoOpen] = useState(false);
+  const [selectedPostRescueEmergencyId, setSelectedPostRescueEmergencyId] = useState<string | null>(null);
 
   const handleCreateReport = async (reportData: ReportData) => {
     setIsLoadingDetails(true);
@@ -195,6 +200,11 @@ export function ReportsTable({
   const handleViewRescueForm = (reportData: ReportData) => {
     setSelectedEmergencyId(reportData.emergencyId);
     setRescueFormInfoOpen(true);
+  };
+
+  const handleViewPostRescueForm = (reportData: ReportData) => {
+    setSelectedPostRescueEmergencyId(reportData.emergencyId);
+    setPostRescueFormInfoOpen(true);
   };
 
   const handleViewNeighborhoodInfo = async (reportData: ReportData) => {
@@ -357,6 +367,13 @@ export function ReportsTable({
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+                  onClick={() => handleViewPostRescueForm(row.original)}
+                >
+                  <Info className="mr-2 h-4 w-4 text-white" />
+                  <span className="text-xs">View Post-Rescue Form</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
                   onClick={() => onRestore?.(row.original.emergencyId)}
                 >
                   <ArchiveRestore className="mr-2 h-4 w-4 text-white" />
@@ -403,7 +420,10 @@ export function ReportsTable({
                       <Info className="mr-2 h-4 w-4 text-white" />
                       <span className="text-xs">View Rescue Form</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+                    <DropdownMenuItem 
+                      className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+                      onClick={() => handleViewPostRescueForm(row.original)}
+                    >
                       <Info className="mr-2 h-4 w-4 text-white" />
                       <span className="text-xs">View Post-Rescue Form</span>
                     </DropdownMenuItem>
@@ -437,7 +457,10 @@ export function ReportsTable({
                       <Info className="mr-2 h-4 w-4 text-white" />
                       <span className="text-xs">View Rescue Form</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
+                    <DropdownMenuItem 
+                      className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
+                      onClick={() => handleViewPostRescueForm(row.original)}
+                    >
                       <Info className="mr-2 h-4 w-4 text-white" />
                       <span className="text-xs">View Post-Rescue Form</span>
                     </DropdownMenuItem>
@@ -475,10 +498,6 @@ export function ReportsTable({
                     >
                       <Info className="h-4 w-4 mr-2" />
                       View Rescue Form
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white">
-                      <Info className="h-4 w-4 mr-2" />
-                      View Post-Rescue Form
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
@@ -789,6 +808,13 @@ export function ReportsTable({
         open={rescueFormInfoOpen}
         onOpenChange={setRescueFormInfoOpen}
         emergencyId={selectedEmergencyId}
+      />
+
+      {/* Post-Rescue Form Info Sheet */}
+      <PostRescueFormInfoSheet
+        open={postRescueFormInfoOpen}
+        onOpenChange={setPostRescueFormInfoOpen}
+        emergencyId={selectedPostRescueEmergencyId}
       />
     </div>
   );

@@ -852,6 +852,41 @@ const archivePostRescueForm = async (req, res) => {
     }
 };
 
+// RESTORE POST RESCUE FORM
+const restorePostRescueForm = async (req, res) => {
+    try {
+        const { alertID } = req.params;
+
+        const form = await postRescueRepo.findOne({ where: { alertID } });
+        if (!form) {
+            return res.status(404).json({ message: "Post Rescue Form Not Found" });
+        }
+
+        form.archived = false;
+        await postRescueRepo.save(form);
+
+        // Cache invalidation
+        await deleteCache("completedReports");
+        await deleteCache("pendingReports");
+        await deleteCache("rescueForms:all");
+        await deleteCache(`rescueForm:${form.id}`);
+        await deleteCache(`alert:${alertID}`);
+        await deleteCache("aggregatedReports:all");
+        await deleteCache("aggregatedPRF:all");
+        await deleteCache(`rescueAggregatesBasic:all`);
+        await deleteCache(`rescueAggregatesBasic:${alertID}`);
+        await deleteCache(`aggregatedReports:${alertID}`);
+        await deleteCache(`aggregatedPRF:${alertID}`);
+        await deleteCache("archivedPRF:all");
+        await deleteCache(`archivedPRF:${alertID}`);
+
+        return res.json({ message: "Post Rescue Form Restored Successfully" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server Error" });
+    }
+};
+
 // GET Archived Post Rescue Forms
 const getArchivedPostRescueForm = async (req, res) => {
     try {
@@ -943,6 +978,7 @@ module.exports = {
   getAlertTypeChartData,
   getDetailedReportData,
   archivePostRescueForm,
+  restorePostRescueForm,
   getArchivedPostRescueForm,
   deletePostRescueForm,
 };

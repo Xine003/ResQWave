@@ -242,9 +242,6 @@ export async function archivePostRescueForm(
 export async function restorePostRescueForm(
   alertId: string,
 ): Promise<unknown> {
-  // The backend uses the same endpoint to toggle archive status
-  // We'll need to implement restore by setting archived to false
-  // For now, this is a placeholder that would need backend support
   return apiFetch(`/post/restore/${alertId}`, {
     method: "POST",
   });
