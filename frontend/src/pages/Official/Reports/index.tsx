@@ -10,9 +10,6 @@ export function Reports() {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("completed");
   const alertsRef = useRef<ReportAlertsHandle>(null);
-  const [archivedReports, setArchivedReports] = useState<
-    TransformedCompletedReport[]
-  >([]);
   const {
     pendingReports,
     completedReports,
