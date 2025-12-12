@@ -5,7 +5,7 @@ import { ForgotPasswordVerification } from "./components/forgotPasswordVerificat
 
 export function VerificationOfficial() {
   const navigate = useNavigate();
-  const { verifyLogin } = useAuth();
+  const { verifyLogin, user } = useAuth();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
@@ -50,7 +50,21 @@ export function VerificationOfficial() {
       if (success) {
         // Clear OTP expiry on successful verification
         sessionStorage.removeItem("officialOtpExpiry");
-        navigate("/visualization");
+        
+        // Navigate based on user role
+        // Check user role and redirect accordingly
+        const storedUser = localStorage.getItem('resqwave_user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          if (userData.role === 'admin') {
+            navigate("/dashboard");
+          } else {
+            navigate("/visualization");
+          }
+        } else {
+          // Fallback to visualization if user data not available
+          navigate("/visualization");
+        }
       }
     } catch (error: unknown) {
       const err = error as { message?: string };
