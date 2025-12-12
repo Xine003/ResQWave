@@ -1,10 +1,12 @@
 import {
-    ChartContainer,
-    ChartTooltip,
-    ChartTooltipContent,
-    type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
 } from "@/components/ui/chart";
+import { useEffect, useState } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { fetchCompletedOperationsStats } from "../api/adminDashboard";
 
 const chartConfig = {
   userInitiated: {
@@ -17,27 +19,32 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-// Static data matching the prototype image
-const chartData = [
-  { date: "Apr 4", userInitiated: 8, critical: 10 },
-  { date: "Apr 9", userInitiated: 12, critical: 15 },
-  { date: "Apr 15", userInitiated: 15, critical: 8 },
-  { date: "Apr 21", userInitiated: 13, critical: 10 },
-  { date: "Apr 27", userInitiated: 11, critical: 12 },
-  { date: "May 3", userInitiated: 10, critical: 14 },
-  { date: "May 9", userInitiated: 18, critical: 12 },
-  { date: "May 15", userInitiated: 14, critical: 20 },
-  { date: "May 21", userInitiated: 16, critical: 14 },
-  { date: "May 27", userInitiated: 15, critical: 16 },
-  { date: "Jun 2", userInitiated: 17, critical: 17 },
-  { date: "Jun 7", userInitiated: 10, critical: 19 },
-  { date: "Jun 12", userInitiated: 12, critical: 11 },
-  { date: "Jun 18", userInitiated: 22, critical: 24 },
-  { date: "Jun 24", userInitiated: 19, critical: 26 },
-  { date: "Jun 30", userInitiated: 20, critical: 15 },
-];
+interface ChartData {
+  date: string;
+  userInitiated: number;
+  critical: number;
+}
 
 export function CompletedOperationsLineChart() {
+  const [chartData, setChartData] = useState<ChartData[]>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const response = await fetchCompletedOperationsStats("monthly");
+        const formattedData = Object.entries(response.stats).map(([date, values]) => ({
+          date,
+          userInitiated: values.userInitiated,
+          critical: values.critical,
+        }));
+        setChartData(formattedData);
+      } catch (error) {
+        console.error("Error fetching alert stats:", error);
+      }
+    };
+
+    loadData();
+  }, []);
   return (
     <div className="h-full w-full">
       <ChartContainer config={chartConfig} className="h-full w-full">

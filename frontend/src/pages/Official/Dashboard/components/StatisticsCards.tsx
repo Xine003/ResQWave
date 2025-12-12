@@ -1,5 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { LifeBuoy, RadioReceiver, UserCog, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { fetchAdminDashboardStats } from "../api/adminDashboard";
 
 interface StatCard {
   title: string;
@@ -8,28 +10,64 @@ interface StatCard {
 }
 
 export function StatisticsCards() {
-  const stats: StatCard[] = [
+  const [stats, setStats] = useState<StatCard[]>([
     {
       title: "Terminals",
-      value: 100,
+      value: 0,
       icon: <RadioReceiver className="w-10 h-10" />,
     },
     {
       title: "Dispatchers",
-      value: 100,
+      value: 0,
       icon: <UserCog className="w-10 h-10" />,
     },
     {
       title: "Neighborhood Groups",
-      value: 100,
+      value: 0,
       icon: <Users className="w-10 h-10" />,
     },
     {
       title: "Completed Operations",
-      value: 100,
+      value: 0,
       icon: <LifeBuoy className="w-10 h-10" />,
     },
-  ];
+  ]);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const response = await fetchAdminDashboardStats();
+        const data = response.payload;
+
+        setStats([
+          {
+            title: "Terminals",
+            value: data.activeTerminals,
+            icon: <RadioReceiver className="w-10 h-10" />,
+          },
+          {
+            title: "Dispatchers",
+            value: data.activeDispatchers,
+            icon: <UserCog className="w-10 h-10" />,
+          },
+          {
+            title: "Neighborhood Groups",
+            value: data.activeNeighborhoods,
+            icon: <Users className="w-10 h-10" />,
+          },
+          {
+            title: "Completed Operations",
+            value: data.completedOperations,
+            icon: <LifeBuoy className="w-10 h-10" />,
+          },
+        ]);
+      } catch (error) {
+        console.error("Error fetching admin dashboard stats:", error);
+      }
+    };
+
+    loadStats();
+  }, []);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">

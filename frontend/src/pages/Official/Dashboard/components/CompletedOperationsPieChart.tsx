@@ -1,10 +1,12 @@
 import {
-    ChartContainer,
-    ChartTooltip,
-    ChartTooltipContent,
-    type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
 } from "@/components/ui/chart";
-import { Cell, Label, Pie, PieChart } from "recharts";
+import { useEffect, useState } from "react";
+import { Pie, PieChart } from "recharts";
+import { fetchCompletedOperationsStats } from "../api/adminDashboard";
 
 const chartConfig = {
   userInitiated: {
@@ -17,64 +19,64 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-// Static data matching the prototype image totals
-const chartData = [
-  { name: "userInitiated", value: 81, fill: "var(--color-userInitiated)" },
-  { name: "critical", value: 19, fill: "var(--color-critical)" },
-];
-
-const totalOperations = chartData.reduce((acc, curr) => acc + curr.value, 0);
+interface PieChartData {
+  name: string;
+  value: number;
+  fill: string;
+  [key: string]: string | number;
+}
 
 export function CompletedOperationsPieChart() {
+  const [chartData, setChartData] = useState<PieChartData[]>([
+    { name: "userInitiated", value: 0, fill: "var(--color-userInitiated)" },
+    { name: "critical", value: 0, fill: "var(--color-critical)" },
+  ]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const response = await fetchCompletedOperationsStats("monthly");
+        
+        // Calculate totals from all time periods
+        let totalUserInitiated = 0;
+        let totalCritical = 0;
+        
+        Object.values(response.stats).forEach((values) => {
+          totalUserInitiated += values.userInitiated;
+          totalCritical += values.critical;
+        });
+        
+        const data = [
+          { name: "userInitiated", value: totalUserInitiated, fill: "var(--color-userInitiated)" },
+          { name: "critical", value: totalCritical, fill: "var(--color-critical)" },
+        ];
+        
+        setChartData(data);
+      } catch (error) {
+        console.error("Error fetching completed operations stats:", error);
+      }
+    };
+
+    loadData();
+  }, []);
   return (
     <div className="h-full w-full flex items-center justify-center">
       <ChartContainer
         config={chartConfig}
-        className="h-full w-full max-h-[400px]"
+        className="mx-auto aspect-square w-full max-w-[400px]"
       >
-        <PieChart>
-          <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-          <Pie
-            data={chartData}
-            dataKey="value"
+        <PieChart width={400} height={400}>
+          <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+          <Pie 
+            data={chartData} 
+            dataKey="value" 
             nameKey="name"
-            innerRadius={80}
+            label
+            cx="50%"
+            cy="50%"
             outerRadius={120}
-            strokeWidth={0}
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.fill} />
-            ))}
-            <Label
-              content={({ viewBox }) => {
-                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                  return (
-                    <text
-                      x={viewBox.cx}
-                      y={viewBox.cy}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                    >
-                      <tspan
-                        x={viewBox.cx}
-                        y={viewBox.cy}
-                        className="fill-white text-4xl font-bold"
-                      >
-                        {totalOperations}
-                      </tspan>
-                      <tspan
-                        x={viewBox.cx}
-                        y={(viewBox.cy || 0) + 28}
-                        className="fill-white/60 text-sm"
-                      >
-                        Total
-                      </tspan>
-                    </text>
-                  );
-                }
-              }}
-            />
-          </Pie>
+            fill="#8884d8"
+          />
         </PieChart>
       </ChartContainer>
     </div>

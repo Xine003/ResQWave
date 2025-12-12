@@ -1,6 +1,7 @@
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Calendar, Download } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchCompletedOperationsStats } from "../api/adminDashboard";
 import {
   CompletedOperationsBarChart,
   CompletedOperationsLineChart,
@@ -12,6 +13,32 @@ type ChartType = "bar" | "line" | "pie";
 
 export function Overview() {
   const [activeChart, setActiveChart] = useState<ChartType>("bar");
+  const [userInitiatedCount, setUserInitiatedCount] = useState(0);
+  const [criticalCount, setCriticalCount] = useState(0);
+
+  useEffect(() => {
+    const loadLegendData = async () => {
+      try {
+        const response = await fetchCompletedOperationsStats("monthly");
+        
+        // Calculate totals from all time periods
+        let totalUserInitiated = 0;
+        let totalCritical = 0;
+        
+        Object.values(response.stats).forEach((values) => {
+          totalUserInitiated += values.userInitiated;
+          totalCritical += values.critical;
+        });
+        
+        setUserInitiatedCount(totalUserInitiated);
+        setCriticalCount(totalCritical);
+      } catch (error) {
+        console.error("Error fetching legend data:", error);
+      }
+    };
+
+    loadLegendData();
+  }, []);
 
   return (
     <div className="p-5 py-4 flex flex-col bg-[#171717] gap-4 h-[calc(100vh-73px)] max-h-[calc(100vh-73px)] overflow-hidden">
@@ -91,17 +118,21 @@ export function Overview() {
 
             {/* Legend */}
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#FFA500]"></div>
-                <span className="text-white text-sm">User-initiated</span>
-                <span className="text-white/60 text-sm ml-2">81</span>
+              <div className="flex items-start gap-2">
+                <div className="w-3 h-3 bg-[#FFA500] mt-1"></div>
+                <div className="flex flex-col items-center">
+                  <span className="text-white text-sm">User-initiated</span>
+                  <span className="text-white text-lg font-bold">{userInitiatedCount}</span>
+                </div>
               </div>
               {/* Vertical Divider */}
-              <div className="h-6 w-px bg-[#404040]"></div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#DC2626]"></div>
-                <span className="text-white text-sm">Critical</span>
-                <span className="text-white/60 text-sm ml-2">19</span>
+              <div className="h-12 w-px bg-[#404040]"></div>
+              <div className="flex items-start gap-2">
+                <div className="w-3 h-3 bg-[#DC2626] mt-1"></div>
+                <div className="flex flex-col items-center">
+                  <span className="text-white text-sm">Critical</span>
+                  <span className="text-white text-lg font-bold">{criticalCount}</span>
+                </div>
               </div>
             </div>
           </div>
