@@ -19,6 +19,7 @@ const documentRoutes = require("./routes/documentRoutes");
 const focalRegistrationRoutes = require("./routes/focalRegistrationRoutes");
 const logsRoute = require("./routes/logRoutes");
 const adminLogRoutes = require("./routes/adminLogRoutes");
+const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
 const sensorDataRoutes = require("./routes/sensorDataRoutes");
 const lmsRoutes = require("./routes/lmsRoutes");
 const { authMiddleware, requireRole } = require("./middleware/authMiddleware");
@@ -85,6 +86,7 @@ AppDataSource.initialize()
     app.use("/neighborhood", neighborhoodRoutes);
     app.use("/logs", logsRoute);
     app.use("/admin-logs", requireRole("admin"), adminLogRoutes);
+    app.use("/admin-dashboard", requireRole("admin"), adminDashboardRoutes);
     app.use("/alerts", alertRoutes);
     app.use("/forms", rescueFormRoutes);
     app.use("/post", postRescueRoutes);

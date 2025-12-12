@@ -61,6 +61,7 @@ const createPostRescueForm = async (req, res) => {
         await deleteCache(`rescueAggregatesBasic:${alertID}`);
         await deleteCache(`aggregatedReports:${alertID}`);
         await deleteCache(`aggregatedPRF:${alertID}`);
+        await deleteCache("adminDashboardStats");
 
         return res.status(201).json({message: "Post Rescue Form Created", newForm});
     } catch (err) {
@@ -844,6 +845,7 @@ const archivePostRescueForm = async (req, res) => {
         await deleteCache(`aggregatedPRF:${alertID}`);
         await deleteCache("archivedPRF:all");
         await deleteCache(`archivedPRF:${alertID}`);
+        await deleteCache("adminDashboardStats");
 
         return res.json({ message: "Post Rescue Form Archived Successfully" });
     } catch (err) {

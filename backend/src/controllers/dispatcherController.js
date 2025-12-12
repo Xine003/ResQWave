@@ -74,6 +74,7 @@ const createDispatcher = async (req, res) => {
         // Invalidate Caches
         await deleteCache("dispatchers:active");
         await deleteCache("dispatcher:archived");
+        await deleteCache("adminDashboardStats");
 
         // Send Email (Fire and Forget)
         sendTemporaryPasswordEmail({
@@ -259,6 +260,7 @@ const archiveDispatcher = async (req, res) => {
         await deleteCache("dispatchers:active");
         await deleteCache("dispatchers:archived");
         await deleteCache(`dispatcher:${id}`);
+        await deleteCache("adminDashboardStats");
 
         res.json({ message: "Dispatcher Archived" });
     } catch (err) {
@@ -300,6 +302,7 @@ const unarchiveDispatcher = async (req, res) => {
         await deleteCache("dispatchers:active");
         await deleteCache("dispatchers:archived");
         await deleteCache(`dispatcher:${id}`);
+        await deleteCache("adminDashboardStats");
 
         res.json({ message: "Dispatcher Restored" });
     } catch (err) {
@@ -363,6 +366,7 @@ const deleteDispatcherPermanently = async (req, res) => {
         await deleteCache("dispatchers:active");
         await deleteCache("dispatchers:archived");
         await deleteCache(`dispatcher:${id}`);
+        await deleteCache("adminDashboardStats");
 
         res.json({ message: "Dispatcher Permanently Deleted" });
     } catch (err) {
