@@ -1,8 +1,8 @@
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+    type ChartConfig,
 } from "@/components/ui/chart";
 import { useEffect, useState } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
@@ -25,26 +25,51 @@ interface ChartData {
   critical: number;
 }
 
-export function CompletedOperationsLineChart() {
+interface CompletedOperationsLineChartProps {
+  dateRange: {
+    startDate: Date;
+    endDate: Date;
+  };
+}
+
+export function CompletedOperationsLineChart({ dateRange }: CompletedOperationsLineChartProps) {
   const [chartData, setChartData] = useState<ChartData[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await fetchCompletedOperationsStats("monthly");
-        const formattedData = Object.entries(response.stats).map(([date, values]) => ({
-          date,
-          userInitiated: values.userInitiated,
-          critical: values.critical,
-        }));
-        setChartData(formattedData);
+        // Calculate the difference in days
+        const daysDiff = Math.ceil((dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Use daily granularity if range is 31 days or less, otherwise monthly
+        const granularity = daysDiff <= 31 ? "daily" : "monthly";
+        
+        const response = await fetchCompletedOperationsStats(granularity);
+        
+        // Filter data to only include dates within the selected range
+        const filteredData = Object.entries(response.stats)
+          .filter(([date]) => {
+            const entryDate = new Date(date);
+            const startOfDay = new Date(dateRange.startDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(dateRange.endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            return entryDate >= startOfDay && entryDate <= endOfDay;
+          })
+          .map(([date, values]) => ({
+            date,
+            userInitiated: values.userInitiated,
+            critical: values.critical,
+          }));
+        
+        setChartData(filteredData);
       } catch (error) {
         console.error("Error fetching alert stats:", error);
       }
     };
 
     loadData();
-  }, []);
+  }, [dateRange]);
   return (
     <div className="h-full w-full">
       <ChartContainer config={chartConfig} className="h-full w-full">
