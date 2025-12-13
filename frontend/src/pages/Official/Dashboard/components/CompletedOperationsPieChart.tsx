@@ -1,8 +1,8 @@
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+    type ChartConfig,
 } from "@/components/ui/chart";
 import { useEffect, useState } from "react";
 import { Pie, PieChart } from "recharts";
@@ -26,7 +26,14 @@ interface PieChartData {
   [key: string]: string | number;
 }
 
-export function CompletedOperationsPieChart() {
+interface CompletedOperationsPieChartProps {
+  dateRange: {
+    startDate: Date;
+    endDate: Date;
+  };
+}
+
+export function CompletedOperationsPieChart({ dateRange }: CompletedOperationsPieChartProps) {
   const [chartData, setChartData] = useState<PieChartData[]>([
     { name: "userInitiated", value: 0, fill: "var(--color-userInitiated)" },
     { name: "critical", value: 0, fill: "var(--color-critical)" },
@@ -35,13 +42,29 @@ export function CompletedOperationsPieChart() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await fetchCompletedOperationsStats("monthly");
+        // Calculate the difference in days
+        const daysDiff = Math.ceil((dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 60 * 60 * 24));
         
-        // Calculate totals from all time periods
+        // Use daily granularity if range is 31 days or less, otherwise monthly
+        const granularity = daysDiff <= 31 ? "daily" : "monthly";
+        
+        const response = await fetchCompletedOperationsStats(granularity);
+        
+        // Filter data to only include dates within the selected range
+        const filteredEntries = Object.entries(response.stats).filter(([date]) => {
+          const entryDate = new Date(date);
+          const startOfDay = new Date(dateRange.startDate);
+          startOfDay.setHours(0, 0, 0, 0);
+          const endOfDay = new Date(dateRange.endDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          return entryDate >= startOfDay && entryDate <= endOfDay;
+        });
+        
+        // Calculate totals from filtered time periods
         let totalUserInitiated = 0;
         let totalCritical = 0;
         
-        Object.values(response.stats).forEach((values) => {
+        filteredEntries.forEach(([, values]) => {
           totalUserInitiated += values.userInitiated;
           totalCritical += values.critical;
         });
@@ -58,7 +81,7 @@ export function CompletedOperationsPieChart() {
     };
 
     loadData();
-  }, []);
+  }, [dateRange]);
   return (
     <div className="h-full w-full flex items-center justify-center">
       <ChartContainer

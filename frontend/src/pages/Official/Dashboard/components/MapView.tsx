@@ -3,8 +3,10 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useSignals from "../../Visualization/hooks/useSignals";
 import { cinematicMapEntrance } from "../../Visualization/utils/flyingEffects";
-import { addCustomLayers } from "../../Visualization/utils/mapHelpers";
+import { useMapPins } from "../hooks/useMapPins";
+import { AdminPinPopover } from "./AdminPinPopover";
 import MapControls from "./MapControls";
+import { MapPins } from "./MapPins";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -18,6 +20,29 @@ export function MapView() {
   const { otherSignals, ownCommunitySignal: OwnCommunitySignal, getDistressCoord } = signals;
 
   const distressCoord: [number, number] = getDistressCoord();
+
+  // Get map pins data (aggregated from backend)
+  const { pins, loading: pinsLoading } = useMapPins();
+
+  // Popover state (like Visualization)
+  const [popover, setPopover] = useState<{
+    lng: number;
+    lat: number;
+    screen: { x: number; y: number };
+    terminalID: string;
+    terminalName: string;
+    terminalStatus: string;
+    timeSent: string;
+    focalPerson: string;
+    contactNumber: string;
+    totalAlerts: number;
+  } | null>(null);
+
+  // Ref to track popover for map move event
+  const popoverRef = useRef(popover);
+  useEffect(() => {
+    popoverRef.current = popover;
+  }, [popover]);
 
   /**
    * Helper function to re-render all layers (used when switching map styles)
@@ -122,9 +147,6 @@ export function MapView() {
         }
       }
     });
-
-    // Re-add signal pins
-    addCustomLayers(map, otherSignals, OwnCommunitySignal);
   }, [otherSignals, OwnCommunitySignal]);
 
   /**
@@ -149,8 +171,8 @@ export function MapView() {
     const map = new mapboxgl.Map({
       container: mapContainer.current as HTMLElement,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [121.04040046802031, 14.7721611560019],
-      zoom: 12,
+      center: [121.03961980285305, 14.76278553581811],
+      zoom: 10,
       pitch: 75,
       bearing: 0,
       antialias: true,
@@ -160,6 +182,18 @@ export function MapView() {
 
     map.on("load", () => {
       initializeMapCanvas(map);
+
+      // Keep popover anchored during map movement (like Visualization)
+      map.on("move", () => {
+        const p = popoverRef.current;
+        if (!p) return;
+        const coord: [number, number] = [p.lng, p.lat];
+        const pt = map.project(coord);
+        const rect = mapContainer.current?.getBoundingClientRect();
+        const absX = (rect?.left ?? 0) + pt.x;
+        const absY = (rect?.top ?? 0) + pt.y;
+        setPopover({ ...p, screen: { x: absX, y: absY } });
+      });
 
       // Add Caloocan boundary layer (bottom layer)
       try {
@@ -208,8 +242,8 @@ export function MapView() {
       }
 
       setTimeout(() => {
-        cinematicMapEntrance(map, distressCoord);
-      }, 600);
+        cinematicMapEntrance(map, [121.0397921660267, 14.762918874426148]);
+      }, 400);
 
       setMapLoaded(true);
     });
@@ -230,9 +264,6 @@ export function MapView() {
       ...otherSignals,
       ...(OwnCommunitySignal ? [OwnCommunitySignal] : []),
     ];
-
-    // Add/update signal pins
-    addCustomLayers(map, otherSignals, OwnCommunitySignal);
 
     // Add/update neighborhood boundaries
     try {
@@ -316,11 +347,33 @@ export function MapView() {
         }}
       />
 
+      {/* Admin Pin Popover (like SignalPopover in Visualization) */}
+      <AdminPinPopover
+        popover={popover}
+        onClose={() => setPopover(null)}
+        onMoreInfo={() => {
+          console.log("[MapView] More info clicked for:", popover?.terminalID);
+          // TODO: Implement more info functionality
+        }}
+      />
+
       {/* Map Controls */}
       <MapControls
         mapRef={mapRef}
         addCustomLayers={reRenderAllLayers}
       />
+
+      {/* Map Pins - rendered when data is loaded */}
+      {!pinsLoading && (
+        <MapPins
+          map={mapRef.current}
+          pins={pins}
+          mapContainer={mapContainer}
+          onPinClick={(popoverData) => {
+            setPopover(popoverData);
+          }}
+        />
+      )}
     </div>
   );
 }

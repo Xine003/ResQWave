@@ -188,7 +188,11 @@ export const router = createBrowserRouter([
           },
           {
             path: "visualization",
-            element: <Visualization />,
+            element: (
+              <ProtectedRoute dispatcherOnly={true}>
+                <Visualization />
+              </ProtectedRoute>
+            ),
           },
           {
             path: "reports",
