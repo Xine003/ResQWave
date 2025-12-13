@@ -459,7 +459,7 @@ function VisualizationContent() {
     const map = new mapboxgl.Map({
       container: mapContainer.current as HTMLElement,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [121.04040046802031, 14.7721611560019],
+      center: [121.03986111065734, 14.758885345481275],
       zoom: 12,
       pitch: 75,
       bearing: 0,
@@ -567,7 +567,7 @@ function VisualizationContent() {
       setupMapInteractions(map);
 
       setTimeout(() => {
-        cinematicMapEntrance(map, distressCoord);
+        cinematicMapEntrance(map, [121.0397921660267, 14.762918874426148]);
       }, 600);
 
       setMapLoaded(true);

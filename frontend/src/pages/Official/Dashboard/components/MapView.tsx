@@ -171,8 +171,8 @@ export function MapView() {
     const map = new mapboxgl.Map({
       container: mapContainer.current as HTMLElement,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [121.04040046802031, 14.7721611560019],
-      zoom: 12,
+      center: [121.03961980285305, 14.76278553581811],
+      zoom: 10,
       pitch: 75,
       bearing: 0,
       antialias: true,
@@ -242,8 +242,8 @@ export function MapView() {
       }
 
       setTimeout(() => {
-        cinematicMapEntrance(map, distressCoord);
-      }, 600);
+        cinematicMapEntrance(map, [121.0397921660267, 14.762918874426148]);
+      }, 400);
 
       setMapLoaded(true);
     });
