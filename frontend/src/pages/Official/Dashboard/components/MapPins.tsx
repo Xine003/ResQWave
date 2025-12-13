@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { MapPinData } from "../api/adminDashboardApi";
 
 interface MapPinsProps {
@@ -67,10 +67,100 @@ function parseCoordinates(address: any): [number, number] | null {
  * Uses GeoJSON layers like the Visualization page for better performance
  */
 export function MapPins({ map, pins, mapContainer, onPinClick }: MapPinsProps) {
-  useEffect(() => {
-    if (!map) return;
+  const layersInitialized = useRef(false);
+  const handlersAttached = useRef(false);
 
-    // Event handlers defined at effect scope
+  // Initialize layers only once
+  useEffect(() => {
+    if (!map || layersInitialized.current) return;
+
+    const initializeLayers = () => {
+      // Check if source already exists
+      if (map.getSource("admin-pins")) return;
+
+      // Add source with empty data
+      map.addSource("admin-pins", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [],
+        },
+      });
+
+      // Add pulse layer for critical pins
+      map.addLayer({
+        id: "admin-pins-pulse",
+        type: "circle",
+        source: "admin-pins",
+        filter: ["==", ["get", "alertType"], "CRITICAL"],
+        paint: {
+          "circle-color": "#ef4444",
+          "circle-radius": 13,
+          "circle-opacity": 0.4,
+          "circle-stroke-width": 0,
+        },
+      });
+
+      // Add main pin layer
+      map.addLayer({
+        id: "admin-pins-layer",
+        type: "circle",
+        source: "admin-pins",
+        paint: {
+          "circle-color": [
+            "case",
+            ["==", ["get", "alertType"], "CRITICAL"],
+            "#ef4444",
+            ["==", ["get", "alertType"], "USER-INITIATED"],
+            "#eab308",
+            ["==", ["get", "alertType"], "ONLINE"],
+            "#22c55e",
+            ["==", ["get", "alertType"], "OFFLINE"],
+            "#6b7280",
+            "#6b7280",
+          ],
+          "circle-radius": 12,
+          "circle-opacity": 1,
+          "circle-stroke-color": "#fff",
+          "circle-stroke-width": 2,
+        },
+      });
+
+      layersInitialized.current = true;
+    };
+
+    // Wait for style to load
+    if (map.isStyleLoaded()) {
+      initializeLayers();
+    } else {
+      map.once("load", initializeLayers);
+    }
+
+    // Cleanup only on unmount
+    return () => {
+      if (!map || typeof map.getLayer !== 'function') return;
+      
+      try {
+        if (map.getLayer("admin-pins-layer")) {
+          map.removeLayer("admin-pins-layer");
+        }
+        if (map.getLayer("admin-pins-pulse")) {
+          map.removeLayer("admin-pins-pulse");
+        }
+        if (map.getSource("admin-pins")) {
+          map.removeSource("admin-pins");
+        }
+        layersInitialized.current = false;
+      } catch (e) {
+        // Silent error handling
+      }
+    };
+  }, [map]);
+
+  // Attach event handlers only once
+  useEffect(() => {
+    if (!map || !layersInitialized.current || handlersAttached.current) return;
+
     const handleClick = (e: mapboxgl.MapMouseEvent) => {
       const features = map.queryRenderedFeatures(e.point, {
         layers: ["admin-pins-layer"],
@@ -81,18 +171,15 @@ export function MapPins({ map, pins, mapContainer, onPinClick }: MapPinsProps) {
         const props = feature.properties;
         const coords = (feature.geometry as GeoJSON.Point).coordinates as [number, number];
 
-        // Format time
         const timeSent = props?.latestAlertTime 
           ? new Date(props.latestAlertTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })
           : "N/A";
 
-        // Get screen coordinates (like Visualization does)
         const pt = map.project(coords);
         const rect = mapContainer.current?.getBoundingClientRect();
         const absX = (rect?.left ?? 0) + pt.x;
         const absY = (rect?.top ?? 0) + pt.y;
 
-        // Call the callback with popover data
         onPinClick({
           lng: coords[0],
           lat: coords[1],
@@ -120,161 +207,95 @@ export function MapPins({ map, pins, mapContainer, onPinClick }: MapPinsProps) {
       }
     };
 
-    // Function to render pins
-    const renderPins = () => {
-    // Parse pins to extract valid coordinates
-    const validPins = pins
-      .map((pin) => {
-        const coordinates = parseCoordinates(pin.address);
-        
-        if (!coordinates) {
-          return null;
-        }
-
-        // Determine alert type based on terminal status and recent alerts
-        const hasRecentAlert = pin.latestAlertTime
-          ? new Date().getTime() - new Date(pin.latestAlertTime).getTime() < 3600000 // 1 hour
-          : false;
-
-        let alertType = "OFFLINE";
-        if (pin.terminalStatus === "Online") {
-          if (hasRecentAlert) {
-            alertType = "CRITICAL";
-          } else if (pin.totalAlerts > 0) {
-            alertType = "USER-INITIATED";
-          } else {
-            alertType = "ONLINE";
-          }
-        }
-
-        return {
-          ...pin,
-          coordinates,
-          alertType,
-        };
-      })
-      .filter((pin): pin is NonNullable<typeof pin> => pin !== null);
-
-    // Create GeoJSON features for all pins
-    const features = validPins.map((pin) => ({
-      type: "Feature" as const,
-      properties: {
-        terminalID: pin.terminalID,
-        terminalName: pin.terminalName,
-        terminalStatus: pin.terminalStatus,
-        focalPerson: pin.focalPerson || "N/A",
-        contactNumber: pin.contactNumber || "N/A",
-        totalAlerts: pin.totalAlerts,
-        latestAlertTime: pin.latestAlertTime || "",
-        alertType: pin.alertType,
-      },
-      geometry: {
-        type: "Point" as const,
-        coordinates: pin.coordinates,
-      },
-    }));
-
-    // Add or update the pins source
-    const sourceExists = map.getSource("admin-pins");
+    map.on("click", "admin-pins-layer", handleClick);
+    map.on("mouseenter", "admin-pins-layer", handleMouseEnter);
+    map.on("mouseleave", "admin-pins-layer", handleMouseLeave);
     
-    if (!sourceExists) {
-      map.addSource("admin-pins", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features,
-        },
-      });
-      
-      // Add layers only when source is first created
-      // Add pulse layer for critical pins (similar to Visualization)
-      map.addLayer({
-        id: "admin-pins-pulse",
-        type: "circle",
-        source: "admin-pins",
-        filter: ["==", ["get", "alertType"], "CRITICAL"],
-        paint: {
-          "circle-color": "#ef4444",
-          "circle-radius": 13,
-          "circle-opacity": 0.4,
-          "circle-stroke-width": 0,
-        },
-      });
+    handlersAttached.current = true;
 
-      // Add main pin layer with dynamic colors (this will be on top)
-      map.addLayer({
-        id: "admin-pins-layer",
-        type: "circle",
-        source: "admin-pins",
-        paint: {
-          "circle-color": [
-            "case",
-            ["==", ["get", "alertType"], "CRITICAL"],
-            "#ef4444", // Red for critical
-            ["==", ["get", "alertType"], "USER-INITIATED"],
-            "#eab308", // Yellow for user-initiated
-            ["==", ["get", "alertType"], "ONLINE"],
-            "#22c55e", // Green for online
-            ["==", ["get", "alertType"], "OFFLINE"],
-            "#6b7280", // Gray for offline
-            "#6b7280", // Default gray
-          ],
-          "circle-radius": 12,
-          "circle-opacity": 1,
-          "circle-stroke-color": "#fff",
-          "circle-stroke-width": 2,
-        },
-      });
-
-      // Add event listeners for newly created layers
-      map.on("click", "admin-pins-layer", handleClick);
-      map.on("mouseenter", "admin-pins-layer", handleMouseEnter);
-      map.on("mouseleave", "admin-pins-layer", handleMouseLeave);
-    } else {
-      // Source exists, just update the data
-      const source = map.getSource("admin-pins") as mapboxgl.GeoJSONSource;
-      source.setData({
-        type: "FeatureCollection",
-        features,
-      });
-    }
-    };
-
-    // Wait for style to load before rendering
-    if (map.isStyleLoaded()) {
-      renderPins();
-    } else {
-      map.once("styledata", () => {
-        renderPins();
-      });
-    }
-
-    // Cleanup
     return () => {
-      // Check if map still exists and has the necessary methods
-      if (!map || typeof map.getLayer !== 'function') return;
+      if (!map || typeof map.off !== 'function') return;
       
       try {
-        // Remove event listeners
         map.off("click", "admin-pins-layer", handleClick);
         map.off("mouseenter", "admin-pins-layer", handleMouseEnter);
         map.off("mouseleave", "admin-pins-layer", handleMouseLeave);
-        
-        // Remove layers and source
-        if (map.getLayer("admin-pins-layer")) {
-          map.removeLayer("admin-pins-layer");
-        }
-        if (map.getLayer("admin-pins-pulse")) {
-          map.removeLayer("admin-pins-pulse");
-        }
-        if (map.getSource("admin-pins")) {
-          map.removeSource("admin-pins");
-        }
+        handlersAttached.current = false;
       } catch (e) {
         // Silent error handling
       }
     };
-  }, [map, pins, mapContainer, onPinClick]);
+  }, [map, mapContainer, onPinClick]);
+
+  // Update pin data only when pins change
+  useEffect(() => {
+    if (!map || !layersInitialized.current) return;
+
+    const updatePinData = () => {
+      const source = map.getSource("admin-pins") as mapboxgl.GeoJSONSource;
+      if (!source) return;
+
+      // Parse pins to extract valid coordinates
+      const validPins = pins
+        .map((pin) => {
+          const coordinates = parseCoordinates(pin.address);
+          
+          if (!coordinates) {
+            return null;
+          }
+
+          // Determine alert type based on terminal status and recent alerts
+          const hasRecentAlert = pin.latestAlertTime
+            ? new Date().getTime() - new Date(pin.latestAlertTime).getTime() < 3600000 // 1 hour
+            : false;
+
+          let alertType = "OFFLINE";
+          if (pin.terminalStatus === "Online") {
+            if (hasRecentAlert) {
+              alertType = "CRITICAL";
+            } else if (pin.totalAlerts > 0) {
+              alertType = "USER-INITIATED";
+            } else {
+              alertType = "ONLINE";
+            }
+          }
+
+          return {
+            ...pin,
+            coordinates,
+            alertType,
+          };
+        })
+        .filter((pin): pin is NonNullable<typeof pin> => pin !== null);
+
+      // Create GeoJSON features for all pins
+      const features = validPins.map((pin) => ({
+        type: "Feature" as const,
+        properties: {
+          terminalID: pin.terminalID,
+          terminalName: pin.terminalName,
+          terminalStatus: pin.terminalStatus,
+          focalPerson: pin.focalPerson || "N/A",
+          contactNumber: pin.contactNumber || "N/A",
+          totalAlerts: pin.totalAlerts,
+          latestAlertTime: pin.latestAlertTime || "",
+          alertType: pin.alertType,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: pin.coordinates,
+        },
+      }));
+
+      // Update the data source
+      source.setData({
+        type: "FeatureCollection",
+        features,
+      });
+    };
+
+    updatePinData();
+  }, [map, pins]);
 
   return null;
 }
