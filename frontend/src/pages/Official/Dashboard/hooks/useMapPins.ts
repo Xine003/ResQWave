@@ -14,7 +14,7 @@ interface MapAlertUpdate {
   focalPersonId: string | null;
   focalFirstName: string;
   focalLastName: string;
-  focalAddress: any;
+  focalAddress: string | Record<string, unknown>;
   focalContactNumber: string;
 }
 

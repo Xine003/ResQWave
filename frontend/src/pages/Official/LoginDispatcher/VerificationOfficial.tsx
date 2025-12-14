@@ -5,7 +5,7 @@ import { ForgotPasswordVerification } from "./components/forgotPasswordVerificat
 
 export function VerificationOfficial() {
   const navigate = useNavigate();
-  const { verifyLogin, user } = useAuth();
+  const { verifyLogin } = useAuth();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);

@@ -61,7 +61,7 @@ export function parseCoordinates(addressJson: string): [number, number] | null {
         return [coords[0], coords[1]];
       }
     }
-  } catch (err) {
+  } catch {
     // Parsing failed, try regex fallback
     const match = addressJson.match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
     if (match) {

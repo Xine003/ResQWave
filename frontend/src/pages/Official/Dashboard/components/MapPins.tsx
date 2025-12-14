@@ -22,25 +22,34 @@ interface MapPinsProps {
 /**
  * Helper to parse coordinates from address JSON
  */
-function parseCoordinates(address: any): [number, number] | null {
+function parseCoordinates(address: string | Record<string, unknown>): [number, number] | null {
   try {
-    let addressObj = address;
+    let addressObj: Record<string, unknown> | string = address;
 
     // If address is a string, try to parse it
     if (typeof addressObj === "string") {
-      addressObj = JSON.parse(addressObj);
+      try {
+        addressObj = JSON.parse(addressObj);
+      } catch {
+        return null; // Invalid JSON
+      }
+    }
+
+    // Type guard: ensure addressObj is now an object
+    if (typeof addressObj !== "object" || addressObj === null) {
+      return null;
     }
 
     // Format 1: Direct lat/lng or latitude/longitude properties
-    if (addressObj.lng && addressObj.lat) {
-      return [addressObj.lng, addressObj.lat];
+    if ("lng" in addressObj && "lat" in addressObj) {
+      return [addressObj.lng as number, addressObj.lat as number];
     }
-    if (addressObj.longitude && addressObj.latitude) {
-      return [addressObj.longitude, addressObj.latitude];
+    if ("longitude" in addressObj && "latitude" in addressObj) {
+      return [addressObj.longitude as number, addressObj.latitude as number];
     }
 
     // Format 2: Coordinates as a STRING "lng, lat" (backend format)
-    if (addressObj.coordinates && typeof addressObj.coordinates === "string") {
+    if ("coordinates" in addressObj && typeof addressObj.coordinates === "string") {
       const coords = addressObj.coordinates.split(",").map((s: string) => parseFloat(s.trim()));
       if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
         return [coords[0], coords[1]]; // [lng, lat]
@@ -48,15 +57,16 @@ function parseCoordinates(address: any): [number, number] | null {
     }
 
     // Format 3: Nested coordinates object
-    if (addressObj.coordinates && typeof addressObj.coordinates === "object") {
-      if (addressObj.coordinates.longitude && addressObj.coordinates.latitude) {
-        return [addressObj.coordinates.longitude, addressObj.coordinates.latitude];
+    if ("coordinates" in addressObj && typeof addressObj.coordinates === "object" && addressObj.coordinates !== null) {
+      const coords = addressObj.coordinates as Record<string, unknown>;
+      if ("longitude" in coords && "latitude" in coords) {
+        return [coords.longitude as number, coords.latitude as number];
       }
-      if (addressObj.coordinates.lng && addressObj.coordinates.lat) {
-        return [addressObj.coordinates.lng, addressObj.coordinates.lat];
+      if ("lng" in coords && "lat" in coords) {
+        return [coords.lng as number, coords.lat as number];
       }
     }
-  } catch (e) {
+  } catch {
     // Silent error handling
   }
   return null;
@@ -228,7 +238,7 @@ export function MapPins({ map, pins, mapContainer, onPinClick }: MapPinsProps) {
         }
         layersInitialized.current = false;
         handlersAttached.current = false;
-      } catch (e) {
+      } catch {
         // Silent error handling
       }
     };
@@ -304,11 +314,11 @@ export function MapPins({ map, pins, mapContainer, onPinClick }: MapPinsProps) {
         map.off("mouseenter", "admin-pins-layer");
         map.off("mouseleave", "admin-pins-layer");
         handlersAttached.current = false;
-      } catch (e) {
+      } catch {
         // Silent error handling
       }
     };
-  }, [map, layersInitialized.current, mapContainer, onPinClick]);
+  }, [map, mapContainer, onPinClick]);
 
   // Update pin data only when pins change
   useEffect(() => {

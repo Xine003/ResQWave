@@ -8,7 +8,7 @@ export interface MapPinData {
   latestAlertTime: string | null;
   totalAlerts: number;
   focalPerson: string;
-  address: any; // Can be string or parsed JSON object
+  address: string | Record<string, unknown>;// Can be string or parsed JSON object
   contactNumber: string;
 }
 

@@ -17,9 +17,8 @@ export function MapView() {
 
   // Get signals from the centralized hook
   const signals = useSignals();
-  const { otherSignals, ownCommunitySignal: OwnCommunitySignal, getDistressCoord } = signals;
+  const { otherSignals, ownCommunitySignal: OwnCommunitySignal } = signals;
 
-  const distressCoord: [number, number] = getDistressCoord();
 
   // Get map pins data (aggregated from backend)
   const { pins, loading: pinsLoading } = useMapPins();
@@ -252,7 +251,7 @@ export function MapView() {
       mapRef.current = null;
       map.remove();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Update map layers when signals change

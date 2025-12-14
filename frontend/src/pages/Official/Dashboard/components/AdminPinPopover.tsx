@@ -24,7 +24,6 @@ interface AdminPinPopoverProps {
 export function AdminPinPopover({
   popover,
   onClose,
-  onMoreInfo,
 }: AdminPinPopoverProps) {
   // Community info sheet state
   const [communityInfoOpen, setCommunityInfoOpen] = useState(false);
