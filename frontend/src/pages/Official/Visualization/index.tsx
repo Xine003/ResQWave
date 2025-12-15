@@ -538,6 +538,9 @@ function VisualizationContent() {
               type: "fill",
               source: sourceId,
               "source-layer": "MetroManila_Flood", // Use the tileset's source layer name
+              layout: {
+                visibility: "none", // Hidden by default
+              },
               paint: {
                 "fill-color": [
                   "match",
