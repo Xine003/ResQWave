@@ -14,6 +14,7 @@ import {
 import VerifyAccount from "../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount";
 import VerificationSignin from "../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin";
 import {
+    Alarms,
     CommunityGroups,
     Dashboard,
     LoginOfficial,
@@ -215,6 +216,14 @@ export const router = createBrowserRouter([
             element: (
               <ProtectedRoute adminOnly={true}>
                 <Terminals />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "alarms",
+            element: (
+              <ProtectedRoute adminOnly={true}>
+                <Alarms />
               </ProtectedRoute>
             ),
           },

@@ -9,6 +9,7 @@ import {
     LayoutDashboard,
     Radio,
     RadioReceiver,
+    TriangleAlert,
     UserCog,
     Users,
 } from "lucide-react";
@@ -39,6 +40,11 @@ const adminOnlyItems = [
     icon: RadioReceiver,
     label: "Terminal",
     path: "/terminal",
+  },
+  {
+    icon: TriangleAlert,
+    label: "Alarms",
+    path: "/alarms",
   },
 ];
 
