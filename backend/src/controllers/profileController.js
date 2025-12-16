@@ -4,6 +4,26 @@ const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
 const { sendVerificationEmail } = require("../utils/confirmEmail");
 const { setCache, getCache, deleteCache } = require("../config/cache");
 const crypto = require("crypto");
+const bcrypt = require("bcrypt");
+
+// Password Policy Regex Components
+const passwordPolicy = {
+    minLength: 8,
+    upper: /[A-Z]/,
+    lower: /[a-z]/,
+    digit: /[0-9]/,
+    special: /[ !"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/,
+};
+
+function validatePassword(pw = "") {
+    const errors = [];
+    if (pw.length < passwordPolicy.minLength) errors.push(`Minimum ${passwordPolicy.minLength} characters`);
+    if (!passwordPolicy.upper.test(pw)) errors.push("At least one uppercase letter");
+    if (!passwordPolicy.lower.test(pw)) errors.push("At least one lowercase letter");
+    if (!passwordPolicy.digit.test(pw)) errors.push("At least one number");
+    if (!passwordPolicy.special.test(pw)) errors.push("At least one special character");
+    return errors;
+}
 
 const getProfile = async (req, res) => {
     try {
@@ -108,8 +128,58 @@ const verifyEmailChange = async (req, res) => {
     }
 };
 
+const changePassword = async (req, res) => {
+    try {
+        const { id, role } = req.user;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: "Current and new password are required" });
+        }
+
+        let user;
+        let repo;
+
+        if (role === "admin") {
+            repo = adminRepo;
+            user = await repo.findOne({ where: { id } });
+        } else if (role === "dispatcher") {
+            repo = dispatcherRepo;
+            user = await repo.findOne({ where: { id } });
+        } else {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Incorrect current password" });
+        }
+
+        // Validate new password policy
+        const policyErrors = validatePassword(newPassword);
+        if (policyErrors.length > 0) {
+            return res.status(400).json({ message: "Password does not meet policy", errors: policyErrors });
+        }
+
+        // Update password
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.passwordLastUpdated = new Date();
+        
+        await repo.save(user);
+
+        res.json({ message: "Password changed successfully" });
+    } catch (error) {
+        console.error("Error changing password:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
 module.exports = { 
     getProfile, 
     requestEmailChange,
-    verifyEmailChange
+    verifyEmailChange,
+    changePassword
 };
