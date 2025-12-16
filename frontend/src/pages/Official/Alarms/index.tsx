@@ -1,60 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Filter, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { AlarmInfoSheet } from "./components/AlarmInfoSheet";
 import { createColumns } from "./components/Column";
 import { DataTable } from "./components/DataTable";
+import { useAlarms } from "./hooks/useAlarms";
 import type { Alarm } from "./types";
-
-// Mock data for demonstration
-const mockAlarms: Alarm[] = [
-  {
-    id: "1",
-    terminalId: "TERM-001",
-    terminalName: "Terminal Alpha",
-    alert: "High Water Level",
-    status: "Active",
-    severity: "Major",
-    createdAt: "2024-12-16 10:30:00",
-    updatedAt: "2024-12-16 11:45:00",
-  },
-  {
-    id: "2",
-    terminalId: "TERM-002",
-    terminalName: "Terminal Beta",
-    alert: "Low Battery",
-    status: "Cleared",
-    severity: "Minor",
-    createdAt: "2024-12-15 14:20:00",
-    updatedAt: "2024-12-16 08:15:00",
-  },
-  {
-    id: "3",
-    terminalId: "TERM-003",
-    terminalName: "Terminal Gamma",
-    alert: "Connection Lost",
-    status: "Active",
-    severity: "Major",
-    createdAt: "2024-12-16 09:00:00",
-    updatedAt: "2024-12-16 09:05:00",
-  },
-  {
-    id: "4",
-    terminalId: "TERM-004",
-    terminalName: "Terminal Delta",
-    alert: "Sensor Malfunction",
-    status: "Cleared",
-    severity: "Minor",
-    createdAt: "2024-12-15 08:15:00",
-    updatedAt: "2024-12-15 16:30:00",
-  },
-];
 
 export function Alarms() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedAlarm, setSelectedAlarm] = useState<Alarm | null>(null);
+  const [infoSheetOpen, setInfoSheetOpen] = useState(false);
+  
+  // Use the custom hook to fetch alarms from backend
+  const { alarms, loading, error, refreshData } = useAlarms();
 
   const handleMoreInfo = (alarm: Alarm) => {
-    console.log("More info for alarm:", alarm);
-    // TODO: Implement more info modal/sheet
+    setSelectedAlarm(alarm);
+    setInfoSheetOpen(true);
   };
 
   const handleEdit = (alarm: Alarm) => {
@@ -91,7 +54,36 @@ export function Alarms() {
     );
   };
 
-  const filteredAlarms = filterAlarms(mockAlarms);
+  const filteredAlarms = filterAlarms(alarms);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col h-[calc(100vh-73px)] items-center justify-center">
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          <p className="text-lg">Loading alarms...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col h-[calc(100vh-73px)] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-lg text-red-500">Error: {error}</p>
+          <Button
+            onClick={refreshData}
+            className="bg-white text-black hover:bg-gray-200"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#171717] text-white p-4 sm:p-6 flex flex-col h-[calc(100vh-73px)]">
@@ -132,6 +124,13 @@ export function Alarms() {
           />
         </div>
       </div>
+
+      {/* Alarm Info Sheet */}
+      <AlarmInfoSheet
+        open={infoSheetOpen}
+        onOpenChange={setInfoSheetOpen}
+        alarmData={selectedAlarm}
+      />
     </div>
   );
 }

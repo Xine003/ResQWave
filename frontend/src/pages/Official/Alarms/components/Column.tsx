@@ -3,11 +3,10 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Archive, Edit, Info } from "lucide-react";
+import { Download, Info } from "lucide-react";
 import type { Alarm, AlarmColumnsOptions } from "../types";
 
 export const createColumns = (
@@ -237,7 +236,7 @@ export const createColumns = (
               className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
             >
               <Info className="mr-2 h-4 w-4 text-white" />
-              <span>More Info</span>
+              <span>View Details</span>
             </DropdownMenuItem>
 
             {opts.onEdit && (
@@ -248,23 +247,8 @@ export const createColumns = (
                 }}
                 className="hover:bg-[#404040] focus:bg-[#404040] rounded-[5px] cursor-pointer hover:text-white focus:text-white"
               >
-                <Edit className="mr-2 h-4 w-4 text-white" />
-                <span>Edit</span>
-              </DropdownMenuItem>
-            )}
-
-            <DropdownMenuSeparator className="bg-[#404040]" />
-
-            {opts.onArchive && (
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  opts.onArchive?.(row.original);
-                }}
-                className="hover:bg-[#404040] focus:bg-[#FF00001A] text-[#FF0000] rounded-[5px] cursor-pointer hover:text-[#FF0000] focus:text-[#FF0000] text-sm"
-              >
-                <Archive className="mr-2 h-4 w-4 text-[#FF0000]" />
-                <span>Archive</span>
+                <Download className="mr-2 h-4 w-4 text-white" />
+                <span>Locate Device</span>
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
