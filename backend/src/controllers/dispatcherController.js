@@ -174,7 +174,10 @@ const updateDispatcher = async (req, res) => {
         }
 
         if (name) dispatcher.name = name;
-        if (password) dispatcher.password = await bcrypt.hash(password, 10);
+        if (password) {
+            dispatcher.password = await bcrypt.hash(password, 10);
+            dispatcher.passwordLastUpdated = new Date();
+        }
 
         // Photo update: replace if new file; otherwise keep existing
         if (photoFile?.buffer) {

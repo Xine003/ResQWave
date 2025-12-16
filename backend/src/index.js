@@ -12,6 +12,7 @@ const focalPersonRoutes = require("./routes/focalPersonRoutes");
 const neighborhoodRoutes = require("./routes/neighborhoodRoutes");
 const alertRoutes = require("./routes/alertRoutes");
 const alarmRoutes = require("./routes/alarmRoutes");
+const profileRoutes = require("./routes/profileRoutes");
 const verificationRoutes = require("./routes/verificationRoutes");
 const rescueFormRoutes = require("./routes/rescueFormRoutes");
 const postRescueRoutes = require("./routes/postRescueRoutes");
@@ -90,6 +91,7 @@ AppDataSource.initialize()
     app.use("/admin-dashboard", requireRole("admin"), adminDashboardRoutes);
     app.use("/alerts", alertRoutes);
     app.use("/alarms", alarmRoutes);
+    app.use("/profile", profileRoutes);
     app.use("/forms", rescueFormRoutes);
     app.use("/post", postRescueRoutes);
     app.use("/", graphRoutes);

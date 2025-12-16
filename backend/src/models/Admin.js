@@ -21,7 +21,7 @@ module.exports = new EntitySchema ({
             unique: true,
         },
         contactNumber: {
-            type: "int",
+            type: "varchar",
             length: 13,
             nullable: true,
         },
