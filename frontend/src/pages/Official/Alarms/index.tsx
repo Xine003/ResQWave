@@ -8,7 +8,7 @@ import { useAlarms } from "./hooks/useAlarms";
 import type { Alarm } from "./types";
 
 export function Alarms() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery] = useState("");
   const [selectedAlarm, setSelectedAlarm] = useState<Alarm | null>(null);
   const [infoSheetOpen, setInfoSheetOpen] = useState(false);
   
