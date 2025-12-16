@@ -106,6 +106,7 @@ const getAggregatedMapData = async (req, res) => {
             .select([
                 "n.id AS neighborhoodID",
                 "t.id AS terminalID",
+                "t.name AS terminalName",
                 "t.status AS terminalStatus",
                 "alert.dateTimeSent AS latestAlertTime",
                 "fp.firstName AS firstName",
@@ -130,6 +131,7 @@ const getAggregatedMapData = async (req, res) => {
             return {
                 neighborhoodID: item.neighborhoodID,
                 terminalID: item.terminalID,
+                terminalName: item.terminalName,
                 terminalStatus: item.terminalStatus,
                 latestAlertTime: item.latestAlertTime,
                 totalAlerts: parseInt(item.totalAlerts || '0', 10),

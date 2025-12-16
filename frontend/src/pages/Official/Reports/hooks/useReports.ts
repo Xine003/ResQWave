@@ -1,14 +1,14 @@
 import {
-    archivePostRescueForm as apiArchivePostRescueForm,
-    deletePostRescueForm as apiDeletePostRescueForm,
-    fetchArchivedReports as apiFetchArchivedReports,
-    fetchCompletedReports as apiFetchCompletedReports,
-    fetchPendingReports as apiFetchPendingReports,
-    restorePostRescueForm as apiRestorePostRescueForm,
-    clearReportsCache,
-    type ArchivedReport,
-    type CompletedReport,
-    type PendingReport,
+  archivePostRescueForm as apiArchivePostRescueForm,
+  deletePostRescueForm as apiDeletePostRescueForm,
+  fetchArchivedReports as apiFetchArchivedReports,
+  fetchCompletedReports as apiFetchCompletedReports,
+  fetchPendingReports as apiFetchPendingReports,
+  restorePostRescueForm as apiRestorePostRescueForm,
+  clearReportsCache,
+  type ArchivedReport,
+  type CompletedReport,
+  type PendingReport,
 } from "@/pages/Official/Reports/api/api";
 import { extractAddress } from "@/pages/Official/Visualization/api/mapAlerts";
 import { useCallback, useEffect, useState } from "react";
@@ -31,9 +31,7 @@ export interface TransformedCompletedReport extends TransformedPendingReport {
   accomplishedOn: string;
 }
 
-export interface TransformedArchivedReport extends TransformedCompletedReport {
-  // Same structure as completed report since archived reports have the same columns
-}
+export type TransformedArchivedReport = TransformedCompletedReport;
 
 // Helper function to format date and time in shorter version
 const formatDateTime = (dateString: string): string => {
