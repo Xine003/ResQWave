@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Filter, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { AlarmInfoSheet } from "./components/AlarmInfoSheet";
 import { createColumns } from "./components/Column";
 import { DataTable } from "./components/DataTable";
 import { useAlarms } from "./hooks/useAlarms";
@@ -8,13 +9,15 @@ import type { Alarm } from "./types";
 
 export function Alarms() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedAlarm, setSelectedAlarm] = useState<Alarm | null>(null);
+  const [infoSheetOpen, setInfoSheetOpen] = useState(false);
   
   // Use the custom hook to fetch alarms from backend
   const { alarms, loading, error, refreshData } = useAlarms();
 
   const handleMoreInfo = (alarm: Alarm) => {
-    console.log("More info for alarm:", alarm);
-    // TODO: Implement more info modal/sheet
+    setSelectedAlarm(alarm);
+    setInfoSheetOpen(true);
   };
 
   const handleEdit = (alarm: Alarm) => {
@@ -121,6 +124,13 @@ export function Alarms() {
           />
         </div>
       </div>
+
+      {/* Alarm Info Sheet */}
+      <AlarmInfoSheet
+        open={infoSheetOpen}
+        onOpenChange={setInfoSheetOpen}
+        alarmData={selectedAlarm}
+      />
     </div>
   );
 }
