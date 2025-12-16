@@ -11,6 +11,7 @@ const terminalRoutes = require("./routes/terminalRoutes");
 const focalPersonRoutes = require("./routes/focalPersonRoutes");
 const neighborhoodRoutes = require("./routes/neighborhoodRoutes");
 const alertRoutes = require("./routes/alertRoutes");
+const alarmRoutes = require("./routes/alarmRoutes");
 const verificationRoutes = require("./routes/verificationRoutes");
 const rescueFormRoutes = require("./routes/rescueFormRoutes");
 const postRescueRoutes = require("./routes/postRescueRoutes");
@@ -88,6 +89,7 @@ AppDataSource.initialize()
     app.use("/admin-logs", requireRole("admin"), adminLogRoutes);
     app.use("/admin-dashboard", requireRole("admin"), adminDashboardRoutes);
     app.use("/alerts", alertRoutes);
+    app.use("/alarms", alarmRoutes);
     app.use("/forms", rescueFormRoutes);
     app.use("/post", postRescueRoutes);
     app.use("/", graphRoutes);

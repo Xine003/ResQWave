@@ -1,6 +1,5 @@
 const { AppDataSource } = require("../config/dataSource");
 const terminalRepo = AppDataSource.getRepository("Terminal");
-// removed unused communityGroupRepo variable
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const {
     getCache,
