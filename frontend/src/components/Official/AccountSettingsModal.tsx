@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, Mail, Phone, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 interface AccountSettingsModalProps {
     open: boolean;
@@ -13,6 +14,7 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
     const [isEditingPhone, setIsEditingPhone] = useState(false);
     const [email, setEmail] = useState(user?.email || "");
     const [phone, setPhone] = useState(""); // You can fetch this from user data if available
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
 
     if (!open) return null;
 
@@ -28,31 +30,31 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
 
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65"
+            className="fixed inset-0 flex items-center justify-center bg-black/65 px-4"
             onClick={onClose}
         >
             <div
-                className="relative w-full max-w-4xl min-h-[600px] bg-[#1a1a1a] rounded-[6px] border border-[#404040] p-12"
+                className="relative w-full max-w-4xl min-h-[400px] md:min-h-[600px] bg-[#1a1a1a] rounded-[6px] border border-[#404040] p-6 md:p-12 max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-13 right-12 text-[#A3A3A3] hover:text-white transition-colors"
+                    className="absolute top-4 right-4 md:top-13 md:right-12 text-[#A3A3A3] hover:text-white transition-colors"
                     aria-label="Close"
                 >
-                    <X size={22} />
+                    <X size={20} className="md:w-[22px] md:h-[22px]" />
                 </button>
 
                 {/* Header */}
-                <div className="mb-6">
-                    <h2 className="text-xl font-semibold text-white">Profile</h2>
+                <div className="mb-4 md:mb-6">
+                    <h2 className="text-lg md:text-xl font-semibold text-white">Profile</h2>
                 </div>
 
                 {/* Profile Picture and Name */}
-                <div className="flex flex-col items-center mb-6">
-                    <div className="w-28 h-28 rounded-full bg-[#404040] mb-5 flex items-center justify-center">
-                        <span className="text-[42px] font-bold text-[#9ca3af]">
+                <div className="flex flex-col items-center mb-4 md:mb-6">
+                    <div className="w-20 h-20 md:w-28 md:h-28 rounded-full bg-[#404040] mb-3 md:mb-5 flex items-center justify-center">
+                        <span className="text-[32px] md:text-[42px] font-bold text-[#9ca3af]">
                             {user?.name ? (() => {
                                 const nameParts = user.name.trim().split(/\s+/);
                                 if (nameParts.length >= 2) {
@@ -62,23 +64,23 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                             })() : "U"}
                         </span>
                     </div>
-                    <h3 className="text-lg font-semibold text-white mb-2">{user?.name || "User"}</h3>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-normal bg-[#414141] text-[#A3A3A3] border border-gray-500/30">
+                    <h3 className="text-base md:text-lg font-semibold text-white mb-2">{user?.name || "User"}</h3>
+                    <span className="inline-flex items-center px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-normal bg-[#414141] text-[#A3A3A3] border border-gray-500/30">
                         ID: {user?.id || "N/A"}
                     </span>
                 </div>
 
                 {/* Account Information */}
-                <div className="mb-6">
-                    <h4 className="text-sm font-semibold text-white mb-3">Account Information</h4>
+                <div className="mb-4 md:mb-6">
+                    <h4 className="text-xs md:text-sm font-semibold text-white mb-2 md:mb-3">Account Information</h4>
 
                     {/* Email and Phone on same line */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         {/* Email */}
                         <div className="py-4 px-[18px] bg-[#1f1f1f] rounded-[6px] border border-[#404040]">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4 flex-1">
-                                    <div className="flex-shrink-0 bg-[#404040] p-3 rounded-[6px]">
+                                    <div className="bg-[#404040] p-3 rounded-[6px]">
                                         <Mail className="w-4 h-4 text-white" />
                                     </div>
                                     <div className="flex-1">
@@ -104,7 +106,7 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                                             setIsEditingEmail(true);
                                         }
                                     }}
-                                    className="ml-3 px-[13px] py-2 text-xs text-white hover:text-gray-300 transition-colors border border-[#404040] bg-[#262626] rounded-[4px] hover:border-gray-400"
+                                    className="ml-3 px-[13px] py-2 text-xs text-white hover:text-gray-300 transition-colors border border-[#404040] bg-[#262626] rounded hover:border-gray-400"
                                 >
                                     {isEditingEmail ? "Save" : "Edit"}
                                 </button>
@@ -115,7 +117,7 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                         <div className="py-4 px-[18px] bg-[#1f1f1f] rounded-[6px] border border-[#404040]">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4 flex-1">
-                                    <div className="flex-shrink-0 bg-[#404040] p-3 rounded-[6px]">
+                                    <div className="bg-[#404040] p-3 rounded-[6px]">
                                         <Phone className="w-4 h-4 text-white" />
                                     </div>
                                     <div className="flex-1">
@@ -141,7 +143,7 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                                             setIsEditingPhone(true);
                                         }
                                     }}
-                                    className="ml-3 px-[13px] py-2 text-xs text-white hover:text-gray-300 transition-colors border border-[#404040] bg-[#262626] rounded-[4px] hover:border-gray-400"
+                                    className="ml-3 px-[13px] py-2 text-xs text-white hover:text-gray-300 transition-colors border border-[#404040] bg-[#262626] rounded hover:border-gray-400"
                                 >
                                     {isEditingPhone ? "Save" : "Edit"}
                                 </button>
@@ -151,12 +153,12 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                 </div>
 
                 {/* Security */}
-                <div className="mb-8">
-                    <h4 className="text-sm font-semibold text-white mb-3">Security</h4>
+                <div className="mb-6 md:mb-8">
+                    <h4 className="text-xs md:text-sm font-semibold text-white mb-2 md:mb-3">Security</h4>
                     <div className="py-4 px-[18px] bg-[#1f1f1f] rounded-[6px] border border-[#404040]">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4 flex-1">
-                                <div className="flex-shrink-0 bg-[#404040] p-3 rounded-[6px]">
+                                <div className="bg-[#404040] p-3 rounded-[6px]">
                                     <Lock className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1">
@@ -165,11 +167,8 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                                 </div>
                             </div>
                             <button
-                                onClick={() => {
-                                    // TODO: Implement password change modal/flow
-                                    console.log("Change password");
-                                }}
-                                className="ml-3 px-[13px] py-2 text-xs text-white hover:text-gray-300 transition-colors border border-[#404040] bg-[#262626] rounded-[4px] hover:border-gray-400"
+                                onClick={() => setShowPasswordModal(true)}
+                                className="ml-3 px-[13px] py-2 text-xs text-white hover:text-gray-300 transition-colors border border-[#404040] bg-[#262626] rounded hover:border-gray-400"
                             >
                                 Change
                             </button>
@@ -194,6 +193,12 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                     </p>
                 </div>
             </div>
+
+            {/* Password Change Modal */}
+            <ChangePasswordModal
+                open={showPasswordModal}
+                onClose={() => setShowPasswordModal(false)}
+            />
         </div>
     );
 }
