@@ -2,6 +2,8 @@ import { useState } from "react";
 import { X, Mail, Phone, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ChangePasswordModal from "./ChangePasswordModal";
+import ChangeEmailModal from "./ChangeEmailModal";
+import ChangePhoneModal from "./ChangePhoneModal";
 
 interface AccountSettingsModalProps {
     open: boolean;
@@ -10,23 +12,12 @@ interface AccountSettingsModalProps {
 
 export default function AccountSettingsModal({ open, onClose }: AccountSettingsModalProps) {
     const { user } = useAuth();
-    const [isEditingEmail, setIsEditingEmail] = useState(false);
-    const [isEditingPhone, setIsEditingPhone] = useState(false);
-    const [email, setEmail] = useState(user?.email || "");
     const [phone, setPhone] = useState(""); // You can fetch this from user data if available
     const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [showPhoneModal, setShowPhoneModal] = useState(false);
 
     if (!open) return null;
-
-    const handleSaveEmail = () => {
-        // TODO: Implement email update API call
-        setIsEditingEmail(false);
-    };
-
-    const handleSavePhone = () => {
-        // TODO: Implement phone update API call
-        setIsEditingPhone(false);
-    };
 
     return (
         <div
@@ -85,30 +76,14 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                                     </div>
                                     <div className="flex-1">
                                         <label className="text-[13px] text-[#BABABA] block">Email</label>
-                                        {isEditingEmail ? (
-                                            <input
-                                                type="email"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                                className="w-full bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-[#404040] focus:outline-none focus:border-blue-500"
-                                                autoFocus
-                                            />
-                                        ) : (
-                                            <p className="text-[13px] text-white">{user?.email || "Not set"}</p>
-                                        )}
+                                        <p className="text-[13px] text-white">{user?.email || "Not set"}</p>
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => {
-                                        if (isEditingEmail) {
-                                            handleSaveEmail();
-                                        } else {
-                                            setIsEditingEmail(true);
-                                        }
-                                    }}
+                                    onClick={() => setShowEmailModal(true)}
                                     className="ml-3 px-[13px] py-2 text-xs text-white hover:text-gray-300 transition-colors border border-[#404040] bg-[#262626] rounded hover:border-gray-400"
                                 >
-                                    {isEditingEmail ? "Save" : "Edit"}
+                                    Edit
                                 </button>
                             </div>
                         </div>
@@ -122,30 +97,14 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                                     </div>
                                     <div className="flex-1">
                                         <label className="text-[13px] text-[#BABABA] block">Phone Number</label>
-                                        {isEditingPhone ? (
-                                            <input
-                                                type="tel"
-                                                value={phone}
-                                                onChange={(e) => setPhone(e.target.value)}
-                                                className="w-full bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-[#404040] focus:outline-none focus:border-blue-500"
-                                                autoFocus
-                                            />
-                                        ) : (
-                                            <p className="text-[13px] text-white">{phone || "Not set"}</p>
-                                        )}
+                                        <p className="text-[13px] text-white">{phone || "Not set"}</p>
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => {
-                                        if (isEditingPhone) {
-                                            handleSavePhone();
-                                        } else {
-                                            setIsEditingPhone(true);
-                                        }
-                                    }}
+                                    onClick={() => setShowPhoneModal(true)}
                                     className="ml-3 px-[13px] py-2 text-xs text-white hover:text-gray-300 transition-colors border border-[#404040] bg-[#262626] rounded hover:border-gray-400"
                                 >
-                                    {isEditingPhone ? "Save" : "Edit"}
+                                    Edit
                                 </button>
                             </div>
                         </div>
@@ -198,6 +157,20 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
             <ChangePasswordModal
                 open={showPasswordModal}
                 onClose={() => setShowPasswordModal(false)}
+            />
+
+            {/* Email Change Modal */}
+            <ChangeEmailModal
+                open={showEmailModal}
+                onClose={() => setShowEmailModal(false)}
+                currentEmail={user?.email || ""}
+            />
+
+            {/* Phone Change Modal */}
+            <ChangePhoneModal
+                open={showPhoneModal}
+                onClose={() => setShowPhoneModal(false)}
+                currentPhone={phone}
             />
         </div>
     );
