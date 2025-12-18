@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { BookOpen, LogOut, Settings, UserCog } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import AccountSettingsModal from "./AccountSettingsModal";
 
 interface SettingsPopoverProps {
   isActive?: boolean;
@@ -12,6 +13,7 @@ interface SettingsPopoverProps {
 
 export default function SettingsPopover({ isActive = false, isMobile = false }: SettingsPopoverProps) {
   const [open, setOpen] = React.useState(false);
+  const [accountSettingsOpen, setAccountSettingsOpen] = React.useState(false);
   const navigate = useNavigate();
 
   // Safely get auth context - may throw if outside provider
@@ -35,6 +37,11 @@ export default function SettingsPopover({ isActive = false, isMobile = false }: 
   }
 
   const handleClose = () => setOpen(false);
+
+  const handleOpenAccountSettings = () => {
+    handleClose();
+    setAccountSettingsOpen(true);
+  };
 
   const handleLogout = async () => {
     handleClose();
@@ -96,7 +103,7 @@ export default function SettingsPopover({ isActive = false, isMobile = false }: 
           </div>
         </div>
         <PopoverSeparator />
-        <PopoverItem icon={<UserCog size={16} />} onClick={handleClose}>
+        <PopoverItem icon={<UserCog size={16} />} onClick={handleOpenAccountSettings}>
           Account Settings
         </PopoverItem>
         <PopoverItem icon={<BookOpen size={16} />} onClick={handleClose}>
@@ -110,6 +117,10 @@ export default function SettingsPopover({ isActive = false, isMobile = false }: 
           Logout
         </PopoverItem>
       </PopoverContent>
+      <AccountSettingsModal
+        open={accountSettingsOpen}
+        onClose={() => setAccountSettingsOpen(false)}
+      />
     </Popover>
   );
 }
