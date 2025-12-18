@@ -14,6 +14,18 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
 
     if (!open) return null;
 
+    const maskEmail = (email: string) => {
+        const [localPart, domain] = email.split('@');
+        if (!localPart || !domain) return email;
+
+        const visibleStart = localPart.slice(0, 2);
+        const visibleEnd = localPart.slice(-4);
+        const maskedLength = Math.max(0, localPart.length - 6);
+        const masked = '*'.repeat(maskedLength);
+
+        return `${visibleStart}${masked}${visibleEnd}@${domain}`;
+    };
+
     const handleConfirm = () => {
         if (otp.length === 6) {
             onVerify(otp);
@@ -50,7 +62,7 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
                         <h3 className="text-sm md:text-base font-semibold text-white mb-1">Verify your email</h3>
                         <p className="text-sm md:text-[13px] text-[#A3A3A3]">
                             Please enter the verification code we sent to{" "}
-                            <span className="text-white">{email}</span>
+                            <span className="text-white">{maskEmail(email)}</span>
                         </p>
                     </div>
 
