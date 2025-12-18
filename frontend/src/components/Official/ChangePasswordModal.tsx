@@ -19,6 +19,17 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
     const [showAlertPopover, setShowAlertPopover] = useState(false);
     const [hasStoppedTyping, setHasStoppedTyping] = useState(false);
 
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && open) {
+                handleClose();
+            }
+        };
+
+        window.addEventListener("keydown", handleEscape);
+        return () => window.removeEventListener("keydown", handleEscape);
+    }, [open]);
+
     // Password validation requirements
     const passwordRequirements = {
         minLength: newPassword.length >= 8,
@@ -63,7 +74,9 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
 
     if (!open) return null;
 
-    const handleChangePassword = () => {
+    const handleChangePassword = (e: React.FormEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         // TODO: Implement password change API call
         console.log("Password change:", { currentPassword, newPassword, confirmPassword });
         handleClose();
@@ -90,7 +103,8 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                 handleClose();
             }}
         >
-            <div
+            <form
+                onSubmit={handleChangePassword}
                 className="relative w-full max-w-[560px] min-h-[350px] md:min-h-[450px] bg-[#171717] rounded-[6px] border border-[#404040] py-6 px-6 md:py-10 md:px-11 flex flex-col justify-center max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
@@ -259,7 +273,7 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                 {/* Confirm Button */}
                 <div className="flex justify-end mt-6">
                     <button
-                        onClick={handleChangePassword}
+                        type="submit"
                         disabled={!currentPassword || !allRequirementsMet || newPassword !== confirmPassword}
                         className={`px-6 py-2 text-sm font-medium rounded transition-colors ${!currentPassword || !allRequirementsMet || newPassword !== confirmPassword
                             ? 'bg-[#414141] text-[#9ca3af] cursor-not-allowed'
@@ -269,7 +283,7 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                         Confirm
                     </button>
                 </div>
-            </div>
+            </form>
         </div>
     );
 }

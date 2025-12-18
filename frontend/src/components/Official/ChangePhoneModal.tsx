@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 interface ChangePhoneModalProps {
@@ -9,6 +9,17 @@ interface ChangePhoneModalProps {
 
 export default function ChangePhoneModal({ open, onClose, currentPhone }: ChangePhoneModalProps) {
     const [phone, setPhone] = useState("");
+
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && open) {
+                handleClose();
+            }
+        };
+
+        window.addEventListener("keydown", handleEscape);
+        return () => window.removeEventListener("keydown", handleEscape);
+    }, [open]);
 
     if (!open) return null;
 
@@ -83,8 +94,8 @@ export default function ChangePhoneModal({ open, onClose, currentPhone }: Change
                         onClick={handleConfirm}
                         disabled={!isPhoneValid}
                         className={`px-6 py-2 text-sm font-medium rounded transition-colors ${!isPhoneValid
-                                ? 'bg-[#414141] text-[#9ca3af] cursor-not-allowed'
-                                : 'bg-[#3B82F6] text-white hover:bg-[#2563EB]'
+                            ? 'bg-[#414141] text-[#9ca3af] cursor-not-allowed'
+                            : 'bg-[#3B82F6] text-white hover:bg-[#2563EB]'
                             }`}
                     >
                         Confirm

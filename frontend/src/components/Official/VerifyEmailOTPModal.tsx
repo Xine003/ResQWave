@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp-focal";
 
@@ -11,6 +11,17 @@ interface VerifyEmailOTPModalProps {
 
 export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: VerifyEmailOTPModalProps) {
     const [otp, setOtp] = useState("");
+
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && open) {
+                onClose();
+            }
+        };
+
+        window.addEventListener("keydown", handleEscape);
+        return () => window.removeEventListener("keydown", handleEscape);
+    }, [open, onClose]);
 
     if (!open) return null;
 
@@ -26,7 +37,8 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
         return `${visibleStart}${masked}${visibleEnd}@${domain}`;
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         if (otp.length === 6) {
             onVerify(otp);
         }
@@ -52,7 +64,8 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
                 handleClose();
             }}
         >
-            <div
+            <form
+                onSubmit={handleConfirm}
                 className="relative w-full max-w-[560px] min-h-[280px] bg-[#171717] rounded-[6px] border border-[#404040] py-6 px-6 md:py-10 md:px-11 flex flex-col justify-center max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
@@ -140,7 +153,7 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
                 {/* Confirm Button */}
                 <div className="flex justify-end">
                     <button
-                        onClick={handleConfirm}
+                        type="submit"
                         disabled={!isOTPComplete}
                         className={`px-6 py-2 text-sm font-medium rounded transition-colors ${!isOTPComplete
                             ? 'bg-[#414141] text-[#9ca3af] cursor-not-allowed'
@@ -150,7 +163,7 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
                         Confirm
                     </button>
                 </div>
-            </div>
+            </form>
         </div>
     );
 }

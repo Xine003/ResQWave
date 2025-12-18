@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Mail, Phone, Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ChangePasswordModal from "./ChangePasswordModal";
@@ -16,6 +16,17 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [showPhoneModal, setShowPhoneModal] = useState(false);
+
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && open && !showPasswordModal && !showEmailModal && !showPhoneModal) {
+                onClose();
+            }
+        };
+
+        window.addEventListener("keydown", handleEscape);
+        return () => window.removeEventListener("keydown", handleEscape);
+    }, [open, showPasswordModal, showEmailModal, showPhoneModal, onClose]);
 
     if (!open) return null;
 

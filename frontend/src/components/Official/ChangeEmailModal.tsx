@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import VerifyEmailOTPModal from "./VerifyEmailOTPModal";
 
@@ -12,6 +12,17 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
     const [email, setEmail] = useState("");
     const [showOTPModal, setShowOTPModal] = useState(false);
 
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && open && !showOTPModal) {
+                handleClose();
+            }
+        };
+
+        window.addEventListener("keydown", handleEscape);
+        return () => window.removeEventListener("keydown", handleEscape);
+    }, [open, showOTPModal]);
+
     if (!open) return null;
 
     const isValidEmail = (email: string) => {
@@ -21,7 +32,9 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
 
     const isEmailValid = isValidEmail(email) && email !== currentEmail;
 
-    const handleConfirm = () => {
+    const handleConfirm = (e: React.FormEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (isEmailValid) {
             // TODO: Implement send OTP API call
             console.log("Sending OTP to:", email);
@@ -50,7 +63,8 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
                 handleClose();
             }}
         >
-            <div
+            <form
+                onSubmit={handleConfirm}
                 className="relative w-full max-w-[560px] min-h-[200px] bg-[#171717] rounded-[6px] border border-[#404040] py-6 px-6 md:py-10 md:px-11 flex flex-col justify-center max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
@@ -63,6 +77,7 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
 
                     {/* Close Button */}
                     <button
+                        type="button"
                         onClick={handleClose}
                         className="text-[#9ca3af] hover:text-white transition-colors ml-2 md:ml-4"
                         aria-label="Close"
@@ -89,17 +104,17 @@ export default function ChangeEmailModal({ open, onClose, currentEmail }: Change
                 {/* Confirm Button */}
                 <div className="flex justify-end mt-6">
                     <button
-                        onClick={handleConfirm}
+                        type="submit"
                         disabled={!isEmailValid}
                         className={`px-6 py-2 text-sm font-medium rounded transition-colors ${!isEmailValid
-                                ? 'bg-[#414141] text-[#9ca3af] cursor-not-allowed'
-                                : 'bg-[#3B82F6] text-white hover:bg-[#2563EB]'
+                            ? 'bg-[#414141] text-[#9ca3af] cursor-not-allowed'
+                            : 'bg-[#3B82F6] text-white hover:bg-[#2563EB]'
                             }`}
                     >
                         Confirm
                     </button>
                 </div>
-            </div>
+            </form>
 
             {/* OTP Verification Modal */}
             <VerifyEmailOTPModal
