@@ -153,7 +153,7 @@ export function AlarmInfoSheet({
         ) : alarmDetails ? (
           <div className="px-5 pt-4 pb-2 space-y-2">
             {/* Terminal Icon/Image */}
-            <div className="bg-[#171717] flex justify-center py-8 px-2 rounded-[5px] mb-4">
+            <div className="bg-[#171717] flex justify-center py-8 px-2 rounded-[5px] mt-0 mb-4">
               <div className="relative w-full max-w-full h-48 rounded-[5px] overflow-hidden bg-[#2a2a2a] flex items-center justify-center">
                 {/* Terminal Icon */}
                 <div className="w-32 h-32 bg-[#404040] rounded-full flex items-center justify-center">
