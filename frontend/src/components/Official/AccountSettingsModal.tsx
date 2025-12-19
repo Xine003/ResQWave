@@ -50,7 +50,7 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
 
                 {/* Header */}
                 <div className="mb-4 md:mb-6">
-                    <h2 className="text-lg md:text-xl font-semibold text-white">Profile</h2>
+                    <h2 className="text-xl md:text-xl font-semibold text-white">Profile</h2>
                 </div>
 
                 {/* Profile Picture and Name */}
@@ -133,7 +133,9 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                                 </div>
                                 <div className="flex-1">
                                     <label className="text-[13px] text-[#BABABA] block">Password</label>
-                                    <p className="text-[13px] text-white">Last updated: January 10, 2025</p>
+                                    <p className="text-[13px] text-white">
+                                        Last updated: {user?.passwordLastUpdated ? new Date(user.passwordLastUpdated).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+                                    </p>
                                 </div>
                             </div>
                             <button
