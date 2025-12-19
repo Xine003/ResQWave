@@ -6,11 +6,11 @@ import { Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { fetchCompletedOperationsStats } from "../api/adminDashboard";
 import {
-  CompletedOperationsBarChart,
-  CompletedOperationsLineChart,
-  CompletedOperationsPieChart,
-  DateRangePicker,
-  StatisticsCards,
+    CompletedOperationsBarChart,
+    CompletedOperationsLineChart,
+    CompletedOperationsPieChart,
+    DateRangePicker,
+    StatisticsCards,
 } from "./index";
 
 type ChartType = "bar" | "line" | "pie";
