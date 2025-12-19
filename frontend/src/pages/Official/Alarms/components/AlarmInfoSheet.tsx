@@ -1,9 +1,9 @@
 import {
-    Sheet,
-    SheetClose,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { RadioReceiver, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -36,6 +36,18 @@ export function AlarmInfoSheet({
   const [alarmDetails, setAlarmDetails] = useState<AlarmDetails | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Helper function to get description based on alarm name
+  const getAlarmDescription = (alarmName: string): string => {
+    switch (alarmName) {
+      case "Critical Battery Level":
+        return "System warning threshold for critically low battery.";
+      case "Extended Downtime":
+        return "Prolonged period of terminal unavailability triggering a distress signal.";
+      default:
+        return "No description available";
+    }
+  };
+
   useEffect(() => {
     if (!alarmData || !open) return;
 
@@ -60,14 +72,16 @@ export function AlarmInfoSheet({
 
         const data = await response.json();
         
+        const alarmName = data.name || alarmData.alert;
+        
         // Format the data
         setAlarmDetails({
           id: data.terminalID || alarmData.terminalId,
           terminalId: data.terminalID || alarmData.terminalId,
           terminalName: data.terminalName || alarmData.terminalName,
-          terminalAddress: data.terminalAddress || "N/A",
-          alert: data.name || alarmData.alert,
-          description: data.description || "No description available",
+          terminalAddress: data.terminalAddress || alarmData.terminalAddress || "N/A",
+          alert: alarmName,
+          description: getAlarmDescription(alarmName),
           status: data.status || alarmData.status,
           severity: data.severity || alarmData.severity,
           createdAt: formatDate(data.createdAt || alarmData.createdAt),
@@ -80,9 +94,9 @@ export function AlarmInfoSheet({
           id: alarmData.terminalId,
           terminalId: alarmData.terminalId,
           terminalName: alarmData.terminalName,
-          terminalAddress: "N/A",
+          terminalAddress: alarmData.terminalAddress || "N/A",
           alert: alarmData.alert,
-          description: "No description available",
+          description: getAlarmDescription(alarmData.alert),
           status: alarmData.status,
           severity: alarmData.severity,
           createdAt: alarmData.createdAt,
@@ -173,13 +187,11 @@ export function AlarmInfoSheet({
             </div>
 
             {/* Description */}
-            <div className="bg-[#1d1d1d] px-4 py-4 rounded-[5px]">
-              <h3 className="text-white/80 text-sm font-normal mb-2">
-                Description
-              </h3>
-              <p className="text-white text-sm leading-relaxed">
+            <div className="flex justify-between items-center bg-[#1d1d1d] px-4 py-4 rounded-[5px]">
+              <span className="text-white/80 text-sm">Description</span>
+              <span className="text-white text-sm text-right">
                 {alarmDetails.description}
-              </p>
+              </span>
             </div>
 
             {/* Status */}
