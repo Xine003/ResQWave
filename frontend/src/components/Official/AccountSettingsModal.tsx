@@ -50,7 +50,7 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
 
                 {/* Header */}
                 <div className="mb-4 md:mb-6">
-                    <h2 className="text-lg md:text-xl font-semibold text-white">Profile</h2>
+                    <h2 className="text-xl md:text-xl font-semibold text-white">Profile</h2>
                 </div>
 
                 {/* Profile Picture and Name */}
