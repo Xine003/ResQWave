@@ -4,6 +4,7 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from "@/components/ui/chart";
+import { useSocket } from "@/contexts/SocketContext";
 import { useEffect, useState } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { fetchCompletedOperationsStats } from "../api/adminDashboard";
@@ -34,6 +35,7 @@ interface CompletedOperationsLineChartProps {
 
 export function CompletedOperationsLineChart({ dateRange }: CompletedOperationsLineChartProps) {
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const { socket, isConnected } = useSocket();
 
   useEffect(() => {
     const loadData = async () => {
@@ -44,7 +46,11 @@ export function CompletedOperationsLineChart({ dateRange }: CompletedOperationsL
         // Use daily granularity if range is 31 days or less, otherwise monthly
         const granularity = daysDiff <= 31 ? "daily" : "monthly";
         
-        const response = await fetchCompletedOperationsStats(granularity);
+        const response = await fetchCompletedOperationsStats(
+          granularity,
+          dateRange.startDate,
+          dateRange.endDate
+        );
         
         // Filter data to only include dates within the selected range
         const filteredData = Object.entries(response.stats)
@@ -70,6 +76,23 @@ export function CompletedOperationsLineChart({ dateRange }: CompletedOperationsL
 
     loadData();
   }, [dateRange]);
+
+  // Socket listener for real-time updates
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handlePostRescueCreated = () => {
+      console.log('[LineChart] Post-rescue form created, refreshing chart...');
+      setChartData([]);
+    };
+
+    socket.on('postRescue:created', handlePostRescueCreated);
+
+    return () => {
+      socket.off('postRescue:created', handlePostRescueCreated);
+    };
+  }, [socket, isConnected]);
+
   return (
     <div className="h-full w-full">
       <ChartContainer config={chartConfig} className="h-full w-full">

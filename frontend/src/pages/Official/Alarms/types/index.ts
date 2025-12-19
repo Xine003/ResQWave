@@ -9,6 +9,7 @@ export interface Alarm {
   severity: string;
   createdAt: string;
   updatedAt: string;
+  terminalAddress?: string;
 }
 
 export interface AlarmColumnsOptions {

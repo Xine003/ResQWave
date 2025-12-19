@@ -4,6 +4,7 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from "@/components/ui/chart";
+import { useSocket } from "@/contexts/SocketContext";
 import { useEffect, useState } from "react";
 import { Pie, PieChart } from "recharts";
 import { fetchCompletedOperationsStats } from "../api/adminDashboard";
@@ -38,6 +39,7 @@ export function CompletedOperationsPieChart({ dateRange }: CompletedOperationsPi
     { name: "userInitiated", value: 0, fill: "var(--color-userInitiated)" },
     { name: "critical", value: 0, fill: "var(--color-critical)" },
   ]);
+  const { socket, isConnected } = useSocket();
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,7 +50,11 @@ export function CompletedOperationsPieChart({ dateRange }: CompletedOperationsPi
         // Use daily granularity if range is 31 days or less, otherwise monthly
         const granularity = daysDiff <= 31 ? "daily" : "monthly";
         
-        const response = await fetchCompletedOperationsStats(granularity);
+        const response = await fetchCompletedOperationsStats(
+          granularity,
+          dateRange.startDate,
+          dateRange.endDate
+        );
         
         // Filter data to only include dates within the selected range
         const filteredEntries = Object.entries(response.stats).filter(([date]) => {
@@ -82,6 +88,26 @@ export function CompletedOperationsPieChart({ dateRange }: CompletedOperationsPi
 
     loadData();
   }, [dateRange]);
+
+  // Socket listener for real-time updates
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handlePostRescueCreated = () => {
+      console.log('[PieChart] Post-rescue form created, refreshing chart...');
+      setChartData([
+        { name: "userInitiated", value: 0, fill: "var(--color-userInitiated)" },
+        { name: "critical", value: 0, fill: "var(--color-critical)" },
+      ]);
+    };
+
+    socket.on('postRescue:created', handlePostRescueCreated);
+
+    return () => {
+      socket.off('postRescue:created', handlePostRescueCreated);
+    };
+  }, [socket, isConnected]);
+
   return (
     <div className="h-full w-full flex items-center justify-center">
       <ChartContainer

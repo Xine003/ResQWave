@@ -11,6 +11,7 @@ interface BackendAlarm {
   severity: string;
   createdAt: string;
   updatedAt: string;
+  terminalAddress?: string;
 }
 
 // Transform backend data to frontend format
@@ -24,6 +25,7 @@ const transformAlarmData = (backendAlarm: BackendAlarm): Alarm => {
     severity: backendAlarm.severity,
     createdAt: formatDate(backendAlarm.createdAt),
     updatedAt: formatDate(backendAlarm.updatedAt),
+    terminalAddress: backendAlarm.terminalAddress,
   };
 };
 
