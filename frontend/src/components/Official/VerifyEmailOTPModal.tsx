@@ -1,16 +1,22 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp-focal";
+import { apiFetch } from "@/lib/api";
 
 interface VerifyEmailOTPModalProps {
     open: boolean;
     onClose: () => void;
     email: string;
     onVerify: (otp: string) => void;
+    error?: string;
 }
 
-export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: VerifyEmailOTPModalProps) {
+export default function VerifyEmailOTPModal({ open, onClose, email, onVerify, error }: VerifyEmailOTPModalProps) {
     const [otp, setOtp] = useState("");
+    const [resendMsg, setResendMsg] = useState("");
+    const [resendError, setResendError] = useState("");
+    const [resending, setResending] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(false);
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
@@ -37,20 +43,51 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
         return `${visibleStart}${masked}${visibleEnd}@${domain}`;
     };
 
-    const handleConfirm = (e?: React.FormEvent) => {
+    const handleConfirm = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         if (otp.length === 6) {
-            onVerify(otp);
+            setIsVerifying(true);
+            try {
+                await onVerify(otp);
+            } finally {
+                setIsVerifying(false);
+            }
         }
     };
 
-    const handleResend = () => {
-        // TODO: Implement resend OTP API call
-        console.log("Resending OTP to:", email);
+    const handleResend = async () => {
+        setResendMsg("");
+        setResendError("");
+        setResending(true);
+        try {
+            await apiFetch("/profile/change-email", {
+                method: "POST",
+                body: JSON.stringify({ newEmail: email })
+            });
+            setResendMsg("A new code has been sent to your email.");
+            setTimeout(() => setResendMsg(""), 2000);
+        } catch (err: any) {
+            let msg = err.message || "Failed to resend code.";
+            if (typeof err === 'object' && err !== null && 'message' in err) {
+                msg = err.message;
+            }
+            if (msg.includes("Email already in use")) {
+                msg = "This email is already in use.";
+            } else if (msg.startsWith('{') && msg.includes('message')) {
+                try {
+                    const parsed = JSON.parse(msg);
+                    if (parsed.message) msg = parsed.message;
+                } catch { }
+            }
+            setResendError(msg);
+        } finally {
+            setResending(false);
+        }
     };
 
     const handleClose = () => {
         setOtp("");
+        setIsVerifying(false);
         onClose();
     };
 
@@ -90,7 +127,7 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
                 </div>
 
                 {/* OTP Input */}
-                <div className="mb-6 flex justify-center">
+                <div className="mb-2 flex justify-center">
                     <InputOTP
                         maxLength={6}
                         value={otp}
@@ -100,11 +137,11 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
                         <InputOTPGroup>
                             <InputOTPSlot
                                 index={0}
-                                className="bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border border-[#404040]"
+                                className={`bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`}
                             />
                             <InputOTPSlot
                                 index={1}
-                                className="bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border border-[#404040]"
+                                className={`bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`}
                             />
                         </InputOTPGroup>
                         <InputOTPSeparator>
@@ -113,11 +150,11 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
                         <InputOTPGroup>
                             <InputOTPSlot
                                 index={2}
-                                className="bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border border-[#404040]"
+                                className={`bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`}
                             />
                             <InputOTPSlot
                                 index={3}
-                                className="bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border border-[#404040]"
+                                className={`bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`}
                             />
                         </InputOTPGroup>
                         <InputOTPSeparator>
@@ -126,15 +163,18 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
                         <InputOTPGroup>
                             <InputOTPSlot
                                 index={4}
-                                className="bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border border-[#404040]"
+                                className={`bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`}
                             />
                             <InputOTPSlot
                                 index={5}
-                                className="bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border border-[#404040]"
+                                className={`bg-transparent h-12 w-12 md:h-[60px] md:w-[60px] text-xl md:text-2xl text-white border ${error ? 'border-red-500' : 'border-[#404040]'}`}
                             />
                         </InputOTPGroup>
                     </InputOTP>
                 </div>
+                {error && (
+                    <div className="mb-4 text-left text-xs text-red-500">{error}</div>
+                )}
 
                 {/* Resend Link */}
                 <div className="mb-5 text-start">
@@ -144,23 +184,26 @@ export default function VerifyEmailOTPModal({ open, onClose, email, onVerify }: 
                             type="button"
                             onClick={handleResend}
                             className="text-blue-400 hover:underline"
+                            disabled={resending}
                         >
-                            Resend
+                            {resending ? "Resending..." : "Resend"}
                         </button>
                     </p>
+                    {resendMsg && <div className="text-xs text-green-400 mt-1">{resendMsg}</div>}
+                    {resendError && <div className="text-xs text-red-500 mt-1">{resendError}</div>}
                 </div>
 
                 {/* Confirm Button */}
                 <div className="flex justify-end">
                     <button
                         type="submit"
-                        disabled={!isOTPComplete}
-                        className={`px-6 py-2 text-sm font-medium rounded transition-colors ${!isOTPComplete
+                        disabled={!isOTPComplete || isVerifying}
+                        className={`px-6 py-2 text-sm font-medium rounded transition-colors ${!isOTPComplete || isVerifying
                             ? 'bg-[#414141] text-[#9ca3af] cursor-not-allowed'
                             : 'bg-[#3B82F6] text-white hover:bg-[#2563EB]'
                             }`}
                     >
-                        Confirm
+                        {isVerifying ? "Verifying..." : "Confirm"}
                     </button>
                 </div>
             </form>

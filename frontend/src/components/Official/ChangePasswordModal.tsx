@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
+import { apiFetch } from "@/lib/api";
+import Snackbar from "./Snackbar";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ChangePasswordModalProps {
     open: boolean;
@@ -9,6 +12,7 @@ interface ChangePasswordModalProps {
 }
 
 export default function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps) {
+    const { user } = useAuth();
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -18,17 +22,23 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
     const [isNewPasswordFocused, setIsNewPasswordFocused] = useState(false);
     const [showAlertPopover, setShowAlertPopover] = useState(false);
     const [hasStoppedTyping, setHasStoppedTyping] = useState(false);
+    const [error, setError] = useState("");
+    const [showSnackbar, setShowSnackbar] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const newPasswordRef = useRef<HTMLInputElement>(null);
+    const confirmPasswordRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === "Escape" && open) {
+            if (e.key === "Escape" && open && !isLoading) {
                 handleClose();
             }
         };
 
         window.addEventListener("keydown", handleEscape);
         return () => window.removeEventListener("keydown", handleEscape);
-    }, [open]);
+    }, [open, isLoading]);
 
     // Password validation requirements
     const passwordRequirements = {
@@ -72,14 +82,62 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
         }
     }, [showAlertPopover]);
 
-    if (!open) return null;
-
-    const handleChangePassword = (e: React.FormEvent) => {
+    const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        // TODO: Implement password change API call
-        console.log("Password change:", { currentPassword, newPassword, confirmPassword });
-        handleClose();
+        
+        // Don't submit if validations fail
+        if (!currentPassword || !allRequirementsMet || newPassword !== confirmPassword || isLoading) {
+            return;
+        }
+        
+        setError("");
+        setIsLoading(true);
+        
+        try {
+            await apiFetch("/profile/change-password", {
+                method: "POST",
+                body: JSON.stringify({ 
+                    currentPassword, 
+                    newPassword 
+                })
+            });
+            
+            // Update user's passwordLastUpdated in localStorage and memory
+            if (user) {
+                const updatedUser = {
+                    ...user,
+                    passwordLastUpdated: new Date().toISOString()
+                };
+                localStorage.setItem('resqwave_user', JSON.stringify(updatedUser));
+                // Update in-memory user object
+                Object.assign(user, updatedUser);
+            }
+            
+            // Show success snackbar and close modal only on success
+            setShowSnackbar(true);
+            setTimeout(() => {
+                handleClose();
+            }, 100);
+        } catch (err: any) {
+            let msg = err.message || "Failed to change password";
+            if (typeof err === 'object' && err !== null && 'message' in err) {
+                msg = err.message;
+            }
+            if (msg.includes("Incorrect current password")) {
+                msg = "Current password is incorrect.";
+            } else if (msg.includes("Password does not meet policy")) {
+                msg = "Password does not meet security requirements.";
+            } else if (msg.startsWith('{') && msg.includes('message')) {
+                try {
+                    const parsed = JSON.parse(msg);
+                    if (parsed.message) msg = parsed.message;
+                } catch {}
+            }
+            setError(msg);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleClose = () => {
@@ -92,15 +150,20 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
         setIsNewPasswordFocused(false);
         setShowAlertPopover(false);
         setHasStoppedTyping(false);
+        setError("");
+        setIsLoading(false);
         onClose();
     };
 
     return (
-        <div
+        <>
+            {open && (
+                <div
             className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-[6px] px-8 md:px-4"
             onClick={(e) => {
-                e.stopPropagation();
-                handleClose();
+                if (e.target === e.currentTarget) {
+                    handleClose();
+                }
             }}
         >
             <form
@@ -132,8 +195,17 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                         <input
                             type={showCurrentPassword ? "text" : "password"}
                             value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            className="w-full bg-[#171717] text-white text-sm px-3 py-2.5 rounded-[5px] border border-[#404040] focus:outline-none focus:border-[#4a4a4a] pr-10"
+                            onChange={(e) => {
+                                setCurrentPassword(e.target.value);
+                                if (error) setError("");
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    newPasswordRef.current?.focus();
+                                }
+                            }}
+                            className={`w-full bg-[#171717] text-white text-sm px-3 py-2.5 rounded-[5px] border ${error ? 'border-red-500' : 'border-[#404040]'} focus:outline-none ${error ? 'focus:border-red-500' : 'focus:border-[#4a4a4a]'} pr-10`}
                         />
                         <button
                             type="button"
@@ -143,6 +215,9 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                             {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={19} />}
                         </button>
                     </div>
+                    {error && (
+                        <p className="text-xs text-red-500 mt-2">{error}</p>
+                    )}
                 </div>
 
                 {/* New Password */}
@@ -164,11 +239,18 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                         <PopoverTrigger asChild>
                             <div className="relative">
                                 <input
+                                    ref={newPasswordRef}
                                     type={showNewPassword ? "text" : "password"}
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
                                     onFocus={() => setIsNewPasswordFocused(true)}
                                     onBlur={() => setIsNewPasswordFocused(false)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            confirmPasswordRef.current?.focus();
+                                        }
+                                    }}
                                     className="w-full bg-[#171717] text-white text-sm px-3 py-2.5 rounded-[5px] border border-[#404040] focus:outline-none focus:border-[#4a4a4a] pr-10"
                                 />
                                 <button
@@ -255,9 +337,23 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                     <label className="block text-[13px] text-white mb-2">Confirm new password</label>
                     <div className="relative">
                         <input
+                            ref={confirmPasswordRef}
                             type={showConfirmPassword ? "text" : "password"}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
+                            onPaste={(e) => e.preventDefault()}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    // Only submit if validations pass
+                                    if (currentPassword && allRequirementsMet && newPassword === confirmPassword && !isLoading) {
+                                        const form = e.currentTarget.form;
+                                        if (form) {
+                                            form.requestSubmit();
+                                        }
+                                    }
+                                }
+                            }}
                             className="w-full bg-[#171717] text-white text-sm px-3 py-2.5 rounded-[5px] border border-[#404040] focus:outline-none focus:border-[#4a4a4a] pr-10"
                         />
                         <button
@@ -274,16 +370,25 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                 <div className="flex justify-end mt-6">
                     <button
                         type="submit"
-                        disabled={!currentPassword || !allRequirementsMet || newPassword !== confirmPassword}
-                        className={`px-6 py-2 text-sm font-medium rounded transition-colors ${!currentPassword || !allRequirementsMet || newPassword !== confirmPassword
+                        disabled={!currentPassword || !allRequirementsMet || newPassword !== confirmPassword || isLoading}
+                        className={`px-6 py-2 text-sm font-medium rounded transition-colors ${!currentPassword || !allRequirementsMet || newPassword !== confirmPassword || isLoading
                             ? 'bg-[#414141] text-[#9ca3af] cursor-not-allowed'
                             : 'bg-[#3B82F6] text-white hover:bg-[#2563EB]'
                             }`}
                     >
-                        Confirm
+                        {isLoading ? 'Changing...' : 'Confirm'}
                     </button>
                 </div>
             </form>
         </div>
+            )}
+
+            {/* Success Snackbar - Rendered outside modal so it persists after modal closes */}
+            <Snackbar
+                open={showSnackbar}
+                message="Password changed successfully!"
+                onClose={() => setShowSnackbar(false)}
+            />
+        </>
     );
 }

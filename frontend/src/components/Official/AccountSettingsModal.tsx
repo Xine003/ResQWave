@@ -133,7 +133,9 @@ export default function AccountSettingsModal({ open, onClose }: AccountSettingsM
                                 </div>
                                 <div className="flex-1">
                                     <label className="text-[13px] text-[#BABABA] block">Password</label>
-                                    <p className="text-[13px] text-white">Last updated: January 10, 2025</p>
+                                    <p className="text-[13px] text-white">
+                                        Last updated: {user?.passwordLastUpdated ? new Date(user.passwordLastUpdated).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
+                                    </p>
                                 </div>
                             </div>
                             <button
