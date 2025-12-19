@@ -5,6 +5,7 @@ const { AppDataSource } = require("./config/dataSource");
 const http = require("http");
 const { setupSocket } = require("./realtime/socket");
 const authRoutes = require("./routes/authRoutes");
+const chatbotRoutes = require("./routes/chatbotRoutes");
 const resetPasswordRoutes = require("./routes/resetPasswordRoutes");
 const dispatcherRoutes = require("./routes/dispatcherRoutes");
 const terminalRoutes = require("./routes/terminalRoutes");
@@ -68,6 +69,9 @@ AppDataSource.initialize()
     app.use("/", focalRegistrationRoutes);
     app.use("/", sensorDataRoutes); // public route for sensor data
     app.use("/lms", lmsRoutes); // public routes for the data
+
+    // Chatbot (public) routes
+    app.use("/chatbot", chatbotRoutes);
 
     // Public endpoint for map data (landing page)
     app.get("/terminals/map", getTerminalsForMap);
