@@ -8,6 +8,7 @@ const {
   setCache,
   deleteCache
 } = require("../config/cache");
+const { getIO } = require("../realtime/socket");
 
 // CREATE POST RESCUE FORM
 const createPostRescueForm = async (req, res) => {
@@ -48,6 +49,20 @@ const createPostRescueForm = async (req, res) => {
         // Update Rescue Form Status -> Completed (marks the rescue as finished)
         rescueForm.status = "Completed";
         await rescueFormRepo.save(rescueForm);
+
+        // Emit socket event for real-time updates
+        try {
+            const io = getIO();
+            io.to("alerts:all").emit("postRescue:created", {
+                alertId: alertID,
+                rescueFormId: rescueForm.id,
+                status: "Completed",
+                completedAt: newForm.completedAt
+            });
+            console.log('[PostRescue] Emitted postRescue:created event for alert:', alertID);
+        } catch (err) {
+            console.error('[PostRescue] Failed to emit socket event:', err);
+        }
 
         // Cache invalidation - clear all relevant caches immediately for real-time updates
         await deleteCache("completedReports");

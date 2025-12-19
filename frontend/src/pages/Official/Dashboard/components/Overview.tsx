@@ -1,4 +1,5 @@
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { useSocket } from "@/contexts/SocketContext";
 import * as htmlToImage from "html-to-image";
 import jsPDF from "jspdf";
 import { Download } from "lucide-react";
@@ -23,6 +24,7 @@ export function Overview() {
     endDate: new Date(),
   });
   const chartRef = useRef<HTMLDivElement>(null);
+  const { socket, isConnected } = useSocket();
 
   useEffect(() => {
     const loadLegendData = async () => {
@@ -31,7 +33,11 @@ export function Overview() {
         const daysDiff = Math.ceil((dateRange.endDate.getTime() - dateRange.startDate.getTime()) / (1000 * 60 * 60 * 24));
         const granularity = daysDiff <= 31 ? "daily" : "monthly";
         
-        const response = await fetchCompletedOperationsStats(granularity);
+        const response = await fetchCompletedOperationsStats(
+          granularity,
+          dateRange.startDate,
+          dateRange.endDate
+        );
         
         // Filter data to only include dates within the selected range
         const filteredEntries = Object.entries(response.stats).filter(([date]) => {
@@ -61,6 +67,24 @@ export function Overview() {
 
     loadLegendData();
   }, [dateRange]);
+
+  // Socket listener for real-time updates
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handlePostRescueCreated = () => {
+      console.log('[Overview] Post-rescue form created, refreshing legend...');
+      // Reset counts to trigger re-fetch
+      setUserInitiatedCount(0);
+      setCriticalCount(0);
+    };
+
+    socket.on('postRescue:created', handlePostRescueCreated);
+
+    return () => {
+      socket.off('postRescue:created', handlePostRescueCreated);
+    };
+  }, [socket, isConnected]);
 
   const handleDateChange = (startDate: Date, endDate: Date) => {
     setDateRange({ startDate, endDate });

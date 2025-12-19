@@ -95,41 +95,51 @@ const getAlertStats = async (req, res) => {
 // Get Completed Operations Stats (for admin dashboard charts)
 const getCompletedOperationsStats = async (req, res) => {
   try {
-    const { type } = req.query; // daily | weekly | monthly | yearly
+    const { type, startDate: customStartDate, endDate: customEndDate } = req.query; // daily | weekly | monthly | yearly
     
-    // Cache Check
-    const cacheKey = `completedOpsStats:${type}`;
-    const cached = await getCache(cacheKey);
-    if (cached) {
-      return res.json(cached);
-    }
-
+    // If custom date range is provided, use it directly
     const now = dayjs();
     let startDate, endDate;
 
-    switch (type) {
-      case "daily":
-        startDate = now.startOf("day").subtract(6, "day"); // last 7 days
-        endDate = now.endOf("day");
-        break;
+    if (customStartDate && customEndDate) {
+      // Use custom date range from query parameters
+      startDate = dayjs(customStartDate).startOf("day");
+      endDate = dayjs(customEndDate).endOf("day");
+    } else {
+      // Fall back to default ranges based on type
+      switch (type) {
+        case "daily":
+          startDate = now.startOf("day").subtract(6, "day"); // last 7 days
+          endDate = now.endOf("day");
+          break;
 
-      case "weekly":
-        startDate = now.startOf("week").subtract(3, "week"); // last 4 weeks
-        endDate = now.endOf("week");
-        break;
+        case "weekly":
+          startDate = now.startOf("week").subtract(3, "week"); // last 4 weeks
+          endDate = now.endOf("week");
+          break;
 
-      case "monthly":
-        startDate = now.startOf("month").subtract(2, "month"); // last 3 months
-        endDate = now.endOf("month");
-        break;
+        case "monthly":
+          startDate = now.startOf("month").subtract(2, "month"); // last 3 months
+          endDate = now.endOf("month");
+          break;
 
-      case "yearly":
-        startDate = now.startOf("year").subtract(11, "month"); // last 12 months
-        endDate = now.endOf("year");
-        break;
+        case "yearly":
+          startDate = now.startOf("year").subtract(11, "month"); // last 12 months
+          endDate = now.endOf("year");
+          break;
 
-      default:
-        return res.status(400).json({ error: "Invalid type parameter" });
+        default:
+          return res.status(400).json({ error: "Invalid type parameter" });
+      }
+    }
+    
+    // Cache Check - include date range in cache key for custom ranges
+    const cacheKey = customStartDate && customEndDate 
+      ? `completedOpsStats:${type}:${customStartDate}:${customEndDate}`
+      : `completedOpsStats:${type}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return res.json(cached);
     }
 
     // Fetch completed rescue forms with their post-rescue completion dates

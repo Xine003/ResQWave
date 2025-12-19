@@ -1,14 +1,15 @@
+import { useSocket } from "@/contexts/SocketContext";
 import {
-  archivePostRescueForm as apiArchivePostRescueForm,
-  deletePostRescueForm as apiDeletePostRescueForm,
-  fetchArchivedReports as apiFetchArchivedReports,
-  fetchCompletedReports as apiFetchCompletedReports,
-  fetchPendingReports as apiFetchPendingReports,
-  restorePostRescueForm as apiRestorePostRescueForm,
-  clearReportsCache,
-  type ArchivedReport,
-  type CompletedReport,
-  type PendingReport,
+    archivePostRescueForm as apiArchivePostRescueForm,
+    deletePostRescueForm as apiDeletePostRescueForm,
+    fetchArchivedReports as apiFetchArchivedReports,
+    fetchCompletedReports as apiFetchCompletedReports,
+    fetchPendingReports as apiFetchPendingReports,
+    restorePostRescueForm as apiRestorePostRescueForm,
+    clearReportsCache,
+    type ArchivedReport,
+    type CompletedReport,
+    type PendingReport,
 } from "@/pages/Official/Reports/api/api";
 import { extractAddress } from "@/pages/Official/Visualization/api/mapAlerts";
 import { useCallback, useEffect, useState } from "react";
@@ -333,6 +334,32 @@ export function useReports() {
   useEffect(() => {
     fetchReportsData();
   }, [fetchReportsData]);
+
+  // Socket listener for real-time updates when post-rescue forms are created
+  const { socket, isConnected } = useSocket();
+  
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handlePostRescueCreated = () => {
+      console.log('[Reports] Post-rescue form created, refreshing reports...');
+      // Refresh both pending and completed to reflect the changes
+      fetchPendingReports(true).catch(err => 
+        console.error('[Reports] Failed to refresh pending reports:', err)
+      );
+      fetchCompletedReports(true).catch(err => 
+        console.error('[Reports] Failed to refresh completed reports:', err)
+      );
+    };
+
+    socket.on('postRescue:created', handlePostRescueCreated);
+    console.log('[Reports] Listening for postRescue:created events');
+
+    return () => {
+      socket.off('postRescue:created', handlePostRescueCreated);
+      console.log('[Reports] Stopped listening for postRescue:created events');
+    };
+  }, [socket, isConnected, fetchPendingReports, fetchCompletedReports]);
 
   return {
     // Data

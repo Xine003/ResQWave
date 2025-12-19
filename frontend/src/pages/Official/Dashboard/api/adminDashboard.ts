@@ -68,11 +68,23 @@ export async function fetchAlertStats(
 
 /**
  * Fetch completed operations statistics for admin dashboard charts
- * Endpoint: GET /graph/completed-operations?type={daily|weekly|monthly|yearly}
+ * Endpoint: GET /graph/completed-operations?type={daily|weekly|monthly|yearly}&startDate={date}&endDate={date}
  * Returns aggregated data from completed rescue forms grouped by completion date
+ * Optionally accepts custom date range parameters
  */
 export async function fetchCompletedOperationsStats(
-  type: "daily" | "weekly" | "monthly" | "yearly"
+  type: "daily" | "weekly" | "monthly" | "yearly",
+  startDate?: Date,
+  endDate?: Date
 ): Promise<AlertStatsResponse> {
-  return await apiFetch<AlertStatsResponse>(`/graph/completed-operations?type=${type}`);
+  let url = `/graph/completed-operations?type=${type}`;
+  
+  // Add custom date range if provided
+  if (startDate && endDate) {
+    const startDateStr = startDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    const endDateStr = endDate.toISOString().split('T')[0];
+    url += `&startDate=${startDateStr}&endDate=${endDateStr}`;
+  }
+  
+  return await apiFetch<AlertStatsResponse>(url);
 }
