@@ -1,7 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
 const { AppDataSource } = require("../config/dataSource");
 const { sendLockoutEmail } = require("../utils/lockUtils");
 const SibApiV3Sdk = require("sib-api-v3-sdk");
@@ -688,8 +687,14 @@ const getCurrentUser = async (req, res) => {
       }
       userData = {
         id: focal.id,
-        name: focal.name,
+        firstName: focal.firstName || focal.name?.split(' ')[0] || '',
+        lastName: focal.lastName || focal.name?.split(' ').slice(1).join(' ') || '',
         email: focal.email,
+        phone: focal.contactNumber,
+        contactNumber: focal.contactNumber,
+        address: focal.address,
+        photo: focal.photo,
+        lastPasswordChange: focal.passwordLastUpdated,
         role: "focalPerson",
       };
     } else {
@@ -811,6 +816,7 @@ const resendAdminDispatcherCode = async (req, res) => {
         decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
       } catch (err) {
         // If token is expired, decode it without verification to get the user ID
+        console.log('Token expired, attempting to decode without verification:', err.message);
         try {
           decoded = jwt.decode(tempToken);
           if (
