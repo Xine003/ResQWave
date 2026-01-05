@@ -35,13 +35,33 @@ const getNextTerminalId = async (req, res) => {
 // CREATE Terminal
 const createTerminal = async (req, res) => {
     try {
-        const { name } = req.body;
+        const { name, devEUI } = req.body;
 
         // Validate Terminal Name
-        if (!name) {
-            return res.status(400).json({ message: "Terminal name is required" });
+        if (!name || !devEUI ) {
+            return res.status(400).json({ message: "Terminal name and devEUI is required" });
         }
 
+        // Normalize devEUI
+        const normalizedDevEUI = devEUI.replace(/-/g, "").toUpperCase();
+
+        if (!/^[0-9A-F]{16}$/.test(normalizedDevEUI)) {
+            return res.status(400).json({
+                message: "Invalid devEUI format"
+            });
+        }
+
+        // Prevent Duplicated DevEUI
+        const existing = await terminalRepo.findOne({
+            where: {devEUI: normalizedDevEUI}
+        });
+
+        if (existing) {
+            return res.status(400).json({
+                message: "devEUI already exists"
+            });
+        }
+        
         // Generate Specific UID
         const lastTerminal = await terminalRepo
             .createQueryBuilder("terminal")
@@ -59,6 +79,7 @@ const createTerminal = async (req, res) => {
         const terminal = terminalRepo.create({
             id: newID,
             name,
+            devEUI: normalizedDevEUI,
             status: "Offline",
         });
 
