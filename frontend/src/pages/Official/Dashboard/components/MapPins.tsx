@@ -242,6 +242,7 @@ export function MapPins({ map, pins, mapContainer, onPinClick }: MapPinsProps) {
         // Silent error handling
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
 
   // Attach event handlers only once

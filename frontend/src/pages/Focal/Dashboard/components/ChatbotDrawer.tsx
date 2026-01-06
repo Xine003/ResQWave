@@ -145,7 +145,7 @@ export function ChatbotDrawer({ isOpen, onClose }: ChatbotDrawerProps) {
         method: 'POST',
         body: JSON.stringify({ text: textToSend, mode: 'main' }),
       });
-      const aiResponse = (data && (data as any).response) || (data as any) || '[No response]';
+      const aiResponse = (data && data.response) || (data as unknown as string) || '[No response]';
 
       const botMessage: Message = {
         id: messages.length + 2,
