@@ -1,11 +1,43 @@
-import { useState } from "react";
+import { ChatbotConvo } from "@/pages/Focal/Landing/components/ChatbotConvo";
 import { LandingHeader } from "@/pages/Focal/Landing/components/Header";
 import { LandingHero } from "@/pages/Focal/Landing/components/Hero";
-import { ChatbotConvo } from "@/pages/Focal/Landing/components/ChatbotConvo";
+import { useEffect, useState } from "react";
 
 export function Landing() {
   const [navOpen, setNavOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollThreshold = 1.5; // Minimum scroll to trigger hide/show
+      
+      // Determine if user scrolled past threshold
+      setIsScrolled(currentScrollY > scrollThreshold);
+      
+      // Show header if:
+      // 1. At the top (within threshold)
+      // 2. Scrolling up
+      if (currentScrollY <= scrollThreshold) {
+        setShowHeader(true);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up
+        setShowHeader(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > scrollThreshold) {
+        // Scrolling down and past threshold
+        setShowHeader(false);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   return (
     <div className="min-h-screen text-white flex flex-col primary-background" style={{ position: 'relative', overflow: 'hidden' }}>
       {/* Global Radial Gradient Backgrounds with animation */}
@@ -30,11 +62,12 @@ export function Landing() {
         }}
       />
       {/* Header */}
-      <LandingHeader navOpen={navOpen} setNavOpen={setNavOpen} />
+      <LandingHeader navOpen={navOpen} setNavOpen={setNavOpen} isScrolled={isScrolled} showHeader={showHeader} />
       {/* Hero Section */}
       <LandingHero showSearch={showSearch} setShowSearch={setShowSearch} />
       {/* Floating Chatbot Widget */}
       <ChatbotConvo />
+      <div className="h-1000">fdas</div>
     </div>
   );
 }
