@@ -63,7 +63,14 @@ Chatbot Capabilities:
 const apiKey = process.env.GEMINI_API_KEY || null;
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
-const stripCodeFences = (s) => (s ? s.replace(/```/g, "").trim() : s);
+const stripCodeFences = (s) => {
+    if (!s) return s;
+    // Remove markdown code fences and language identifiers
+    let cleaned = s.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+    // Remove any leading "json" text that might remain
+    cleaned = cleaned.replace(/^json\s*/i, "").trim();
+    return cleaned;
+};
 
 const generateQuickActionsInternal = async (text) => {
     if (!genAI) {
@@ -75,7 +82,7 @@ const generateQuickActionsInternal = async (text) => {
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = `User query: ${text}\n\nGenerate 3 specific, clear follow-up questions (6-9 words each) a user might ask about ResQWave. Return ONLY a valid JSON array.`;
+    const prompt = `User query: ${text}\n\nGenerate 3 specific, clear follow-up questions (6-9 words each) a user might ask about ResQWave. Return ONLY a valid JSON array of strings, no markdown formatting, no explanations.`;
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const raw = stripCodeFences(response.text());
@@ -86,6 +93,7 @@ const generateQuickActionsInternal = async (text) => {
     } catch (err) {
         // parsing failed, return fallback
         console.warn("Quick actions parse failed", err);
+        console.warn("Raw response was:", response.text());
     }
 
     return [
