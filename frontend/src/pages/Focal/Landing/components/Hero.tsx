@@ -6,7 +6,7 @@ mapboxgl.accessToken = "pk.eyJ1Ijoicm9kZWxsbCIsImEiOiJjbWU0OXNvb2gwYnM0MnpvbXNue
 export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean, setShowSearch: (show: boolean) => void }) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const [hoveredPin, setHoveredPin] = useState<{ color: string; x: number; y: number } | null>(null);
+  const [hoveredPin, setHoveredPin] = useState<{ color: string; coords: [number, number] } | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -262,25 +262,13 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
           
           if (e.features && e.features.length > 0) {
             const feature = e.features[0];
+            const geom = feature.geometry as GeoJSON.Point;
+            const coords = geom.coordinates as [number, number];
             const color = feature.properties?.color;
             
             setHoveredPin({
               color: color,
-              x: e.point.x,
-              y: e.point.y,
-            });
-          }
-        });
-
-        map.on("mousemove", "static-pins-layer", (e) => {
-          if (e.features && e.features.length > 0) {
-            const feature = e.features[0];
-            const color = feature.properties?.color;
-            
-            setHoveredPin({
-              color: color,
-              x: e.point.x,
-              y: e.point.y,
+              coords: coords,
             });
           }
         });
@@ -403,51 +391,61 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
       <div className="overflow-hidden hero-map" ref={mapContainer}></div>
 
       {/* Pin Hover Popover */}
-      {hoveredPin && (
-        <div
-          style={{
-            position: "absolute",
-            left: hoveredPin.color === "#3b82f6" ? hoveredPin.x + 630 : hoveredPin.x + 608,
-            top: hoveredPin.color === "#3b82f6" ? hoveredPin.y - 30 : hoveredPin.y - -20,
-            transform: hoveredPin.color === "#3b82f6" ? "translate(0, -50%)" : "translateY(-100%)",
-            zIndex: 1000,
-            pointerEvents: "none",
-          }}
-        >
+      {hoveredPin && mapRef.current && (() => {
+        const map = mapRef.current;
+        const pt = map.project(hoveredPin.coords);
+        const rect = mapContainer.current?.getBoundingClientRect();
+        const popoverWidth = 280;
+        const popoverHeight = 80;
+        
+        // Calculate position relative to the map container
+        const left = (rect?.left ?? 0) + pt.x;
+        const top = (rect?.top ?? 0) + pt.y;
+        
+        return (
           <div
             style={{
-              position: "relative",
-              backgroundColor: "rgba(0, 0, 0, 0.85)",
-              color: "#fff",
-              padding: "10px 14px",
-              borderRadius: "6px",
-              fontSize: "13px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-              maxWidth: "280px",
-              lineHeight: "1.4",
+              position: "absolute",
+              left: left,
+              top: top,
+              transform: `translate(-46%, calc(-100% - 100px))`,
+              zIndex: 1000,
+              pointerEvents: "none",
             }}
           >
-            {hoveredPin.color === "#ef4444" && (
-              <>
-                <div style={{ fontWeight: "600", marginBottom: "4px", color: "#ef4444" }}>Critical Alert</div>
-                <div>The LoRa terminal detects the flood water is high.</div>
-              </>
-            )}
-            {hoveredPin.color === "#eab308" && (
-              <>
-                <div style={{ fontWeight: "600", marginBottom: "4px", color: "#eab308" }}>User-Initiated</div>
-                <div>The user clicked the distress signal of LoRa terminal calling for rescue.</div>
-              </>
-            )}
-            {hoveredPin.color === "#3b82f6" && (
-              <>
-                <div style={{ fontWeight: "600", marginBottom: "4px", color: "#3b82f6" }}>Normal</div>
-                <div>No distress signal detected.</div>
-              </>
-            )}
-            
-            {/* Arrow pointer - only for red and yellow pins */}
-            {hoveredPin.color !== "#3b82f6" && (
+            <div
+              style={{
+                position: "relative",
+                backgroundColor: "rgba(0, 0, 0, 0.85)",
+                color: "#fff",
+                padding: "10px 14px",
+                borderRadius: "6px",
+                fontSize: "13px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                maxWidth: "280px",
+                lineHeight: "1.4",
+              }}
+            >
+              {hoveredPin.color === "#ef4444" && (
+                <>
+                  <div style={{ fontWeight: "600", marginBottom: "4px", color: "#ef4444" }}>Critical Alert</div>
+                  <div>The LoRa terminal detects the flood water is high.</div>
+                </>
+              )}
+              {hoveredPin.color === "#eab308" && (
+                <>
+                  <div style={{ fontWeight: "600", marginBottom: "4px", color: "#eab308" }}>User-Initiated</div>
+                  <div>The user clicked the distress signal of LoRa terminal calling for rescue.</div>
+                </>
+              )}
+              {hoveredPin.color === "#3b82f6" && (
+                <>
+                  <div style={{ fontWeight: "600", marginBottom: "4px", color: "#3b82f6" }}>Normal</div>
+                  <div>No distress signal detected.</div>
+                </>
+              )}
+              
+              {/* Downward arrow pointer */}
               <div
                 style={{
                   position: "absolute",
@@ -461,10 +459,10 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
                   borderTop: "18px solid rgba(0, 0, 0, 0.85)",
                 }}
               />
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </main>
   );
 }
