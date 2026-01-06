@@ -1,11 +1,12 @@
 import mapboxgl from "mapbox-gl";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoicm9kZWxsbCIsImEiOiJjbWU0OXNvb2gwYnM0MnpvbXNueXo2dzhxIn0.Ep43_IxVhaPhEqWBaAuuyA";
 
 export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean, setShowSearch: (show: boolean) => void }) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const [hoveredPin, setHoveredPin] = useState<{ color: string; x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -13,7 +14,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [121.056764, 14.756603],
+      center: [121.05372821089554, 14.75625635522509],
       zoom: 10,
       pitch: 0,
       bearing: 0,
@@ -28,6 +29,31 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
 
     map.on("load", () => {
       const cinematicEasing = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+      // Helper function to create a circle polygon
+      const createCircle = (center: [number, number], radiusInMeters: number, points = 64) => {
+        const coords: [number, number][] = [];
+        const earthRadius = 6378137;
+        const lat = (center[1] * Math.PI) / 180;
+        const lon = (center[0] * Math.PI) / 180;
+        for (let i = 0; i < points; i++) {
+          const angle = (((i * 360) / points) * Math.PI) / 180;
+          const dx = (Math.cos(angle) * radiusInMeters) / earthRadius;
+          const dy = (Math.sin(angle) * radiusInMeters) / earthRadius;
+          const latOffset = lat + dy;
+          const lonOffset = lon + dx / Math.cos(lat);
+          coords.push([(lonOffset * 180) / Math.PI, (latOffset * 180) / Math.PI]);
+        }
+        coords.push(coords[0]);
+        return {
+          type: "Feature" as const,
+          geometry: {
+            type: "Polygon" as const,
+            coordinates: [coords],
+          },
+          properties: {},
+        };
+      };
 
       try {
         if (!map.getSource("floods-metro-manila")) {
@@ -58,6 +84,213 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
         }
       } catch (e) {
         console.warn("Could not add flood polygons", e);
+      }
+
+      // Add static pins with circles
+      try {
+        // Pin coordinates and colors
+        const pins = [
+          { 
+            coords: [121.05506938449884, 14.751882964225857] as [number, number], 
+            color: "#ef4444", // Red
+            id: "red"
+          },
+          { 
+            coords: [121.05544250933724, 14.757527125034343]as [number, number], 
+            color: "#eab308", // Yellow
+            id: "yellow"
+          },
+          { 
+            coords: [121.0596652039547, 14.752071361725228] as [number, number], 
+            color: "#3b82f6", // Blue
+            id: "blue"
+          },
+        ];
+
+        // Add circles for each pin (excluding blue pin)
+        pins.forEach((pin) => {
+          // Skip blue pin - no circle
+          if (pin.id === "blue") return;
+          
+          const circleSourceId = `pin-circle-${pin.id}`;
+          const circleLayerId = `pin-circle-layer-${pin.id}`;
+
+          if (!map.getSource(circleSourceId)) {
+            map.addSource(circleSourceId, {
+              type: "geojson",
+              data: createCircle(pin.coords, 150) // 150 meter radius
+            });
+          }
+
+          if (!map.getLayer(circleLayerId)) {
+            map.addLayer({
+              id: circleLayerId,
+              type: "fill",
+              source: circleSourceId,
+              paint: {
+                "fill-color": pin.color,
+                "fill-opacity": 0.3,
+              },
+            });
+          }
+        });
+
+        // Add second circle for red pin (outer circle)
+        const redPin = pins.find(pin => pin.id === "red");
+        if (redPin) {
+          const circleSourceId2 = `pin-circle-${redPin.id}-outer`;
+          const circleLayerId2 = `pin-circle-layer-${redPin.id}-outer`;
+
+          if (!map.getSource(circleSourceId2)) {
+            map.addSource(circleSourceId2, {
+              type: "geojson",
+              data: createCircle(redPin.coords, 200) // 200 meter radius for outer circle
+            });
+          }
+
+          if (!map.getLayer(circleLayerId2)) {
+            map.addLayer({
+              id: circleLayerId2,
+              type: "fill",
+              source: circleSourceId2,
+              paint: {
+                "fill-color": redPin.color,
+                "fill-opacity": 0.2, // Slightly more transparent
+              },
+            });
+          }
+        }
+
+        // Animate red pin circles with pulsing effect
+        if (redPin) {
+          // Inner circle animation
+          let minRadius1 = 120;
+          let maxRadius1 = 180;
+          let growing1 = true;
+          let currentRadius1 = minRadius1;
+
+          function animateRedCircle1() {
+            if (growing1) {
+              currentRadius1 += 0.8;
+              if (currentRadius1 >= maxRadius1) {
+                growing1 = false;
+              }
+            } else {
+              currentRadius1 -= 0.8;
+              if (currentRadius1 <= minRadius1) {
+                growing1 = true;
+              }
+            }
+
+            const source = map.getSource(`pin-circle-${redPin.id}`) as mapboxgl.GeoJSONSource;
+            if (source) {
+              source.setData(createCircle(redPin.coords, currentRadius1));
+            }
+
+            requestAnimationFrame(animateRedCircle1);
+          }
+
+          // Outer circle animation (different interval)
+          let minRadius2 = 180;
+          let maxRadius2 = 240;
+          let growing2 = false; // Start opposite to inner circle
+          let currentRadius2 = maxRadius2;
+
+          function animateRedCircle2() {
+            if (growing2) {
+              currentRadius2 += 1.0; // Slightly different speed
+              if (currentRadius2 >= maxRadius2) {
+                growing2 = false;
+              }
+            } else {
+              currentRadius2 -= 1.0;
+              if (currentRadius2 <= minRadius2) {
+                growing2 = true;
+              }
+            }
+
+            const source = map.getSource(`pin-circle-${redPin.id}-outer`) as mapboxgl.GeoJSONSource;
+            if (source) {
+              source.setData(createCircle(redPin.coords, currentRadius2));
+            }
+
+            requestAnimationFrame(animateRedCircle2);
+          }
+
+          // Start animations after delays
+          setTimeout(() => animateRedCircle1(), 1000);
+          setTimeout(() => animateRedCircle2(), 1000);
+        }
+
+
+        // Add pins source
+        if (!map.getSource("static-pins")) {
+          map.addSource("static-pins", {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: pins.map((pin) => ({
+                type: "Feature" as const,
+                properties: { color: pin.color, id: pin.id },
+                geometry: { 
+                  type: "Point" as const, 
+                  coordinates: pin.coords 
+                },
+              })),
+            },
+          });
+        }
+
+        // Add pins layer
+        if (!map.getLayer("static-pins-layer")) {
+          map.addLayer({
+            id: "static-pins-layer",
+            type: "circle",
+            source: "static-pins",
+            paint: {
+              "circle-color": ["get", "color"],
+              "circle-radius": 12,
+              "circle-opacity": 1,
+              "circle-stroke-width": 0,
+            },
+          });
+        }
+
+        // Add hover interaction for pins
+        map.on("mouseenter", "static-pins-layer", (e) => {
+          map.getCanvas().style.cursor = "pointer";
+          
+          if (e.features && e.features.length > 0) {
+            const feature = e.features[0];
+            const color = feature.properties?.color;
+            
+            setHoveredPin({
+              color: color,
+              x: e.point.x,
+              y: e.point.y,
+            });
+          }
+        });
+
+        map.on("mousemove", "static-pins-layer", (e) => {
+          if (e.features && e.features.length > 0) {
+            const feature = e.features[0];
+            const color = feature.properties?.color;
+            
+            setHoveredPin({
+              color: color,
+              x: e.point.x,
+              y: e.point.y,
+            });
+          }
+        });
+
+        map.on("mouseleave", "static-pins-layer", () => {
+          map.getCanvas().style.cursor = "";
+          setHoveredPin(null);
+        });
+      } catch (e) {
+        console.warn("Could not add static pins", e);
       }
 
       map.flyTo({
@@ -168,6 +401,70 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
       `}</style>
       
       <div className="overflow-hidden hero-map" ref={mapContainer}></div>
+
+      {/* Pin Hover Popover */}
+      {hoveredPin && (
+        <div
+          style={{
+            position: "absolute",
+            left: hoveredPin.color === "#3b82f6" ? hoveredPin.x + 630 : hoveredPin.x + 608,
+            top: hoveredPin.color === "#3b82f6" ? hoveredPin.y - 30 : hoveredPin.y - -20,
+            transform: hoveredPin.color === "#3b82f6" ? "translate(0, -50%)" : "translateY(-100%)",
+            zIndex: 1000,
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              backgroundColor: "rgba(0, 0, 0, 0.85)",
+              color: "#fff",
+              padding: "10px 14px",
+              borderRadius: "6px",
+              fontSize: "13px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+              maxWidth: "280px",
+              lineHeight: "1.4",
+            }}
+          >
+            {hoveredPin.color === "#ef4444" && (
+              <>
+                <div style={{ fontWeight: "600", marginBottom: "4px", color: "#ef4444" }}>Critical Alert</div>
+                <div>The LoRa terminal detects the flood water is high.</div>
+              </>
+            )}
+            {hoveredPin.color === "#eab308" && (
+              <>
+                <div style={{ fontWeight: "600", marginBottom: "4px", color: "#eab308" }}>User-Initiated</div>
+                <div>The user clicked the distress signal of LoRa terminal calling for rescue.</div>
+              </>
+            )}
+            {hoveredPin.color === "#3b82f6" && (
+              <>
+                <div style={{ fontWeight: "600", marginBottom: "4px", color: "#3b82f6" }}>Normal</div>
+                <div>No distress signal detected.</div>
+              </>
+            )}
+            
+            {/* Arrow pointer - only for red and yellow pins */}
+            {hoveredPin.color !== "#3b82f6" && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  bottom: "-18px",
+                  width: 0,
+                  height: 0,
+                  borderLeft: "15px solid transparent",
+                  borderRight: "15px solid transparent",
+                  borderTop: "18px solid rgba(0, 0, 0, 0.85)",
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
