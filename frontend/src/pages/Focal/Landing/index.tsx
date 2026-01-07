@@ -64,7 +64,7 @@ export function Landing() {
       {/* Header */}
       <LandingHeader navOpen={navOpen} setNavOpen={setNavOpen} isScrolled={isScrolled} showHeader={showHeader} />
       {/* Hero Section */}
-      <LandingHero showSearch={showSearch} setShowSearch={setShowSearch} />
+      <LandingHero />
       {/* Floating Chatbot Widget */}
       <ChatbotConvo />
       <div className="h-1000">fdas</div>
