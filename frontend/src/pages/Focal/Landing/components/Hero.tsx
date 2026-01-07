@@ -1,9 +1,10 @@
+import { LayoutTextFlip } from "@/components/ui/layout-text-flip";
 import mapboxgl from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoicm9kZWxsbCIsImEiOiJjbWU0OXNvb2gwYnM0MnpvbXNueXo2dzhxIn0.Ep43_IxVhaPhEqWBaAuuyA";
 
-export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean, setShowSearch: (show: boolean) => void }) {
+export function LandingHero() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [hoveredPin, setHoveredPin] = useState<{ color: string; coords: [number, number] } | null>(null);
@@ -339,7 +340,12 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
               color: "transparent"
             }}
           >
-            Stronger Signals,<br />Safer Communities
+            Stronger Signals,<br />
+            <LayoutTextFlip 
+              text=""
+              words={["Safer Communities", "Connected Lives", "Resilient Communities"]}
+              duration={5000}
+            />
           </h1>
           <p className="mb-6 md:mb-8 text-[14px] sm:text-[16px] md:text-[18px] text-gray-300 leading-relaxed">
             A simple, reliable terminal powered by LoRa—helping <br />
@@ -451,7 +457,7 @@ export function LandingHero({ showSearch, setShowSearch }: { showSearch: boolean
                   position: "absolute",
                   left: "50%",
                   transform: "translateX(-50%)",
-                  bottom: "-18px",
+                  bottom: "-16.5px",
                   width: 0,
                   height: 0,
                   borderLeft: "15px solid transparent",
