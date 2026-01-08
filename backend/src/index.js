@@ -61,6 +61,9 @@ AppDataSource.initialize()
     // Serve static files (for test page)
     // Add comment to test the realtime page again
     app.use(express.static(path.join(__dirname, "public")));
+    
+    // Serve uploaded files (profile pictures, etc.)
+    app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
     // Public Routes
     app.use("/", authRoutes);
