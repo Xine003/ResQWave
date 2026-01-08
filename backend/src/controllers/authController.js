@@ -195,9 +195,6 @@ const focalLogin = async (req, res) => {
     res.json({
       message: "Verification Send to Email",
       tempToken: focalTempToken,
-      otpSent: true,
-      locked,
-      lockUntil,
     });
   } catch (err) {
     console.error(err);
@@ -691,7 +688,6 @@ const getCurrentUser = async (req, res) => {
         lastName: focal.lastName || focal.name?.split(' ').slice(1).join(' ') || '',
         email: focal.email,
         phone: focal.contactNumber,
-        contactNumber: focal.contactNumber,
         address: focal.address,
         photo: focal.photo,
         lastPasswordChange: focal.passwordLastUpdated,
