@@ -67,12 +67,10 @@ const getProfile = async (req, res) => {
 
             return res.json({
                 id: admin.id,
-                firstName: admin.firstName,
-                lastName: admin.lastName,
+                name: admin.name,
                 email: admin.email,
                 phone: admin.contactNumber,
                 lastPasswordChange: admin.passwordLastUpdated,
-                photo: admin.profilePicture
             });
         } else if (role === "dispatcher") {
             const dispatcher = await dispatcherRepo.findOne({ where: { id } });
@@ -80,12 +78,10 @@ const getProfile = async (req, res) => {
 
             return res.json({
                 id: dispatcher.id,
-                firstName: dispatcher.firstName,
-                lastName: dispatcher.lastName,
+                name: dispatcher.name,
                 email: dispatcher.email,
                 phone: dispatcher.contactNumber,
                 lastPasswordChange: dispatcher.passwordLastUpdated,
-                photo: dispatcher.profilePicture
             });
         } else if (role === "focalPerson") {
             const focalPerson = await AppDataSource.getRepository("FocalPerson").findOne({ where: { id } });
@@ -234,18 +230,12 @@ const uploadProfilePicture = async (req, res) => {
             return res.status(400).json({ message: "No file uploaded" });
         }
 
-        let user;
-        let repo;
-
-        if (role === "admin") {
-            repo = adminRepo;
-            user = await repo.findOne({ where: { id } });
-        } else if (role === "dispatcher") {
-            repo = dispatcherRepo;
-            user = await repo.findOne({ where: { id } });
-        } else {
+        if (role !== "focalPerson") {
             return res.status(403).json({ message: "Access denied" });
         }
+
+        const repo = AppDataSource.getRepository("FocalPerson");
+        const user = await repo.findOne({ where: { id } });
 
         if (!user) return res.status(404).json({ message: "User not found" });
 
