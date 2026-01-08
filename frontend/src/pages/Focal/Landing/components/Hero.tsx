@@ -1,4 +1,5 @@
 import { LayoutTextFlip } from "@/components/ui/layout-text-flip";
+import { MonitorSmartphone, Waves } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
 
@@ -330,6 +331,16 @@ export function LandingHero() {
           }
         `}</style>
         <div className="hero-content w-full">
+          <div className="flex gap-3 mb-4 md:mb-6 flex-wrap justify-center md:justify-start">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-[5px] border border-zinc-700/50 transition-all duration-300 hover:bg-zinc-800/70 hover:border-zinc-600/70 hover:scale-105 cursor-pointer">
+              <MonitorSmartphone className="text-sm text-zinc-300"/>
+              <span className="text-sm text-zinc-300">IoT</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-[5px] border border-zinc-700/50 transition-all duration-300 hover:bg-zinc-800/70 hover:border-zinc-600/70 hover:scale-105 cursor-pointer">
+              <Waves className="w-4 h-4 text-zinc-400" />
+              <span className="text-sm text-zinc-300">Disaster Preparedness</span>
+            </div>
+          </div>
           <h1
             className="text-[28px] sm:text-[36px] md:text-[44px] lg:text-[54px] font-bold mb-4 md:mb-6 leading-tight"
             style={{

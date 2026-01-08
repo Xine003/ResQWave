@@ -2,6 +2,7 @@ import { ChatbotConvo } from "@/pages/Focal/Landing/components/ChatbotConvo";
 import { LandingHeader } from "@/pages/Focal/Landing/components/Header";
 import { LandingHero } from "@/pages/Focal/Landing/components/Hero";
 import { useEffect, useState } from "react";
+import { LandingGoal } from "./components/Goal";
 
 export function Landing() {
   const [navOpen, setNavOpen] = useState(false);
@@ -65,9 +66,10 @@ export function Landing() {
       <LandingHeader navOpen={navOpen} setNavOpen={setNavOpen} isScrolled={isScrolled} showHeader={showHeader} />
       {/* Hero Section */}
       <LandingHero />
+      <LandingGoal />
       {/* Floating Chatbot Widget */}
       <ChatbotConvo />
-      <div className="h-1000">fdas</div>
+     
     </div>
   );
 }
