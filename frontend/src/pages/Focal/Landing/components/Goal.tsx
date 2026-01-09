@@ -12,59 +12,77 @@ gsap.registerPlugin(ScrollTrigger);
 export function LandingGoal() {
     const introWrapperRef = useRef<HTMLDivElement>(null);
     const textAlignCenterRef = useRef<HTMLDivElement>(null);
+    const rafId = useRef<number | null>(null);
 
     useEffect(() => {
         if (!introWrapperRef.current || !textAlignCenterRef.current) return;
 
-        // Pin the video section when the goal section is in view
+        // Refresh ScrollTrigger to recalculate positions
+        ScrollTrigger.refresh();
+
+        // Pin the video section when the goal section is in view with smoother settings
         const pinTrigger = ScrollTrigger.create({
             trigger: introWrapperRef.current,
             start: "top top",
             end: "bottom bottom",
             pin: textAlignCenterRef.current,
             pinSpacing: false,
-            anticipatePin: 1
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+            fastScrollEnd: true,
+            preventOverlaps: true,
+            markers: false
         });
 
-        // Handling the scroll for the tabs - using section's offset instead of global scroll
+        // Use requestAnimationFrame for smoother scroll handling
         const handleScroll = () => {
-            const wrapper = introWrapperRef.current;
-            if (!wrapper) return;
-
-            const wrapperOffset = wrapper.offsetTop;
-            const scrollPosition = window.scrollY - wrapperOffset;
-            const windowHeight = window.innerHeight;
-            
-            const sections = wrapper.querySelectorAll('.tabs_let-content');
-            const lastSectionIndex = sections.length - 1;
-
-            // Only apply logic when wrapper is in view
-            if (scrollPosition >= 0 && scrollPosition < wrapper.offsetHeight) {
-                sections.forEach((section, index) => {
-                    const sectionStart = index * windowHeight;
-                    const sectionEnd = (index + 1) * windowHeight;
-                    
-                    if (scrollPosition >= sectionStart && scrollPosition < sectionEnd) {
-                        section.classList.add('is-1');
-                    } else {
-                        if (index !== lastSectionIndex) {
-                            section.classList.remove('is-1');
-                        }
-                    }
-                });
-
-                // Keep is-1 class on the last section
-                if (scrollPosition >= lastSectionIndex * windowHeight) {
-                    sections[lastSectionIndex]?.classList.add('is-1');
-                }
+            if (rafId.current !== null) {
+                cancelAnimationFrame(rafId.current);
             }
+
+            rafId.current = requestAnimationFrame(() => {
+                const wrapper = introWrapperRef.current;
+                if (!wrapper) return;
+
+                const wrapperOffset = wrapper.offsetTop;
+                const scrollPosition = window.scrollY - wrapperOffset;
+                const windowHeight = window.innerHeight;
+                
+                const sections = wrapper.querySelectorAll('.tabs_let-content');
+                const lastSectionIndex = sections.length - 1;
+
+                // Only apply logic when wrapper is in view
+                if (scrollPosition >= 0 && scrollPosition < wrapper.offsetHeight) {
+                    sections.forEach((section, index) => {
+                        const sectionStart = index * windowHeight;
+                        const sectionEnd = (index + 1) * windowHeight;
+                        
+                        if (scrollPosition >= sectionStart && scrollPosition < sectionEnd) {
+                            section.classList.add('is-1');
+                        } else {
+                            if (index !== lastSectionIndex) {
+                                section.classList.remove('is-1');
+                            }
+                        }
+                    });
+
+                    // Keep is-1 class on the last section
+                    if (scrollPosition >= lastSectionIndex * windowHeight) {
+                        sections[lastSectionIndex]?.classList.add('is-1');
+                    }
+                }
+            });
         };
 
-        document.addEventListener('scroll', handleScroll);
+        // Use passive listener for better scroll performance
+        document.addEventListener('scroll', handleScroll, { passive: true });
         handleScroll(); // Initial call
 
         return () => {
             document.removeEventListener('scroll', handleScroll);
+            if (rafId.current !== null) {
+                cancelAnimationFrame(rafId.current);
+            }
             pinTrigger.kill();
         };
     }, []);
@@ -73,7 +91,7 @@ export function LandingGoal() {
     return (
         <div ref={introWrapperRef} className="relative w-full min-h-[300vh]">
             {/* Video Section - Will be pinned by GSAP */}
-            <div ref={textAlignCenterRef} className="w-full lg:w-[60vw] h-screen flex items-center justify-center">
+            <div ref={textAlignCenterRef} className="absolute top-0 left-0 w-full lg:w-[60vw] h-screen flex items-center justify-center">
                 <video
                     className="w-150 h-140 object-cover rounded-[5px] shadow-2xl"
                     autoPlay
@@ -176,6 +194,10 @@ export function LandingGoal() {
             </div>
 
             <style>{`
+                .tabs_let-content {
+                    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                    will-change: opacity;
+                }
                 .tabs_let-content.is-1 {
                     opacity: 1 !important;
                 }
