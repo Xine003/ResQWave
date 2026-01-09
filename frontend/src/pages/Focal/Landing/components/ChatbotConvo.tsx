@@ -19,6 +19,9 @@ export function ChatbotConvo() {
   const [isTyping, setIsTyping] = useState(false);
   const [quickActions, setQuickActions] = useState<string[]>([]);
   const [greetingShown, setGreetingShown] = useState(false);
+  const [greetingMessage, setGreetingMessage] = useState<string>(
+    "Hi there! I'm ResQWave Assistant. How can I help you today?"
+  );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -80,15 +83,30 @@ export function ChatbotConvo() {
     scrollToBottom();
   }, [messages]);
 
+  // Fetch greeting message from backend on mount
+  useEffect(() => {
+    const fetchGreeting = async () => {
+      try {
+        const data = await apiFetch<{ welcomeMessage?: string }>('/chatbot/settings', {
+          method: 'GET',
+        });
+        if (data.welcomeMessage) {
+          setGreetingMessage(data.welcomeMessage);
+        }
+      } catch (error) {
+        console.error('Error fetching greeting:', error);
+        // Keep default greeting if fetch fails
+      }
+    };
+    fetchGreeting();
+  }, []);
+
   // Show initial greeting when chat opens
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       // Show initial greeting and fetch dynamic quick actions in parallel
       setIsTyping(true);
       setGreetingShown(false);
-
-      const greetingText =
-        "Hi there! I'm ResQWave Assistant. How can I help you today?";
 
       // Fetch quick actions from backend
       (async () => {
@@ -107,18 +125,18 @@ export function ChatbotConvo() {
       })();
 
       setTimeout(() => {
-        const greetingMessage: Message = {
+        const greeting: Message = {
           id: 1,
-          text: greetingText,
+          text: greetingMessage,
           sender: "bot",
           timestamp: new Date(),
         };
-        setMessages([greetingMessage]);
+        setMessages([greeting]);
         setIsTyping(false);
         setGreetingShown(true);
       }, 1000);
     }
-  }, [isOpen, messages.length]);
+  }, [isOpen, messages.length, greetingMessage]);
 
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText ?? inputValue;
