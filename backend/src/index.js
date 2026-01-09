@@ -40,6 +40,9 @@ app.use(
       "http://localhost:5173",
       "https://resqwave.vercel.app",
       "https://resqwave-production.up.railway.app",
+      "exp://*",
+      "http://172.20.10.*",
+      "http://192.168.*",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -112,8 +115,9 @@ AppDataSource.initialize()
       ],
       credentials: true,
     });
-    server.listen(5000, () =>
-      console.log("Server + SocketIO at http://localhost:5000")
+    server.listen(5000, '0.0.0.0', () =>
+      console.log("Server + SocketIO at http://0.0.0.0:5000")
     );
   })
   .catch((err) => console.error("DB Error", err));
+
