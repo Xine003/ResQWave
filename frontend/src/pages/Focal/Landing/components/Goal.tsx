@@ -5,27 +5,25 @@ import { useEffect, useRef } from "react";
 
 const cloudName = import.meta.env.VITE_CLOUDINARY_NAME;
 
-const videoUrl = `https://res.cloudinary.com/${cloudName}/video/upload/w_600,h_600,c_fill/AdobeStock_428035875_wmnawt.mp4`;
+// Optimized video URL with quality and format settings
+const videoUrl = `https://res.cloudinary.com/${cloudName}/video/upload/w_1920,h_1080,c_fill,q_auto:low,f_auto,vc_auto/AdobeStock_428035875_wmnawt.mp4`;
 
 gsap.registerPlugin(ScrollTrigger);
 
 export function LandingGoal() {
     const introWrapperRef = useRef<HTMLDivElement>(null);
-    const textAlignCenterRef = useRef<HTMLDivElement>(null);
+    const videoContainerRef = useRef<HTMLDivElement>(null);
     const rafId = useRef<number | null>(null);
 
     useEffect(() => {
-        if (!introWrapperRef.current || !textAlignCenterRef.current) return;
+        if (!introWrapperRef.current || !videoContainerRef.current) return;
 
-        // Refresh ScrollTrigger to recalculate positions
-        ScrollTrigger.refresh();
-
-        // Pin the video section when the goal section is in view with smoother settings
+        // Pin the video section when scrolling through the goal section
         const pinTrigger = ScrollTrigger.create({
             trigger: introWrapperRef.current,
             start: "top top",
             end: "bottom bottom",
-            pin: textAlignCenterRef.current,
+            pin: videoContainerRef.current,
             pinSpacing: false,
             anticipatePin: 1,
             invalidateOnRefresh: true,
@@ -90,10 +88,10 @@ export function LandingGoal() {
 
     return (
         <div ref={introWrapperRef} className="relative w-full min-h-[300vh]">
-            {/* Video Section - Will be pinned by GSAP */}
-            <div ref={textAlignCenterRef} className="absolute top-0 left-0 w-full lg:w-[60vw] h-screen flex items-center justify-center">
+            {/* Pinned Background Video */}
+            <div ref={videoContainerRef} className="absolute top-0 left-0 w-full h-screen">
                 <video
-                    className="w-150 h-140 object-cover rounded-[5px] shadow-2xl"
+                    className="w-full h-full object-cover"
                     autoPlay
                     muted
                     loop
@@ -102,11 +100,13 @@ export function LandingGoal() {
                 >
                     <source src={videoUrl} type="video/mp4" />
                 </video>
+                {/* Fade overlay on the right side */}
+                <div className="absolute top-0 right-0 w-full lg:w-[90vw] h-full bg-gradient-to-l from-black to-transparent pointer-events-none"></div>
             </div>
             
-            {/* Scrollable Content - Positioned absolutely on the right */}
-            <div className="absolute top-0 right-0 w-full lg:w-[40vw] min-h-full">
-                <div className="max-w-xl ml-[-90px] px-8 lg:pl-12 pt-24">
+            {/* Scrollable Content */}
+            <div className="absolute top-0 right-0 w-full lg:w-[50vw] min-h-full z-10">
+                <div className="max-w-xl ml-[-10px] px-8 lg:pl-12 pt-24">
                     {/* Section 1: Why ResQWave Matters */}
                     <div className="tabs_let-content min-h-screen flex items-center opacity-30 transition-opacity duration-500">
                         <div>
@@ -188,6 +188,7 @@ export function LandingGoal() {
                             <p className="text-[16px] md:text-[18px] text-gray-300 leading-relaxed">
                                 Empowered by LoRa-powered community terminals, ResQWave ensures that even in the darkest moments—without cell service or the internet—communities can send instant, reliable alerts through trusted focal persons. Every SOS reaches responders quickly, every signal is clear, and every life gets a lifeline.
                             </p>
+                            <div className="h-50"></div>
                         </div>
                     </div>
                 </div>
