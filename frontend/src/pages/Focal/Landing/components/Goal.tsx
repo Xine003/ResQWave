@@ -105,8 +105,8 @@ export function LandingGoal() {
             </div>
             
             {/* Scrollable Content */}
-            <div className="absolute top-0 right-0 w-full lg:w-[50vw] min-h-full z-10">
-                <div className="max-w-xl ml-[-10px] px-8 lg:pl-12 pt-24">
+            <div className="absolute top-0 left-0 right-0 mx-auto w-full lg:w-[50vw] lg:left-auto lg:right-0 lg:mx-0 min-h-full z-10">
+                <div className="max-w-xl mx-auto lg:ml-[-10px] px-8 lg:pl-12 pt-24">
                     {/* Section 1: Why ResQWave Matters */}
                     <div className="tabs_let-content min-h-screen flex items-center opacity-30 transition-opacity duration-500">
                         <div>
