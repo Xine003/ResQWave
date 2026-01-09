@@ -6,7 +6,6 @@ import { LandingGoal } from "./components/Goal";
 
 export function Landing() {
   const [navOpen, setNavOpen] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -67,6 +66,7 @@ export function Landing() {
       {/* Hero Section */}
       <LandingHero />
       <LandingGoal />
+      <div className="h-[800px]"></div>
       {/* Floating Chatbot Widget */}
       <ChatbotConvo />
      

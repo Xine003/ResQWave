@@ -2,11 +2,10 @@ import androidIcon from '@/assets/android.png';
 import iosIcon from '@/assets/ios.png';
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import resqwave_logo from '/resqwave_logo.png';
 
 export function LandingHeader({ navOpen, setNavOpen, isScrolled, showHeader }: { navOpen: boolean, setNavOpen: (open: boolean) => void, isScrolled: boolean, showHeader: boolean }) {
-  const navigate = useNavigate();
+  
 
   return (
     <header

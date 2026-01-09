@@ -166,8 +166,8 @@ export function LandingHero() {
         // Animate red pin circles with pulsing effect
         if (redPin) {
           // Inner circle animation
-          let minRadius1 = 120;
-          let maxRadius1 = 180;
+          const minRadius1 = 120;
+          const maxRadius1 = 180;
           let growing1 = true;
           let currentRadius1 = minRadius1;
 
@@ -193,8 +193,8 @@ export function LandingHero() {
           }
 
           // Outer circle animation (different interval)
-          let minRadius2 = 180;
-          let maxRadius2 = 240;
+          const minRadius2 = 180;
+          const maxRadius2 = 240;
           let growing2 = false; // Start opposite to inner circle
           let currentRadius2 = maxRadius2;
 
@@ -299,7 +299,9 @@ export function LandingHero() {
     return () => {
       try {
         map.remove();
-      } catch { }
+      } catch {
+        // Intentionally ignore errors during cleanup
+      }
       mapRef.current = null;
     };
   }, []);
@@ -355,7 +357,7 @@ export function LandingHero() {
             <LayoutTextFlip 
               text=""
               words={["Safer Communities", "Connected Lives", "Resilient Communities"]}
-              duration={5000}
+              duration={4000}
             />
           </h1>
           <p className="mb-6 md:mb-8 text-[14px] sm:text-[16px] md:text-[18px] text-gray-300 leading-relaxed">
@@ -412,8 +414,6 @@ export function LandingHero() {
         const map = mapRef.current;
         const pt = map.project(hoveredPin.coords);
         const rect = mapContainer.current?.getBoundingClientRect();
-        const popoverWidth = 280;
-        const popoverHeight = 80;
         
         // Calculate position relative to the map container
         const left = (rect?.left ?? 0) + pt.x;
