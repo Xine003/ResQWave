@@ -18,6 +18,9 @@ export function LandingGoal() {
     useEffect(() => {
         if (!introWrapperRef.current || !videoContainerRef.current) return;
 
+        // Refresh ScrollTrigger before creating pin
+        ScrollTrigger.refresh();
+
         // Pin the video section when scrolling through the goal section
         const pinTrigger = ScrollTrigger.create({
             trigger: introWrapperRef.current,
@@ -25,10 +28,10 @@ export function LandingGoal() {
             end: "bottom bottom",
             pin: videoContainerRef.current,
             pinSpacing: false,
+            pinReparent: false,
             anticipatePin: 1,
             invalidateOnRefresh: true,
-            fastScrollEnd: true,
-            preventOverlaps: true,
+            refreshPriority: 1,
             markers: false
         });
 
