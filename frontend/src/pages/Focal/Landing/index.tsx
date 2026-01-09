@@ -4,6 +4,7 @@ import { LandingHero } from "@/pages/Focal/Landing/components/Hero";
 import { useEffect, useState } from "react";
 import { LandingGoal } from "./components/Goal";
 import { LandingHowItWorks } from "./components/HowItWorks";
+import { LandingNumbers } from "./components/Numbers";
 
 export function Landing() {
   const [navOpen, setNavOpen] = useState(false);
@@ -68,7 +69,7 @@ export function Landing() {
       <LandingHero />
       <LandingGoal />
       <LandingHowItWorks />
-      <div className="h-[800px]"></div>
+      <LandingNumbers />
       {/* Floating Chatbot Widget */}
       <ChatbotConvo />
      
