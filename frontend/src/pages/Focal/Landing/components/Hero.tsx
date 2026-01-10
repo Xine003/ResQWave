@@ -17,7 +17,7 @@ export function LandingHero() {
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
       center: [121.05372821089554, 14.75625635522509],
-      zoom: 10,
+      zoom: 13,
       pitch: 0,
       bearing: 0,
       antialias: true,

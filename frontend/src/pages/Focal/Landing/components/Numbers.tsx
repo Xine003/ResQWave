@@ -46,7 +46,7 @@ export function LandingNumbers() {
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className={`bg-zinc-800/50 backdrop-blur-sm rounded-[5px] p-6 border border-zinc-700/50 hover:border-zinc-600/50 transition-all duration-300 hover:transform hover:scale-105 ${
+                className={`bg-zinc-800/50 backdrop-blur-sm rounded-[5px] p-6 border border-zinc-700/50 hover:border-zinc-600/50 transition-all hover:transform hover:scale-105 ${
                   index < 2 ? 'sm:translate-x-20 lg:translate-x-24' : ''
                 }`}
               >

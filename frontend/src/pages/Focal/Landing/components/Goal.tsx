@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 const cloudName = import.meta.env.VITE_CLOUDINARY_NAME;
 
 // Optimized video URL with quality and format settings
-const videoUrl = `https://res.cloudinary.com/${cloudName}/video/upload/w_1920,h_1080,c_fill,q_auto:low,f_auto,vc_auto/AdobeStock_428035875_wmnawt.mp4`;
+const videoUrl = `https://res.cloudinary.com/${cloudName}/video/upload/w_1920,h_1080,c_fill,q_auto:low,f_auto,vc_auto/AdobeStock_428035875_1_hc8qmd.mp4`;
 
 gsap.registerPlugin(ScrollTrigger);
 
