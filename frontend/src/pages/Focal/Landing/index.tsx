@@ -2,6 +2,7 @@ import { ChatbotConvo } from "@/pages/Focal/Landing/components/ChatbotConvo";
 import { LandingHeader } from "@/pages/Focal/Landing/components/Header";
 import { LandingHero } from "@/pages/Focal/Landing/components/Hero";
 import { useEffect, useState } from "react";
+import { LandingFAQs } from "./components/FAQs";
 import { LandingGoal } from "./components/Goal";
 import { LandingHowItWorks } from "./components/HowItWorks";
 import { LandingNumbers } from "./components/Numbers";
@@ -70,6 +71,7 @@ export function Landing() {
       <LandingGoal />
       <LandingHowItWorks />
       <LandingNumbers />
+      <LandingFAQs />
       {/* Floating Chatbot Widget */}
       <ChatbotConvo />
      
