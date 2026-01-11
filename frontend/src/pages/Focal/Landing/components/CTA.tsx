@@ -1,22 +1,21 @@
-import { Ripple } from "@/components/ui/ripple";
+import { FlickeringGrid } from "@/components/ui/flickering-grid";
 
 export function LandingCTA() {
   return (
     <section className="h-screen px-6 md:px-12 lg:px-24 flex items-center justify-center relative">
-      {/* Ripple Background with Blue Shades */}
-      <div className="absolute inset-0 pointer-events-none select-none">
-        <style>{`
-          .cta-ripple .animate-ripple {
-            background: rgba(59, 130, 246, 1) !important;
-            border-color: rgba(147, 197, 253, 2) !important;
-          }
-        `}</style>
-        <div className="cta-ripple absolute inset-0">
-          <Ripple mainCircleSize={210} mainCircleOpacity={0.2} numCircles={8} />
-        </div>
+      {/* Flickering Grid Background */}
+      <div className="absolute inset-0">
+        <FlickeringGrid 
+          squareSize={4}
+          gridGap={6}
+          flickerChance={0.3}
+          color="rgb(59, 130, 246)"
+          maxOpacity={0.3}
+          className="w-full h-full"
+        />
       </div>
       
-      <div className="max-w-4xl w-full text-center relative z-10">
+      <div className="max-w-4xl w-full text-center relative z-10 bg-[#171717]/10 p-12 rounded-lg backdrop-blur-sm">
         {/* Header */}
         <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
           Lead the Wave of Safety.
@@ -28,7 +27,7 @@ export function LandingCTA() {
         </p>
         
         {/* Button */}
-        <button className="bg-white text-black font-semibold px-8 py-4 rounded-md hover:bg-gray-100 transition-colors duration-200">
+        <button className="bg-white text-black font-semibold px-8 py-4 rounded-[5px] hover:bg-gray-100 transition-colors duration-200">
           Interested? Contact Us Now!
         </button>
       </div>

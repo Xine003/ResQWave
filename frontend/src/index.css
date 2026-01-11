@@ -163,3 +163,11 @@ a,
 ::-webkit-scrollbar {
   display: none;
 }
+
+/* Smooth scrolling for anchor navigation */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Add scroll margin to account for fixed header */
+section[id],

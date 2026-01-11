@@ -322,7 +322,7 @@ export function LandingHero() {
   }, []);
 
   return (
-    <main className="flex flex-1 flex-col md:flex-row items-center justify-center md:justify-between px-4 md:px-8 lg:px-12 xl:px-16 gap-8 w-full relative overflow-hidden h-screen min-h-screen" style={{ zIndex: 20 }}>
+    <main className="flex flex-1 flex-col md:flex-row items-center justify-center md:justify-between px-4 md:px-8 lg:px-12 xl:px-16 gap-8 w-full relative overflow-hidden h-screen min-h-screen pt-20 md:pt-24" style={{ zIndex: 20 }}>
       <div className="hero-content-wrapper w-full md:w-auto flex flex-col justify-center gap-4 items-center md:items-start max-w-2xl">
         <style>{`
           .hero-content-wrapper {
@@ -406,7 +406,7 @@ export function LandingHero() {
             position: absolute;
             right: 0;
             top: 50%;
-            transform: translateY(calc(-50% - 60px));
+            transform: translateY(calc(-50% + 20px));
             border-radius: 0;
             border-top-left-radius: 53px;
             border-bottom-left-radius: 53px;

@@ -2,7 +2,7 @@ import { Waypoints } from "lucide-react";
 
 export function LandingHowItWorks() {
   return (
-    <section className="w-full px-4 md:px-8 lg:px-12 xl:px-16 py-20 relative flex items-center" style={{ zIndex: 20, minHeight: '100vh' }}>
+    <section id="how" className="w-full px-4 md:px-8 lg:px-12 xl:px-16 py-20 relative flex items-center" style={{ zIndex: 20, minHeight: '100vh' }}>
       <div className="max-w-7xl mx-auto w-full">
         {/* Features Badge */}
         <div className="flex justify-center mb-8">

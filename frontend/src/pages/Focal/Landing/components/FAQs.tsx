@@ -1,8 +1,8 @@
 import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from "@/components/ui/accordion";
 import { SquareLibrary } from "lucide-react";
 
@@ -46,7 +46,7 @@ export function LandingFAQs() {
   ];
 
   return (
-    <section className="w-full py-20 px-4 sm:px-6 lg:px-8">
+    <section id="faqs" className="w-full py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         {/* Badge */}
         <div className="flex justify-center mb-8">

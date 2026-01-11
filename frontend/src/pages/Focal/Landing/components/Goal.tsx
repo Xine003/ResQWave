@@ -90,7 +90,7 @@ export function LandingGoal() {
 
 
     return (
-        <div ref={introWrapperRef} className="relative w-full min-h-[300vh]">
+        <div id="importance" ref={introWrapperRef} className="relative w-full min-h-[300vh]">
             {/* Pinned Background Video */}
             <div ref={videoContainerRef} className="absolute top-0 left-0 w-full h-screen">
                 <video

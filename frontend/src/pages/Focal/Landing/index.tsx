@@ -15,27 +15,37 @@ export function Landing() {
   const [lastScrollY, setLastScrollY] = useState(0);
 
   useEffect(() => {
+    let ticking = false;
+    
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      const scrollThreshold = 1.5; // Minimum scroll to trigger hide/show
-      
-      // Determine if user scrolled past threshold
-      setIsScrolled(currentScrollY > scrollThreshold);
-      
-      // Show header if:
-      // 1. At the top (within threshold)
-      // 2. Scrolling up
-      if (currentScrollY <= scrollThreshold) {
-        setShowHeader(true);
-      } else if (currentScrollY < lastScrollY) {
-        // Scrolling up
-        setShowHeader(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY > scrollThreshold) {
-        // Scrolling down and past threshold
-        setShowHeader(false);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          
+          // Apply background/fixed style after minimal scroll
+          if (currentScrollY > 20) {
+            setIsScrolled(true);
+          } else {
+            setIsScrolled(false);
+          }
+          
+          // Hide/show logic - only when scrolled down significantly
+          if (currentScrollY < 100) {
+            // Always show near top
+            setShowHeader(true);
+          } else if (currentScrollY < lastScrollY - 5) {
+            // Scrolling up (with small buffer to avoid jitter)
+            setShowHeader(true);
+          } else if (currentScrollY > lastScrollY + 5) {
+            // Scrolling down (with small buffer to avoid jitter)
+            setShowHeader(false);
+          }
+          
+          setLastScrollY(currentScrollY);
+          ticking = false;
+        });
+        ticking = true;
       }
-      
-      setLastScrollY(currentScrollY);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });

@@ -29,7 +29,7 @@ export function LandingNumbers() {
   ];
 
   return (
-    <section className="min-h-screen flex items-center px-8 md:px-16 lg:px-24 py-16">
+    <section id="impact" className="min-h-screen flex items-center px-8 md:px-16 lg:px-24 py-16">
       <div className="max-w-7xl mx-auto w-full">
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-center">
           {/* Left Side - Text Content (40% width) */}
