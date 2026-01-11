@@ -1,5 +1,5 @@
-import {defineType, defineField} from 'sanity'
-import {EnvelopeIcon} from '@sanity/icons'
+import { defineType, defineField } from 'sanity'
+import { EnvelopeIcon } from '@sanity/icons'
 
 export const contactInformation = defineType({
   name: 'contactInformation',
@@ -24,6 +24,13 @@ export const contactInformation = defineType({
       description: 'When to provide this information',
     }),
     defineField({
+      name: 'keywords',
+      title: 'Keywords',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Keywords that trigger contact information responses',
+    }),
+    defineField({
       name: 'email',
       title: 'Contact Email',
       type: 'string',
@@ -45,10 +52,17 @@ export const contactInformation = defineType({
       title: 'Example Responses',
       type: 'array',
       description: 'Example ways to present contact information',
-      of: [{type: 'string'}],
-      initialValue: [
-        'For additional support, you can reach us at [email]',
-        'Contact our team at [email] for further assistance',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            {
+              name: 'response',
+              title: 'Response Text',
+              type: 'string',
+            },
+          ],
+        },
       ],
     }),
     defineField({
@@ -64,7 +78,7 @@ export const contactInformation = defineType({
       email: 'email',
       isActive: 'isActive',
     },
-    prepare({title, email, isActive}) {
+    prepare({ title, email, isActive }) {
       return {
         title,
         subtitle: isActive ? email : 'Inactive',

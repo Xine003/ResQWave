@@ -1,5 +1,5 @@
-import {defineType, defineField, defineArrayMember} from 'sanity'
-import {DocumentIcon} from '@sanity/icons'
+import { defineType, defineField, defineArrayMember } from 'sanity'
+import { DocumentIcon } from '@sanity/icons'
 
 export const userGuidance = defineType({
   name: 'userGuidance',
@@ -21,6 +21,13 @@ export const userGuidance = defineType({
       rows: 2,
       description: 'Description of what this section provides',
       validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'keywords',
+      title: 'Keywords',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Keywords that trigger user guidance responses',
     }),
     defineField({
       name: 'note',
@@ -54,12 +61,12 @@ export const userGuidance = defineType({
               validation: (rule) => rule.required(),
             }),
             defineField({
-              name: 'roleInfo',
-              title: 'Role Information',
-              type: 'text',
-              rows: 2,
-              description: 'Who can do this and fallback note for others',
-              validation: (rule) => rule.required(),
+              name: 'userRoles',
+              title: 'User Roles',
+              type: 'array',
+              description: 'Which roles can access this guidance (e.g., "all", "residents", "focal_persons", "dispatchers", "admins")',
+              of: [defineArrayMember({ type: 'string' })],
+              validation: (rule) => rule.required().min(1),
             }),
           ],
           preview: {
@@ -84,7 +91,7 @@ export const userGuidance = defineType({
       title: 'title',
       isActive: 'isActive',
     },
-    prepare({title, isActive}) {
+    prepare({ title, isActive }) {
       return {
         title,
         subtitle: isActive ? 'Active' : 'Inactive',

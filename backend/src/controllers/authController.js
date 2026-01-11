@@ -195,6 +195,7 @@ const focalLogin = async (req, res) => {
     res.json({
       message: "Verification Send to Email",
       tempToken: focalTempToken,
+      otpSent: true,
     });
   } catch (err) {
     console.error(err);

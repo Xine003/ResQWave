@@ -1,5 +1,5 @@
-import {defineType, defineField, defineArrayMember} from 'sanity'
-import {SearchIcon} from '@sanity/icons'
+import { defineType, defineField, defineArrayMember } from 'sanity'
+import { SearchIcon } from '@sanity/icons'
 
 export const clarificationRequestsFallback = defineType({
   name: 'clarificationRequestsFallback',
@@ -21,6 +21,13 @@ export const clarificationRequestsFallback = defineType({
       rows: 2,
       initialValue: 'For unclear or unmatched inputs, choose one dynamically',
       description: 'When to use these clarification messages',
+    }),
+    defineField({
+      name: 'keywords',
+      title: 'Keywords',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Keywords that trigger clarification responses',
     }),
     defineField({
       name: 'messages',
@@ -61,7 +68,7 @@ export const clarificationRequestsFallback = defineType({
       title: 'title',
       isActive: 'isActive',
     },
-    prepare({title, isActive}) {
+    prepare({ title, isActive }) {
       return {
         title,
         subtitle: isActive ? 'Active' : 'Inactive',

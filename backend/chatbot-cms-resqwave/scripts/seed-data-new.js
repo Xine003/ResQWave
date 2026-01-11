@@ -1,5 +1,5 @@
 require('dotenv').config()
-const {createClient} = require('@sanity/client')
+const { createClient } = require('@sanity/client')
 
 const token = process.env.SANITY_TOKEN
 
@@ -34,7 +34,7 @@ async function seedData() {
       systemDescription:
         'An AI helper for ResQWave - a LoRa-powered emergency communication system designed to help communities send SOS alerts, share updates, and guide rescuers during flood events.',
       welcomeMessage:
-        "Hello! I'm ResQWave Assistant. I can help you with information about our emergency communication system, disaster preparedness, and how to use our terminals. How can I assist you today?",
+        "Hi there! I'm ResQWave Assistant. How can I help you today?",
       contactEmail: 'resqwaveinfo@gmail.com',
       supportHours: '24/7',
       emergencyContactInfo: {
@@ -46,6 +46,7 @@ async function seedData() {
       maxResponseLength: 3,
       quickActionCount: 3,
       isMaintenanceMode: false,
+      maintenanceMessage: 'The chatbot is temporarily unavailable due to system maintenance. Please try again later. We appreciate your patience.',
     })
     console.log('✅ Settings created:', settings._id, '\n')
 
@@ -193,35 +194,49 @@ async function seedData() {
           task: 'How to send an SOS alert',
           answer:
             'Press and hold the SOS button on your terminal for 5 seconds until the LED turns red—this sends a distress signal.',
-          roleInfo: 'For residents. Others can assist by notifying their community focal person or dispatcher.',
+          userRoles: ['all'],
         },
         {
           _key: generateKey(),
           task: 'How to check dashboard status',
           answer:
             'Log in to the dashboard and view the map for real-time alerts, community statuses, and rescue operations.',
-          roleInfo: "For dispatchers. If you don't have access, request updates from your focal person or dispatcher.",
+          userRoles: ['focal_persons', 'dispatchers', 'admins'],
+        },
+        {
+          _key: generateKey(),
+          task: 'How to update my personal profile',
+          answer:
+            'To update your personal profile information, please contact your community focal person or barangay dispatcher. Personal registration details can only be updated by authorized community officials for security reasons.',
+          userRoles: ['residents'],
+        },
+        {
+          _key: generateKey(),
+          task: 'How to update my personal profile',
+          answer:
+            'You can update your profile directly in the dashboard. Go to your profile section and edit your personal information such as name, contact number, and address.',
+          userRoles: ['focal_persons', 'admins', 'dispatchers'],
         },
         {
           _key: generateKey(),
           task: 'How to update community info',
           answer:
             'Go to your dashboard profile, select your community, and update details like household count, flood risk, and focal person information.',
-          roleInfo: 'For focal persons. Others should contact their focal person for changes.',
+          userRoles: ['focal_persons', 'admins'],
         },
         {
           _key: generateKey(),
           task: 'What to do during a flood emergency',
           answer:
             'Send an SOS alert using your terminal, follow instructions from barangay officials, and stay updated via community announcements.',
-          roleInfo: 'For residents. Others should help share official instructions and support communication.',
+          userRoles: ['all'],
         },
         {
           _key: generateKey(),
           task: 'How to acknowledge a received signal',
           answer:
             'Confirm the alert in the dashboard, dispatch rescue if needed, and send a response to the terminal to change the LED status to blue.',
-          roleInfo: "For dispatchers. If you're not a dispatcher, notify your dispatcher or focal person about received alerts.",
+          userRoles: ['dispatchers', 'admins'],
         },
       ],
     })

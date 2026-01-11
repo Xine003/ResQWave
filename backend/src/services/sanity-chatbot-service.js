@@ -10,8 +10,9 @@ const sanityClient = createClient({
 
 /**
  * Fetch all active chatbot content from Sanity and build the context string
+ * @param {string} userRole - The role of the user (residents, focal_persons, dispatchers, admins)
  */
-const buildChatbotContext = async () => {
+const buildChatbotContext = async (userRole = null) => {
     try {
         // Fetch all content types in parallel
         const [settings, distressSignals, generalQuestions, userGuidance, clarifications, safetyTips, contactInfo] =
@@ -135,8 +136,14 @@ const buildChatbotContext = async () => {
             context += "  - Predefined answers for general questions:\n";
 
             generalQuestions.predefinedAnswers.forEach((qa) => {
+                // Filter by user role
+                if (userRole && qa.userRoles && !qa.userRoles.includes(userRole) && !qa.userRoles.includes('all')) {
+                    // Skip this guidance - user doesn't have access
+                    return;
+                }
+
                 const keywordStr = qa.keywords.join(", ");
-                context += `    * ${qa.topic} (keywords: ${keywordStr}): ${qa.answer} (${qa.userRoles})\n`;
+                context += `    * ${qa.topic} (keywords: ${keywordStr}): ${qa.answer}\n`;
             });
             context += "\n";
         }
@@ -151,9 +158,20 @@ const buildChatbotContext = async () => {
             context += "  - Predefined answers for user guidance:\n";
 
             userGuidance.predefinedAnswers.forEach((guide) => {
-                context += `    * ${guide.task}: ${guide.answer} (${guide.roleInfo})\n`;
+                // Filter by user role
+                if (userRole && guide.userRoles && !guide.userRoles.includes(userRole) && !guide.userRoles.includes('all')) {
+                    // Skip this guidance - user doesn't have access
+                    return;
+                }
+
+                context += `    * ${guide.task}: ${guide.answer}\n`;
             });
             context += "\n";
+
+            // Add note about restricted features if user has a role
+            if (userRole) {
+                context += `  Note: Some features are restricted to specific roles (focal_persons, dispatchers, admins). If user asks about features they don't have access to, politely inform them it's only available for those roles.\n\n`;
+            }
         }
 
         // 4. Clarification Requests Fallback
@@ -228,23 +246,39 @@ const getChatbotSettings = async () => {
 };
 
 /**
- * Get random clarification messages
+ * Get random clarification message from Sanity
  */
-const getClarificationMessages = async (count = 3) => {
+const getClarificationMessages = async () => {
     try {
-        const messages = await sanityClient.fetch(
-            `*[_type == "clarificationMessage" && isActive == true] | order(_createdAt desc)[0...${count}]{
-                message
+        const data = await sanityClient.fetch(
+            `*[_type == "clarificationRequestsFallback" && isActive == true][0]{
+                messages
             }`
         );
-        return messages.map((m) => m.message);
+        if (data && data.messages && data.messages.length > 0) {
+            // Return a random message from the array
+            const randomIndex = Math.floor(Math.random() * data.messages.length);
+            return data.messages[randomIndex].message;
+        }
+        return null;
     } catch (error) {
         console.error("Error fetching clarification messages:", error);
-        return [
-            "I didn't quite catch that. Could you please clarify your question?",
-            "Can you rephrase or provide more details?",
-            "I'm not sure I understand. Would you like to know about ResQWave's features?",
-        ];
+        return null;
+    }
+};
+
+/**
+ * Test Sanity connection on startup
+ */
+const testSanityConnection = async () => {
+    try {
+        const result = await sanityClient.fetch(`*[_type == "chatbotSettings"][0]{_id}`);
+        if (!result) {
+            throw new Error("No chatbot settings found");
+        }
+        return true;
+    } catch (error) {
+        throw new Error(`Failed to connect: ${error.message}`);
     }
 };
 
@@ -252,5 +286,6 @@ module.exports = {
     buildChatbotContext,
     getChatbotSettings,
     getClarificationMessages,
+    testSanityConnection,
     sanityClient,
 };

@@ -1,5 +1,5 @@
-import {defineType, defineField, defineArrayMember} from 'sanity'
-import {WarningOutlineIcon} from '@sanity/icons'
+import { defineType, defineField, defineArrayMember } from 'sanity'
+import { WarningOutlineIcon } from '@sanity/icons'
 
 export const safetyTipsPreparedness = defineType({
   name: 'safetyTipsPreparedness',
@@ -21,6 +21,13 @@ export const safetyTipsPreparedness = defineType({
       rows: 2,
       description: 'Description of what this section provides',
       validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'keywords',
+      title: 'Keywords',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Keywords that trigger safety tips responses',
     }),
     defineField({
       name: 'predefinedAnswers',
@@ -69,7 +76,7 @@ export const safetyTipsPreparedness = defineType({
       title: 'title',
       isActive: 'isActive',
     },
-    prepare({title, isActive}) {
+    prepare({ title, isActive }) {
       return {
         title,
         subtitle: isActive ? 'Active' : 'Inactive',

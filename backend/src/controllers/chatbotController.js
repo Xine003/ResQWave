@@ -1,5 +1,5 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { buildChatbotContext, getChatbotSettings } = require("../services/sanity-chatbot-service");
+const { buildChatbotContext, getChatbotSettings, getClarificationMessages } = require("../services/sanity-chatbot-service");
 
 // Get context from Sanity (no caching - always fresh)
 const getContext = async () => {
@@ -18,45 +18,55 @@ const stripCodeFences = (s) => {
     return cleaned;
 };
 
-const generateQuickActionsInternal = async (text) => {
+const generateQuickActionsInternal = async (text, count = 3) => {
     if (!genAI) {
-        return [
+        const fallback = [
             "How do I send an SOS alert?",
             "What do the LED indicators mean?",
             "How can I access the dashboard?",
         ];
+        return fallback.slice(0, count);
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = `User query: ${text}\n\nGenerate 3 specific, clear follow-up questions (6-9 words each) a user might ask about ResQWave. Return ONLY a valid JSON array of strings, no markdown formatting, no explanations.`;
+    const prompt = `User query: ${text}\n\nGenerate ${count} specific, clear follow-up questions (6-9 words each) a user might ask about ResQWave. Return ONLY a valid JSON array of strings, no markdown formatting, no explanations.`;
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const raw = stripCodeFences(response.text());
 
     try {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed.slice(0, 3);
+        if (Array.isArray(parsed)) return parsed.slice(0, count);
     } catch (err) {
         // parsing failed, return fallback
         console.warn("Quick actions parse failed", err);
         console.warn("Raw response was:", response.text());
     }
 
-    return [
+    const fallback = [
         "How do I send an SOS alert?",
         "What do the LED indicators mean?",
         "How can I access the dashboard?",
     ];
+    return fallback.slice(0, count);
 };
 
 const generateAIResponse = async (req, res) => {
     try {
-        const { text, context, mode } = req.body;
+        const { text, context, mode, userRole } = req.body;
         if (!text) return res.status(400).json({ error: "Missing text" });
+
+        // Check maintenance mode first
+        const settings = await getChatbotSettings();
+        if (settings?.isMaintenanceMode) {
+            const maintenanceMsg = settings.maintenanceMessage || "The chatbot is currently under maintenance. Please try again later.";
+            return res.json({ response: maintenanceMsg });
+        }
 
         // If client requested quick actions specifically
         if (mode === "quickActions") {
-            const actions = await generateQuickActionsInternal(text);
+            const quickActionCount = settings?.quickActionCount || 3;
+            const actions = await generateQuickActionsInternal(text, quickActionCount);
             return res.json({ quickActions: actions });
         }
 
@@ -64,19 +74,29 @@ const generateAIResponse = async (req, res) => {
             return res.json({ response: `ResQWave Assistant (offline): ${text}` });
         }
 
-        // Get context from Sanity (cached)
-        const sanityContext = await getContext();
+        // Get context from Sanity (filtered by user role)
+        const sanityContext = await getContext(userRole);
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        
+
         // Use client-provided context if available, otherwise use Sanity context
         const finalContext = context || sanityContext;
-        
-        // Get settings for response length
-        const settings = await getChatbotSettings();
+
+        // Add simple role context - guidance is already filtered by role in the service
+        const roleContext = userRole
+            ? `\n\nUser role: ${userRole}. When answering, adapt the response specifically for this role. If the guidance mentions different instructions for different roles, provide ONLY the information relevant to ${userRole}. If user asks about features not available to their role, politely inform them those features are only available for other roles.`
+            : `\n\nUser role: resident. When answering, provide information relevant to residents only. If user asks about administrative or dashboard features, politely inform them those are only available for focal persons, dispatchers, or admins.`;
+
+        // Use settings from maintenance check (already fetched)
         const maxSentences = settings?.maxResponseLength || 3;
-        
-        const prompt = `${finalContext}\n\nAnswer concisely (${maxSentences} sentences max): ${text}`;
+        const defaultLanguage = settings?.defaultLanguage || 'en';
+
+        // Add language instruction
+        const languageInstruction = defaultLanguage === 'tl'
+            ? '\n\nIMPORTANT: Respond in Tagalog (Filipino) language.'
+            : '\n\nIMPORTANT: Respond in English.';
+
+        const prompt = `${finalContext}${roleContext}${languageInstruction}\n\nAnswer concisely (${maxSentences} sentences max): ${text}`;
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const out = response.text().trim();
@@ -116,7 +136,7 @@ const translateMessage = async (req, res) => {
 const refreshContext = async (req, res) => {
     try {
         const context = await buildChatbotContext();
-        return res.json({ 
+        return res.json({
             message: "Context fetched successfully (no cache)",
             timestamp: new Date().toISOString()
         });

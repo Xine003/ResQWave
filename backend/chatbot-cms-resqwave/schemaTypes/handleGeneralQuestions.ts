@@ -1,5 +1,5 @@
-import {defineType, defineField, defineArrayMember} from 'sanity'
-import {HelpCircleIcon} from '@sanity/icons'
+import { defineType, defineField, defineArrayMember } from 'sanity'
+import { HelpCircleIcon } from '@sanity/icons'
 
 export const handleGeneralQuestions = defineType({
   name: 'handleGeneralQuestions',
@@ -23,6 +23,13 @@ export const handleGeneralQuestions = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: 'keywords',
+      title: 'Keywords',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Keywords that trigger general question responses',
+    }),
+    defineField({
       name: 'predefinedAnswers',
       title: 'Predefined Answers',
       type: 'array',
@@ -35,7 +42,7 @@ export const handleGeneralQuestions = defineType({
               name: 'topic',
               title: 'Topic',
               type: 'string',
-              description: 'e.g., "Purpose", "Benefits", "Technology", "Operation"',
+              description: 'e.g., "What is the purpose of ResQWave?"',
               validation: (rule) => rule.required(),
             }),
             defineField({
@@ -43,7 +50,7 @@ export const handleGeneralQuestions = defineType({
               title: 'Keywords',
               type: 'array',
               description: 'Keywords that trigger this answer',
-              of: [defineArrayMember({type: 'string'})],
+              of: [defineArrayMember({ type: 'string' })],
               validation: (rule) => rule.required().min(1),
             }),
             defineField({
@@ -57,9 +64,10 @@ export const handleGeneralQuestions = defineType({
             defineField({
               name: 'userRoles',
               title: 'User Roles',
-              type: 'string',
-              description: 'Which roles can access (e.g., "All roles", "residents, focal persons")',
-              validation: (rule) => rule.required(),
+              type: 'array',
+              description: 'Which roles can access this answer',
+              of: [defineArrayMember({ type: 'string' })],
+              validation: (rule) => rule.required().min(1),
             }),
           ],
           preview: {
@@ -84,7 +92,7 @@ export const handleGeneralQuestions = defineType({
       title: 'title',
       isActive: 'isActive',
     },
-    prepare({title, isActive}) {
+    prepare({ title, isActive }) {
       return {
         title,
         subtitle: isActive ? 'Active' : 'Inactive',

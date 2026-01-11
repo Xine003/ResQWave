@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, X, MessageCircle } from "lucide-react";
+import { Send, X, MessageCircle, Square } from "lucide-react";
 import { apiFetch } from "../../../../lib/api";
 
 interface Message {
@@ -24,6 +24,35 @@ export function ChatbotConvo() {
   );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Stop typing/generation
+  const handleStopTyping = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsTyping(false);
+  };
+
+  // Handle new conversation - reset messages
+  const handleNewConversation = () => {
+    setMessages([
+      {
+        id: 1,
+        text: greetingMessage,
+        sender: "bot",
+        timestamp: new Date(),
+      },
+    ]);
+    setQuickActions([]);
+    setInputValue("");
+    setIsTyping(false);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  };
 
   // Handle translation to Tagalog
   const handleTranslate = async (messageId: number) => {
@@ -87,11 +116,11 @@ export function ChatbotConvo() {
   useEffect(() => {
     const fetchGreeting = async () => {
       try {
-        const data = await apiFetch<{ welcomeMessage?: string }>('/chatbot/settings', {
+        const data = await apiFetch<{ settings?: { welcomeMessage?: string } }>('/chatbot/settings', {
           method: 'GET',
         });
-        if (data.welcomeMessage) {
-          setGreetingMessage(data.welcomeMessage);
+        if (data.settings?.welcomeMessage) {
+          setGreetingMessage(data.settings.welcomeMessage);
         }
       } catch (error) {
         console.error('Error fetching greeting:', error);
@@ -116,7 +145,7 @@ export function ChatbotConvo() {
             body: JSON.stringify({ text: 'Generate quick actions for greeting', mode: 'quickActions' }),
           });
           if (Array.isArray(data.quickActions) && data.quickActions.length) {
-            setQuickActions(data.quickActions.slice(0, 3));
+            setQuickActions(data.quickActions);
           }
         } catch (_err) {
           console.error("Quick actions error:", _err);
@@ -154,10 +183,14 @@ export function ChatbotConvo() {
     setIsTyping(true);
     setQuickActions([]); // Hide quick actions immediately after user clicks one
 
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     try {
       const data = await apiFetch<{ response?: string }>('/chatbot/chat', {
         method: 'POST',
-        body: JSON.stringify({ text: textToSend, mode: 'main' }),
+        body: JSON.stringify({ text: textToSend, mode: 'main', userRole: 'residents' }),
+        signal: abortControllerRef.current.signal,
       });
       const aiResponse = (data && data.response) || (data as unknown as string) || '[No response]';
 
@@ -170,6 +203,7 @@ export function ChatbotConvo() {
 
       setMessages((prev) => [...prev, botMessage]);
       setIsTyping(false);
+      abortControllerRef.current = null;
 
       // Quick actions (fire-and-forget)
       (async () => {
@@ -178,12 +212,20 @@ export function ChatbotConvo() {
             method: 'POST',
             body: JSON.stringify({ text: textToSend, mode: 'quickActions' }),
           });
-          if (Array.isArray(qaData.quickActions)) setQuickActions(qaData.quickActions.slice(0, 3));
+          if (Array.isArray(qaData.quickActions)) setQuickActions(qaData.quickActions);
         } catch (err) {
           console.error("Quick actions error:", err);
         }
       })();
-    } catch (error) {
+    } catch (error: any) {
+      // Check if error was due to abort
+      if (error.name === 'AbortError') {
+        console.log("Request was aborted by user");
+        setIsTyping(false);
+        abortControllerRef.current = null;
+        return;
+      }
+
       console.error("Error calling backend chatbot:", error);
       const botMessage: Message = {
         id: messages.length + 2,
@@ -194,6 +236,7 @@ export function ChatbotConvo() {
       setMessages((prev) => [...prev, botMessage]);
       setQuickActions(["Send SOS alert", "Show safety tips", "Evacuation advice"]);
       setIsTyping(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -239,7 +282,8 @@ export function ChatbotConvo() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div
+                <button
+                  onClick={handleNewConversation}
                   style={{
                     width: 42,
                     height: 42,
@@ -248,10 +292,20 @@ export function ChatbotConvo() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "background 0.2s",
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+                  }}
+                  title="Start new conversation"
                 >
                   <MessageCircle size={22} style={{ color: "#fff" }} />
-                </div>
+                </button>
                 <div>
                   <div style={{ fontWeight: 600, color: "#fff", fontSize: 16 }}>
                     ResQWave Assistant
@@ -309,8 +363,8 @@ export function ChatbotConvo() {
                 >
                   <div
                     className={`max-w-[80%] rounded-2xl px-3 py-2 ${message.sender === "user"
-                        ? "bg-linear-to-br from-blue-600 to-blue-500 text-white"
-                        : "bg-gray-700/50 text-gray-100"
+                      ? "bg-linear-to-br from-blue-600 to-blue-500 text-white"
+                      : "bg-gray-700/50 text-gray-100"
                       }`}
                     style={{
                       boxShadow:
@@ -329,8 +383,8 @@ export function ChatbotConvo() {
                     <div className="flex items-center justify-between mt-1">
                       <p
                         className={`text-xs ${message.sender === "user"
-                            ? "text-blue-100"
-                            : "text-gray-400"
+                          ? "text-blue-100"
+                          : "text-gray-400"
                           }`}
                       >
                         {message.timestamp.toLocaleTimeString([], {
@@ -417,11 +471,18 @@ export function ChatbotConvo() {
                     className="flex-1 bg-gray-800/50 text-white rounded-full px-4 py-2 text-sm outline-none border border-gray-700 focus:border-blue-500 transition-colors"
                   />
                   <button
-                    onClick={() => handleSendMessage()}
-                    className="bg-linear-to-br from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white rounded-full p-2 transition-all duration-200 hover:scale-105 active:scale-95"
+                    onClick={() => isTyping ? handleStopTyping() : handleSendMessage()}
+                    className={`${isTyping
+                        ? "bg-[#424242] hover:bg-[#525252]"
+                        : "bg-linear-to-br from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600"
+                      } text-white rounded-full p-2 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center`}
                     style={{ boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}
                   >
-                    <Send size={18} />
+                    {isTyping ? (
+                      <Square size={18} fill="white" stroke="white" />
+                    ) : (
+                      <Send size={18} />
+                    )}
                   </button>
                 </div>
               </div>
