@@ -4,6 +4,7 @@ import { LandingHero } from "@/pages/Focal/Landing/components/Hero";
 import { useEffect, useState } from "react";
 import { LandingCTA } from "./components/CTA";
 import { LandingFAQs } from "./components/FAQs";
+import { LandingFooter } from "./components/Footer";
 import { LandingGoal } from "./components/Goal";
 import { LandingHowItWorks } from "./components/HowItWorks";
 import { LandingNumbers } from "./components/Numbers";
@@ -84,6 +85,7 @@ export function Landing() {
       <LandingNumbers />
       <LandingFAQs />
       <LandingCTA />
+      <LandingFooter />
       {/* Floating Chatbot Widget */}
       <ChatbotConvo />
      
