@@ -296,7 +296,22 @@ export function LandingHero() {
       });
     });
 
+    // Use ResizeObserver to detect container size changes
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapRef.current && mapContainer.current) {
+        // Small delay to ensure CSS transitions complete
+        setTimeout(() => {
+          mapRef.current?.resize();
+        }, 50);
+      }
+    });
+
+    if (mapContainer.current) {
+      resizeObserver.observe(mapContainer.current);
+    }
+
     return () => {
+      resizeObserver.disconnect();
       try {
         map.remove();
       } catch {
@@ -307,11 +322,14 @@ export function LandingHero() {
   }, []);
 
   return (
-    <main className="flex flex-1 flex-col md:flex-row items-center justify-center md:justify-between px-4 md:px-8 lg:px-12 xl:px-16 gap-8 w-full relative" style={{ overflow: 'hidden', zIndex: 20, position: 'relative', height: '100vh', minHeight: '100vh' }}>
-      <div className="w-full md:w-auto flex flex-col justify-center gap-4 items-center md:items-start max-w-2xl" style={{ flex: '1 1 auto', transition: 'all 0.4s ease-in-out' }}>
+    <main className="flex flex-1 flex-col md:flex-row items-center justify-center md:justify-between px-4 md:px-8 lg:px-12 xl:px-16 gap-8 w-full relative overflow-hidden h-screen min-h-screen" style={{ zIndex: 20 }}>
+      <div className="hero-content-wrapper w-full md:w-auto flex flex-col justify-center gap-4 items-center md:items-start max-w-2xl">
         <style>{`
+          .hero-content-wrapper {
+            flex: 1 1 auto;
+          }
+          
           .hero-content {
-            transition: all 0.4s ease-in-out;
             text-align: center;
             width: 100%;
           }
@@ -334,11 +352,11 @@ export function LandingHero() {
         `}</style>
         <div className="hero-content w-full">
           <div className="flex gap-3 mb-4 md:mb-6 flex-wrap justify-center md:justify-start">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-[5px] border border-zinc-700/50 transition-all duration-300 hover:bg-zinc-800/70 hover:border-zinc-600/70 hover:scale-105 cursor-pointer">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-[5px] border border-zinc-700/50 hover:bg-zinc-800/70 hover:border-zinc-600/70 cursor-pointer">
               <MonitorSmartphone className="text-sm text-zinc-300"/>
               <span className="text-sm text-zinc-300">IoT</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-[5px] border border-zinc-700/50 transition-all duration-300 hover:bg-zinc-800/70 hover:border-zinc-600/70 hover:scale-105 cursor-pointer">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-[5px] border border-zinc-700/50 hover:bg-zinc-800/70 hover:border-zinc-600/70 cursor-pointer">
               <Waves className="w-4 h-4 text-zinc-400" />
               <span className="text-sm text-zinc-300">Disaster Preparedness</span>
             </div>
@@ -360,12 +378,8 @@ export function LandingHero() {
               duration={4000}
             />
           </h1>
-          <p className="mb-6 md:mb-8 text-[14px] sm:text-[16px] md:text-[18px] text-gray-300 leading-relaxed">
-            A simple, reliable terminal powered by LoRa—helping <br />
-            <span style={{ display: 'inline-block', height: '1.5em' }}></span>
-            communities send SOS alerts, share updates, and guide rescuers<br />
-            <span style={{ display: 'inline-block', height: '1.5em' }}></span>
-            when flooding strikes.
+          <p className="mb-3 md:mb-8 text-[14px] sm:text-[16px] md:text-[18px] text-gray-300 leading-relaxed max-w-[600px]">
+            A simple, reliable terminal powered by LoRa—helping communities send SOS alerts, share updates, and guide rescuers when flooding strikes.
           </p>
         </div>
       </div>
@@ -373,14 +387,14 @@ export function LandingHero() {
       <style>{`
         .hero-map {
           width: 100%;
-          max-width: 700px;
+          max-width: 500px;
           height: 400px;
           position: relative;
           z-index: 1;
-          border-radius: 32px;
-          border: 8px solid #292929;
+          border-radius: 24px;
+          border: 6px solid #292929;
           box-shadow: 0 0 0 1px #222;
-          margin: 20px auto 0;
+          margin: 2px auto 50px;
           transition: all 0.4s ease-in-out;
         }
         
