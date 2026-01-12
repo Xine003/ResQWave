@@ -78,6 +78,7 @@ export async function getNextTerminalId(): Promise<{ nextId: string }> {
 // Create new terminal
 export async function createTerminal(terminalData: {
   name: string;
+  devEUI: string;
 }): Promise<{ message: string; terminal: TerminalApiResponse }> {
   return apiRequest<{ message: string; terminal: TerminalApiResponse }>(
     "/terminal",
