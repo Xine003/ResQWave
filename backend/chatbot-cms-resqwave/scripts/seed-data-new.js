@@ -238,6 +238,49 @@ async function seedData() {
             'Confirm the alert in the dashboard, dispatch rescue if needed, and send a response to the terminal to change the LED status to blue.',
           userRoles: ['dispatchers', 'admins'],
         },
+        // Focal Person Troubleshooting
+        {
+          _key: generateKey(),
+          task: 'What to do if a terminal is not responding or connecting',
+          answer: 'First, check if the terminal has power and the battery is charged. Try restarting the terminal by unplugging and reconnecting it. Verify the LoRa antenna is properly attached. If the issue persists, contact your barangay dispatcher or admin to check network connectivity.',
+          userRoles: ['focal_persons', 'dispatchers', 'admins'],
+        },
+        {
+          _key: generateKey(),
+          task: 'Why are SOS alerts not being received',
+          answer: 'Check if the resident\'s terminal is powered on and has battery. Verify the terminal\'s LED indicator is functioning. Ensure the dashboard shows active connection status. If alerts still don\'t appear, check the LoRa gateway connectivity or contact your admin to investigate network issues.',
+          userRoles: ['focal_persons', 'dispatchers', 'admins'],
+        },
+        {
+          _key: generateKey(),
+          task: 'What to do if the dashboard map is not loading',
+          answer: 'Try refreshing your browser or clearing the cache. Check your internet connection. If using mobile, ensure you have stable data or WiFi. Log out and log back in. If the problem continues, try a different browser or contact technical support.',
+          userRoles: ['focal_persons', 'dispatchers', 'admins'],
+        },
+        {
+          _key: generateKey(),
+          task: 'What to do if a resident cannot send alerts',
+          answer: 'Verify the resident\'s terminal is powered on and charged. Test the SOS button by pressing and holding for 5 seconds—check if the LED turns red. Ensure the resident is properly registered in the system. If the terminal doesn\'t respond, it may need replacement—coordinate with your dispatcher or admin.',
+          userRoles: ['focal_persons', 'dispatchers', 'admins'],
+        },
+        {
+          _key: generateKey(),
+          task: 'What do the LED indicator colors mean',
+          answer: 'Red LED means distress signal sent (SOS active). Blue LED means the alert has been acknowledged by authorities. Green LED indicates normal operation. Flashing lights may indicate connection or power issues. If LED doesn\'t respond, the terminal may need servicing.',
+          userRoles: ['focal_persons', 'dispatchers', 'admins', 'residents'],
+        },
+        {
+          _key: generateKey(),
+          task: 'Why is community status not updating',
+          answer: 'Refresh your dashboard to sync the latest data. Check if your internet connection is stable. Verify that community information was saved properly after your last update. If data still doesn\'t sync, log out and log back in, or contact your admin to check backend synchronization.',
+          userRoles: ['focal_persons', 'admins'],
+        },
+        {
+          _key: generateKey(),
+          task: 'How to fix profile or community info update issues',
+          answer: 'Go to your profile section in the dashboard and verify all required fields are filled correctly. Make sure to click the save button after making changes. If updates don\'t save, check your internet connection and try again. Clear your browser cache if the issue persists, or contact support.',
+          userRoles: ['focal_persons', 'admins', 'dispatchers'],
+        },
       ],
     })
     console.log('✅ User Guidance created:', userGuidance._id, '\n')

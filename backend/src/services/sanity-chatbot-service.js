@@ -61,7 +61,7 @@ const buildChatbotContext = async (userRole = null) => {
                     predefinedAnswers[]{
                         task,
                         answer,
-                        roleInfo
+                        userRoles
                     }
                 }`),
 
