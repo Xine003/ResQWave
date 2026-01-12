@@ -219,22 +219,9 @@ export function ChatbotDrawer({ isOpen, onClose }: ChatbotDrawerProps) {
           });
           if (Array.isArray(qaData.quickActions) && qaData.quickActions.length > 0) {
             setQuickActions(qaData.quickActions);
-          } else {
-            // Fallback if empty array returned
-            setQuickActions([
-              'How do I send an SOS alert?',
-              'What do the LED indicators mean?',
-              'How can I access the dashboard?',
-            ]);
           }
         } catch (err) {
           console.error("Quick actions error:", err);
-          // Fallback quick actions on error
-          setQuickActions([
-            'How do I send an SOS alert?',
-            'What do the LED indicators mean?',
-            'How can I access the dashboard?',
-          ]);
         }
       })();
     } catch (error: any) {

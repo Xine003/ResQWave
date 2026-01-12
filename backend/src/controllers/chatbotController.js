@@ -19,36 +19,38 @@ const stripCodeFences = (s) => {
 };
 
 const generateQuickActionsInternal = async (text, count = 3) => {
-    if (!genAI) {
-        const fallback = [
-            "How do I send an SOS alert?",
-            "What do the LED indicators mean?",
-            "How can I access the dashboard?",
-        ];
-        return fallback.slice(0, count);
-    }
-
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const prompt = `User query: ${text}\n\nGenerate ${count} specific, clear follow-up questions (6-9 words each) a user might ask about ResQWave. Return ONLY a valid JSON array of strings, no markdown formatting, no explanations.`;
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const raw = stripCodeFences(response.text());
-
-    try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed.slice(0, count);
-    } catch (err) {
-        // parsing failed, return fallback
-        console.warn("Quick actions parse failed", err);
-        console.warn("Raw response was:", response.text());
-    }
-
     const fallback = [
         "How do I send an SOS alert?",
         "What do the LED indicators mean?",
         "How can I access the dashboard?",
     ];
-    return fallback.slice(0, count);
+
+    if (!genAI) {
+        return fallback.slice(0, count);
+    }
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const prompt = `User query: ${text}\n\nGenerate ${count} specific, clear follow-up questions (6-9 words each) a user might ask about ResQWave. Return ONLY a valid JSON array of strings, no markdown formatting, no explanations.`;
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const raw = stripCodeFences(response.text());
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed.slice(0, count);
+        } catch (err) {
+            // parsing failed, return fallback
+            console.warn("Quick actions parse failed", err);
+            console.warn("Raw response was:", response.text());
+        }
+
+        return fallback.slice(0, count);
+    } catch (err) {
+        // Gemini API error (503 overload, network error, etc.)
+        console.warn("Gemini requests too fast, using fallback quick actions");
+        return fallback.slice(0, count);
+    }
 };
 
 const generateAIResponse = async (req, res) => {
