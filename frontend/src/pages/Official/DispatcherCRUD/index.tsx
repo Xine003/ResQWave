@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ArchiveRestore, Info, Trash2 } from "lucide-react";
@@ -13,7 +13,7 @@ import { createColumns, type Dispatcher } from "./components/Column";
 import { CreateDispatcherSheet } from "./components/CreateDispatcherSheet";
 import { DataTable } from "./components/DataTable";
 import DispatcherAlerts, {
-  type DispatcherAlertsHandle,
+    type DispatcherAlertsHandle,
 } from "./components/DispatcherAlerts";
 import { DispatcherInfoSheet } from "./components/DispatcherInfoSheet";
 import { useDispatchers } from "./hooks/useDispatchers";
@@ -321,17 +321,11 @@ export function Dispatchers() {
             name?: string;
             email?: string;
             contactNumber?: string;
-            password?: string;
           } = {
             name: formData.name,
             email: formData.email,
             contactNumber: formData.contactNumber,
           };
-
-          // Only include password if provided (for editing, password is optional)
-          if (formData.password && formData.password.trim()) {
-            updateData.password = formData.password;
-          }
 
           await updateDispatcherById(editingDispatcher.id, updateData);
 
@@ -354,14 +348,10 @@ export function Dispatchers() {
             name: formData.name,
             email: formData.email,
             contactNumber: formData.contactNumber,
-            password: formData.password, // Pass the password if provided
           });
 
-          // Show success alert with or without temporary password
-          alertsRef.current?.showCreateSuccess(
-            formData.name,
-            result.temporaryPassword,
-          );
+          // Show success alert
+          alertsRef.current?.showCreateSuccess(formData.name);
           return true; // Success
         }
       } catch (err) {
