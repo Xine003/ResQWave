@@ -212,9 +212,24 @@ export function ChatbotConvo() {
             method: 'POST',
             body: JSON.stringify({ text: textToSend, mode: 'quickActions' }),
           });
-          if (Array.isArray(qaData.quickActions)) setQuickActions(qaData.quickActions);
+          if (Array.isArray(qaData.quickActions) && qaData.quickActions.length > 0) {
+            setQuickActions(qaData.quickActions);
+          } else {
+            // Fallback if empty array returned
+            setQuickActions([
+              'How do I send an SOS alert?',
+              'What do the LED indicators mean?',
+              'How can I access the dashboard?',
+            ]);
+          }
         } catch (err) {
           console.error("Quick actions error:", err);
+          // Fallback quick actions on error
+          setQuickActions([
+            'How do I send an SOS alert?',
+            'What do the LED indicators mean?',
+            'How can I access the dashboard?',
+          ]);
         }
       })();
     } catch (error: any) {
@@ -473,8 +488,8 @@ export function ChatbotConvo() {
                   <button
                     onClick={() => isTyping ? handleStopTyping() : handleSendMessage()}
                     className={`${isTyping
-                        ? "bg-[#424242] hover:bg-[#525252]"
-                        : "bg-linear-to-br from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600"
+                      ? "bg-[#424242] hover:bg-[#525252]"
+                      : "bg-linear-to-br from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600"
                       } text-white rounded-full p-2 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center`}
                     style={{ boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}
                   >

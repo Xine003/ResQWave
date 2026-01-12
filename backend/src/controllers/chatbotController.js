@@ -2,8 +2,8 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { buildChatbotContext, getChatbotSettings, getClarificationMessages } = require("../services/sanity-chatbot-service");
 
 // Get context from Sanity (no caching - always fresh)
-const getContext = async () => {
-    return await buildChatbotContext();
+const getContext = async (userRole = null) => {
+    return await buildChatbotContext(userRole);
 };
 
 const apiKey = process.env.GEMINI_API_KEY || null;
