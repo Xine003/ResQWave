@@ -439,7 +439,7 @@ export function LandingHero() {
               position: "absolute",
               left: left,
               top: top,
-              transform: `translate(-46%, calc(-100% - 100px))`,
+              transform: `translate(-46%, calc(-100% - 24px))`,
               zIndex: 1000,
               pointerEvents: "none",
             }}
