@@ -39,6 +39,7 @@ export interface TerminalDetails {
 // Raw form data for API calls
 export interface TerminalFormData {
   name: string;
+  devEUI: string;
   status: "Online" | "Offline";
   availability: "Available" | "Occupied";
 }
