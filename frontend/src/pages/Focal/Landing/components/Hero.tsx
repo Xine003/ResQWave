@@ -165,6 +165,9 @@ export function LandingHero() {
 
         // Animate red pin circles with pulsing effect
         if (redPin) {
+          const pinId = redPin.id;
+          const pinCoords = redPin.coords;
+
           // Inner circle animation
           const minRadius1 = 120;
           const maxRadius1 = 180;
@@ -184,9 +187,9 @@ export function LandingHero() {
               }
             }
 
-            const source = map.getSource(`pin-circle-${redPin.id}`) as mapboxgl.GeoJSONSource;
+            const source = map.getSource(`pin-circle-${pinId}`) as mapboxgl.GeoJSONSource;
             if (source) {
-              source.setData(createCircle(redPin.coords, currentRadius1));
+              source.setData(createCircle(pinCoords, currentRadius1));
             }
 
             requestAnimationFrame(animateRedCircle1);
@@ -211,9 +214,9 @@ export function LandingHero() {
               }
             }
 
-            const source = map.getSource(`pin-circle-${redPin.id}-outer`) as mapboxgl.GeoJSONSource;
+            const source = map.getSource(`pin-circle-${pinId}-outer`) as mapboxgl.GeoJSONSource;
             if (source) {
-              source.setData(createCircle(redPin.coords, currentRadius2));
+              source.setData(createCircle(pinCoords, currentRadius2));
             }
 
             requestAnimationFrame(animateRedCircle2);
