@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "echo 'No build required'",
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -13,6 +14,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/generative-ai": "^0.3.0",
+    "@sanity/client": "^7.14.0",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
@@ -27,6 +30,7 @@
     "nodemailer": "^7.0.6",
     "pizzip": "^3.2.0",
     "reflect-metadata": "^0.2.2",
+    "sib-api-v3-sdk": "^8.5.0",
     "socket.io": "^4.8.1",
     "twilio": "^5.10.0",
     "typeorm": "^0.3.26",

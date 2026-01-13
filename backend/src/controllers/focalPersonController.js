@@ -1,15 +1,45 @@
 const { AppDataSource } = require("../config/dataSource");
 const bcrypt = require("bcrypt");
+const { generateTemporaryPassword, sendTemporaryPasswordEmail } = require("../utils/passwordUtils");
+
 const focalPersonRepo = AppDataSource.getRepository("FocalPerson");
 const {
     getCache,
     setCache,
     deleteCache
 } = require("../config/cache");
+const { diffFields, addLogs } = require("../utils/logs");
+const { addAdminLog } = require("../utils/adminLogs");
 const registrationRepo = AppDataSource.getRepository("FocalPersonRegistration");
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const focalRepo = AppDataSource.getRepository("FocalPerson");
 const terminalRepo = AppDataSource.getRepository("Terminal");
+
+// Helper to check database configuration
+const checkDatabaseConfig = async () => {
+    try {
+        const result = await AppDataSource.query("SHOW VARIABLES LIKE 'max_allowed_packet'");
+        const maxPacketSize = result[0]?.Value || "unknown";
+        console.log("Database max_allowed_packet:", maxPacketSize);
+        
+        // Convert bytes to MB for easier reading
+        if (maxPacketSize !== "unknown") {
+            const sizeInMB = (parseInt(maxPacketSize) / (1024 * 1024)).toFixed(2);
+            console.log("Database max_allowed_packet in MB:", sizeInMB);
+            
+            // Warn if packet size is too small for photo uploads
+            if (parseInt(maxPacketSize) < 4 * 1024 * 1024) { // Less than 4MB
+                console.warn("WARNING: max_allowed_packet is quite small for photo uploads.");
+                console.warn("Consider increasing it in MySQL config: SET GLOBAL max_allowed_packet=16777216; (16MB)");
+            }
+        }
+        
+        return maxPacketSize;
+    } catch (err) {
+        console.error("Could not check database config:", err.message);
+        return "unknown";
+    }
+};
 
 // Helper to strip sensitive fields before caching
 function sanitizeFP(fp) {
@@ -22,16 +52,24 @@ function sanitizeFP(fp) {
 // CREATE FocalPerson 
 const createFocalPerson = async (req, res) => {
     try {
+        console.log("CREATE Focal Person - Request received");
+        console.log("Body keys:", req.body ? Object.keys(req.body) : "no body");
+        console.log("Files:", req.files ? Object.keys(req.files) : "no files");
+        console.log("Body sample:", req.body ? JSON.stringify(req.body, null, 2).substring(0, 500) : "no body");
+        
+        // Check database configuration for debugging
+        await checkDatabaseConfig();
+        
         const {
             terminalID,
             firstName,
             lastName,
             email,
             contactNumber,
-            password,
             address,
             altFirstName,
             altLastName,
+            altEmail,
             altContactNumber,
             noOfHouseholds,
             noOfResidents,
@@ -54,6 +92,8 @@ const createFocalPerson = async (req, res) => {
         if (terminal.archived) {
             return res.status(400).json({ message: "Terminal is Archived and cannot be used" });
         }
+
+        const originalTerminalAvailability = terminal.availability || "Available";
 
         // Uniqueness checks (email/contact must not exist anywhere in focal persons)
         // 1) Primary email
@@ -106,14 +146,30 @@ const createFocalPerson = async (req, res) => {
         }
         const newFocalID = PREFIX + String(newFocalNum).padStart(3, "0");
 
-        // Default password if not provided
-        const plainPassword = password || newFocalID;
-        const hashedPassword = await bcrypt.hash(plainPassword, 10);
+        // Generate secure temporary password that meets policy
+        const tempPassword = generateTemporaryPassword();
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
         // Handle file uploads
         const files = req.files || {};
         const mainPhoto = files.photo?.[0];
         const altPhotoFile = files.altPhoto?.[0]; // incoming field name "altPhoto"
+
+        // Log file sizes for debugging
+        if (mainPhoto) {
+            console.log("Main photo size:", mainPhoto.size, "bytes");
+            if (mainPhoto.size > 2 * 1024 * 1024) {
+                console.warn("Main photo exceeds 2MB limit:", mainPhoto.size);
+                return res.status(400).json({ message: "Main photo file too large. Maximum size is 2MB." });
+            }
+        }
+        if (altPhotoFile) {
+            console.log("Alt photo size:", altPhotoFile.size, "bytes");
+            if (altPhotoFile.size > 2 * 1024 * 1024) {
+                console.warn("Alt photo exceeds 2MB limit:", altPhotoFile.size);
+                return res.status(400).json({ message: "Alternative photo file too large. Maximum size is 2MB." });
+            }
+        }
 
         // Always store address as JSON string (prevents [object Object])
         let addressString;
@@ -136,10 +192,11 @@ const createFocalPerson = async (req, res) => {
             hazardsString = JSON.stringify([]); // default
         }
 
-        // Create focal person
+        // Create focal person without photos first (smaller packet size)
         const focalPerson = focalPersonRepo.create({
             id: newFocalID,
             terminalID,
+            firstName,
             lastName,
             email,
             contactNumber,
@@ -150,12 +207,29 @@ const createFocalPerson = async (req, res) => {
             altEmail: altEmail || null,
             altContactNumber: altContactNumber || null,
             createdBy: req.user?.id || null,
-            ...(mainPhoto?.buffer ? { photo: mainPhoto.buffer } : {}),
-            // IMPORTANT: save alt photo in the column "alternativeFPImage" to match your model
-            ...(altPhotoFile?.buffer ? { alternativeFPImage: altPhotoFile.buffer } : {}),
         });
 
-        await focalPersonRepo.save(focalPerson);
+        // Save focal person without photos first
+        const savedFocalPerson = await focalPersonRepo.save(focalPerson);
+
+        // Add photos in separate updates to avoid large packet sizes
+        if (mainPhoto?.buffer || altPhotoFile?.buffer) {
+            console.log("Updating with photos separately to avoid packet size issues");
+            
+            if (mainPhoto?.buffer) {
+                await focalPersonRepo.update(
+                    { id: newFocalID },
+                    { photo: mainPhoto.buffer }
+                );
+            }
+            
+            if (altPhotoFile?.buffer) {
+                await focalPersonRepo.update(
+                    { id: newFocalID },
+                    { alternativeFPImage: altPhotoFile.buffer }
+                );
+            }
+        }
 
         // Generate Neighborhood ID (N001, N002, ...) by numeric suffix
         const lastNeighborhood = await neighborhoodRepo
@@ -175,15 +249,37 @@ const createFocalPerson = async (req, res) => {
             id: newNeighborhoodID,
             focalPersonID: newFocalID,
             terminalID,
-            noOfHouseholds: Number(noOfHouseholds) || 0,
-            noOfResidents: Number(noOfResidents) || 0,
-            floodSubsideHours: Number(floodSubsideHours) || 0,
+            noOfHouseholds: noOfHouseholds || "",
+            noOfResidents: noOfResidents || "",
+            floodSubsideHours: floodSubsideHours || "",
             hazards: hazardsString,
             otherInformation: otherInformation || "",
             archived: false,
         });
 
         await neighborhoodRepo.save(neighborhood);
+
+        // Log focal person creation by dispatcher/admin
+        if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+            await addAdminLog({
+                action: "create",
+                entityType: "FocalPerson",
+                entityID: newFocalID,
+                entityName: `${firstName} ${lastName}`.trim(),
+                dispatcherID: req.user.id,
+                dispatcherName: req.user.name
+            });
+
+            // Also log neighborhood creation
+            await addAdminLog({
+                action: "create",
+                entityType: "Neighborhood",
+                entityID: newNeighborhoodID,
+                entityName: `Neighborhood ${newNeighborhoodID}`,
+                dispatcherID: req.user.id,
+                dispatcherName: req.user.name
+            });
+        }
 
         // Mark terminal occupied
         await terminalRepo.update({ id: terminalID }, { availability: "Occupied" });
@@ -197,19 +293,68 @@ const createFocalPerson = async (req, res) => {
         await deleteCache("terminals:active");
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
+        await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
+
+        try {
+            await sendTemporaryPasswordEmail({
+                to: email,
+                name: [firstName, lastName].filter(Boolean).join(" "),
+                role: "focal",
+                focalEmail: email,
+                focalNumber: contactNumber,
+                password: tempPassword,
+            });
+        } catch (emailErr) {
+            console.error('[FocalPerson] Failed sending temporary password via Brevo:', emailErr);
+            await neighborhoodRepo.delete({ id: newNeighborhoodID });
+            await focalPersonRepo.delete({ id: newFocalID });
+            await terminalRepo.update({ id: terminalID }, { availability: originalTerminalAvailability });
+            await deleteCache("focalPersons:all");
+            await deleteCache("neighborhoods:all");
+            await deleteCache(`terminal:${terminalID}`);
+            await deleteCache("terminals:active");
+            await deleteCache("onlineTerminals");
+            await deleteCache("offlineTerminals");
+            await deleteCache("adminDashboardStats");
+            await deleteCache("adminDashboard:aggregatedMap");
+            return res.status(500).json({ message: "Failed to send temporary password email. Please try again." });
+        }
 
         const response = {
-            message: "Focal Person and Neighborhood Created",
+            message: "Focal Person and Neighborhood Created. Temporary password emailed.",
             newFocalID,
             newNeighborhoodID,
         };
 
-        if (!password) response.temporaryPassword = plainPassword;
-
         return res.status(201).json(response);
     } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: "Server Error - CREATE Focal Person" });
+        console.error("CREATE Focal Person Error:", err);
+        console.error("Error stack:", err.stack);
+        console.error("Request body keys:", req.body ? Object.keys(req.body) : "no body");
+        console.error("Request files:", req.files ? Object.keys(req.files) : "no files");
+        
+        // Handle specific database errors
+        let errorMessage = err.message || "Unknown error occurred";
+        let statusCode = 500;
+        
+        if (err.message && err.message.includes("max_allowed_packet")) {
+            errorMessage = "File upload too large for database. Please try smaller photos (under 1MB each).";
+            statusCode = 413; // Payload Too Large
+            console.error("Database packet size exceeded. Consider increasing max_allowed_packet in MySQL config.");
+        } else if (err.code === 'ER_TOO_BIG_ROWSIZE') {
+            errorMessage = "Data too large for database row. Please use smaller photos.";
+            statusCode = 413;
+        } else if (err.message && err.message.includes("Data too long")) {
+            errorMessage = "Photo data too large for database column.";
+            statusCode = 413;
+        }
+        
+        return res.status(statusCode).json({ 
+            message: "Server Error - CREATE Focal Person", 
+            error: errorMessage,
+            details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
     }
 };
 
@@ -329,6 +474,8 @@ const approveFocalRegistration = async (req, res) => {
         await deleteCache("terminals:active");
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
+        await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         // Delete Registration after successful transfer
         await registrationRepo.delete({ id: registration.id });
@@ -402,11 +549,44 @@ const updateFocalPhotos = async (req, res) => {
             return res.status(400).json({ message: "No Files Uploaded" });
         }
 
+        // Track changes for logging
+        const changes = [];
+
         // Save Buffers into BLOB 
-        if (main?.buffer) fp.photo = main.buffer;
-        if (alt?.buffer) fp.alternativeFPImage = alt.buffer
+        if (main?.buffer) {
+            const hadPhoto = !!fp.photo;
+            fp.photo = main.buffer;
+            changes.push({
+                field: "photo",
+                oldValue: hadPhoto ? "Previous photo" : "No photo",
+                newValue: "Updated new photo"
+            });
+        }
+        if (alt?.buffer) {
+            const hadAltPhoto = !!fp.alternativeFPImage;
+            fp.alternativeFPImage = alt.buffer;
+            changes.push({
+                field: "alternativeFPImage",
+                oldValue: hadAltPhoto ? "Previous photo" : "No photo",
+                newValue: "Updated new photo"
+            });
+        }
 
         await focalPersonRepo.save(fp);
+
+        // Log the photo changes
+        if (changes.length > 0) {
+            const actorID = req.user?.focalPersonID || req.user?.id || id;
+            const actorRole = req.user?.role || "FocalPerson";
+
+            await addLogs({
+                entityType: "FocalPerson",
+                entityID: id,
+                changes,
+                actorID,
+                actorRole,
+            });
+        }
 
         // Invalidate 
         await deleteCache(`focalPerson:${id}`);
@@ -470,7 +650,48 @@ const getAlternativeFocalPhoto = async (req, res) => {
     }
 };
 
-// UPDATE Focal Person
+// DELETE Focal Person Photo
+const deleteFocalPhoto = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const fp = await focalPersonRepo.findOne({ where: { id } });
+        if (!fp) return res.status(404).json({ message: "Focal Person Not Found" });
+
+        // Only log if photo actually exists
+        if (fp.photo) {
+            fp.photo = null;
+            await focalPersonRepo.save(fp);
+
+            // Log the deletion
+            const actorID = req.user?.focalPersonID || req.user?.id || id;
+            const actorRole = req.user?.role || "FocalPerson";
+
+            await addLogs({
+                entityType: "FocalPerson",
+                entityID: id,
+                changes: [{
+                    field: "photo",
+                    oldValue: "Previous photo",
+                    newValue: "Removed photo"
+                }],
+                actorID,
+                actorRole,
+            });
+        }
+
+        // Invalidate cache
+        await deleteCache(`focalPerson:${id}`);
+        await deleteCache("focalPersons:all");
+        await deleteCache(`focalPhoto:${id}`);
+
+        return res.json({ message: "Focal person photo deleted successfully" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server Error - DELETE Photo" });
+    }
+};
+
+// UPDATE Focal Person Info
 const updateFocalPerson = async (req, res) => {
     try {
         const { id } = req.params;
@@ -480,6 +701,9 @@ const updateFocalPerson = async (req, res) => {
         if (!focalPerson) {
             return res.status(404).json({ message: "Focal Person Not Found" });
         }
+
+        // Take snapshot BEFORE changes
+        const fpBefore = { ...focalPerson };
 
         if (name) focalPerson.name = name;
         if (contactNumber) focalPerson.contactNumber = contactNumber;
@@ -491,9 +715,44 @@ const updateFocalPerson = async (req, res) => {
 
         await focalPersonRepo.save(focalPerson);
 
+        // Take snapshot AFTER changes
+        const fpAfter = { ...focalPerson };
+
+        // Log the changes
+        const actorID = req.user?.focalPersonID || req.user?.id || id;
+        const actorRole = req.user?.role || "FocalPerson";
+
+        const changes = diffFields(fpBefore, fpAfter, [
+            "firstName", "lastName", "contactNumber", "email"
+        ]);
+
+        if (changes.length > 0) {
+            await addLogs({
+                entityType: "FocalPerson",
+                entityID: id,
+                changes,
+                actorID,
+                actorRole,
+            });
+
+            // If dispatcher/admin made changes, also log to admin logs
+            if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+                await addAdminLog({
+                    action: "edit",
+                    entityType: "FocalPerson",
+                    entityID: id,
+                    entityName: `${focalPerson.firstName || ''} ${focalPerson.lastName || ''}`.trim(),
+                    changes,
+                    dispatcherID: req.user.id,
+                    dispatcherName: req.user.name
+                });
+            }
+        }
+
         // Invalidate
         await deleteCache(`focalPerson:${id}`);
         await deleteCache("focalPersons:all");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         res.json({ message: "Focal Person Updated", focalPerson });
     } catch (err) {
@@ -534,6 +793,22 @@ const changePassword = async (req, res) => {
         const hashed = await bcrypt.hash(String(newPassword), 10);
         await focalPersonRepo.update({ id: targetId }, { password: hashed });
 
+        // Log the password change
+        const actorID = req.user?.focalPersonID || req.user?.id || targetId;
+        const actorRole = req.user?.role || "FocalPerson";
+
+        await addLogs({
+            entityType: "FocalPerson",
+            entityID: targetId,
+            changes: [{
+                field: "password",
+                oldValue: "Previous password",
+                newValue: "Updated password"
+            }],
+            actorID,
+            actorRole,
+        });
+
         return res.json({ message: "Password updated" });
     } catch (err) {
         console.error(err);
@@ -549,6 +824,8 @@ module.exports = {
     updateFocalPhotos,
     getFocalPhoto,
     getAlternativeFocalPhoto,
+    deleteFocalPhoto,
     changePassword,
     approveFocalRegistration,
+    checkDatabaseConfig,
 };

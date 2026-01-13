@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { apiFetch } from '@/lib/api';
 import { FocalHeader } from '@/pages/Focal/LoginFocal/components/FocalHeader';
-import { Eye, EyeOff, CircleAlert } from 'lucide-react';
+import { CircleAlert, Eye, EyeOff } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export function LoginFocal() {
   const navigate = useNavigate();
@@ -31,14 +31,22 @@ export function LoginFocal() {
           body: JSON.stringify({ emailOrNumber: id, password }),
         }
       );
-      // Success: store tempToken for verification step
-      const tempToken = res.tempToken || '';
-      // Reset OTP expiry timer to 5 minutes from now on login
-      localStorage.setItem('focalOtpExpiry', (Date.now() + 5 * 60 * 1000).toString());
-      // Store emailOrNumber in localStorage for lockout check on refresh
-      localStorage.setItem('focalEmailOrNumber', id);
-      setIsLoading(false);
-      navigate('/verification-signin-focal', { state: { tempToken, emailOrNumber: id } });
+      // Navigate to verification when tempToken is received
+      if (res.tempToken) {
+        const tempToken = res.tempToken as string;
+        // Reset OTP expiry timer to 5 minutes from now on login
+        localStorage.setItem('focalOtpExpiry', (Date.now() + 5 * 60 * 1000).toString());
+        // Store emailOrNumber in localStorage for lockout check on refresh
+        localStorage.setItem('focalEmailOrNumber', id);
+        // Also keep temp token in sessionStorage for verification page refresh
+        sessionStorage.setItem('focalTempToken', tempToken);
+        setIsLoading(false);
+        navigate('/verification-signin-focal', { state: { tempToken, emailOrNumber: id } });
+      } else {
+        // Do not navigate; show server-provided message
+        setIsLoading(false);
+        setError(res.message || 'Failed to send verification code.');
+      }
     } catch {
       setIsLoading(false);
       // Always show a generic error message for backend login errors
@@ -129,7 +137,6 @@ export function LoginFocal() {
           </label>
           <Input
             type="text"
-            placeholder="ID"
             value={id}
             onChange={e => {
               setId(e.target.value);
@@ -157,7 +164,6 @@ export function LoginFocal() {
             <div className="relative">
               <Input
                 type={showPassword ? "text" : "password"}
-                placeholder="Password"
                 value={password}
                 onChange={e => {
                   setPassword(e.target.value);
@@ -217,7 +223,7 @@ export function LoginFocal() {
           <button
             className="text-[#A3A3A3] hover:text-[#929090] mt-2 text-md bg-transparent border-none cursor-pointer"
             style={window.innerWidth <= 480 ? { fontSize: '0.97rem' } : {}}
-            onClick={() => navigate('forgot-password-focal')}
+            onClick={() => navigate('/forgot-password-focal')}
           >
             Forgot Password?
           </button>

@@ -1,21 +1,28 @@
 /* eslint-disable react-refresh/only-export-components */
-import { OfficialLayout } from '@/components/Official/officialLayout';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { AuthProvider } from '@/contexts/AuthContext';
-import React from 'react';
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
-import { Landing, LoginFocal, RegisterAccount } from '../pages/Focal';
-import VerifyAccount from '../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount';
-import ForgotPasswordVerification from '../pages/Focal/LoginFocal/pages/SignAccount/ForgotPassword';
-import VerificationSignin from '../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin';
+import { OfficialLayout } from "@/components/Official/officialLayout";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AuthProvider } from "@/contexts/AuthContext";
+import React from "react";
+import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import {
-  CommunityGroups,
-  LoginOfficial,
-  Reports,
-  Tabular,
-  VerificationOfficial,
-  Visualization
-} from '../pages/Official';
+    FocalForgotPasswordFlow,
+    FocalForgotPasswordVerification,
+    Landing,
+    LoginFocal,
+    RegisterAccount,
+} from "../pages/Focal";
+import VerifyAccount from "../pages/Focal/LoginFocal/pages/RegisterAccount/VerifyAccount";
+import VerificationSignin from "../pages/Focal/LoginFocal/pages/SignAccount/VerificationSignin";
+import {
+    Alarms,
+    CommunityGroups,
+    Dashboard,
+    LoginOfficial,
+    Reports,
+    VerificationOfficial,
+    Visualization,
+} from "../pages/Official";
+import { ForgotPasswordFlow } from "../pages/Official/LoginDispatcher/ForgotPasswordFlow";
 // TypeScript declaration for window property
 declare global {
   interface Window {
@@ -23,16 +30,16 @@ declare global {
   }
 }
 
-import FocalDashboard from '../pages/Focal/Dashboard';
-import { FocalAuthProvider } from '../pages/Focal/context/focalAuthContext';
+import FocalDashboard from "../pages/Focal/Dashboard";
+import { FocalAuthProvider } from "../pages/Focal/context/focalAuthContext";
 import SettingLocationPage from "../pages/Official/CommunityGroups/components/SettingLocationPage";
-import { Dispatchers } from '../pages/Official/DispatcherCRUD';
-import { Terminals } from '../pages/Official/Terminal';
+import { Dispatchers } from "../pages/Official/DispatcherCRUD";
+import { Terminals } from "../pages/Official/Terminal";
 
 // Protective route for focal pages
 const FocalProtectedRoute: React.FC = () => {
   // Check for focalToken in localStorage (or useFocalAuth if context is available)
-  const hasToken = Boolean(localStorage.getItem('focalToken'));
+  const hasToken = Boolean(localStorage.getItem("focalToken"));
   if (!hasToken) {
     return <Navigate to="/login-focal" replace />;
   }
@@ -53,38 +60,44 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       {
-        path: '/',
+        path: "/",
         element: <Landing />,
       },
       // Public login route for focal users
       {
-        path: '/login-focal',
+        path: "/login-focal",
         element: <LoginFocal />,
       },
       // Public register route for focal users
       {
-        path: '/register-focal',
+        path: "/register-focal",
         element: <RegisterAccount />,
       },
       // Focal verification page (public, uses tempToken)
       {
-        path: '/verification-signin-focal',
+        path: "/verification-signin-focal",
         element: (
           <FocalAuthProvider>
             <VerificationSignin />
           </FocalAuthProvider>
         ),
       },
+      // Focal forgot password flow (public)
+      {
+        path: "/forgot-password-focal",
+        element: <FocalForgotPasswordFlow />,
+      },
+      // Focal forgot password verification (public)
+      {
+        path: "/forgot-password-verification-focal",
+        element: <FocalForgotPasswordVerification />,
+      },
       // Focal Routes (protected)
       {
         element: <FocalProtectedRoute />,
         children: [
           {
-            path: '/forgot-password-focal',
-            element: <ForgotPasswordVerification />,
-          },
-          {
-            path: '/verify-account-focal',
+            path: "/verify-account-focal",
             element: <VerifyAccount />,
           },
           // {
@@ -136,66 +149,90 @@ export const router = createBrowserRouter([
           //   element: <AccountReview />,
           // },
           {
-            path: '/focal-dashboard',
+            path: "/focal-dashboard",
             element: (
               <FocalAuthProvider>
                 <FocalDashboard />
               </FocalAuthProvider>
             ),
-          }
+          },
         ],
       },
 
       {
-        path: '/login-official',
+        path: "/login-official",
         element: <LoginOfficial />,
       },
       {
-        path: '/verification-official',
+        path: "/verification-official",
         element: <VerificationOfficial />,
       },
       {
-        path: '/',
-        element: <OfficialLayout><Outlet /></OfficialLayout>,
+        path: "/forgot-password-dispatcher",
+        element: <ForgotPasswordFlow />,
+      },
+      {
+        path: "/",
+        element: (
+          <OfficialLayout>
+            <Outlet />
+          </OfficialLayout>
+        ),
         children: [
           {
-            path: 'visualization',
-            element: <Visualization />
+            path: "dashboard",
+            element: (
+              <ProtectedRoute adminOnly={true}>
+                <Dashboard />
+              </ProtectedRoute>
+            ),
           },
           {
-            path: 'reports',
-            element: <Reports />
+            path: "visualization",
+            element: (
+              <ProtectedRoute dispatcherOnly={true}>
+                <Visualization />
+              </ProtectedRoute>
+            ),
           },
           {
-            path: 'community-groups',
-            element: <CommunityGroups />
+            path: "reports",
+            element: <Reports />,
           },
           {
-            path: 'dispatchers',
+            path: "community-groups",
+            element: <CommunityGroups />,
+          },
+          {
+            path: "dispatchers",
             element: (
               <ProtectedRoute adminOnly={true}>
                 <Dispatchers />
               </ProtectedRoute>
-            )
+            ),
           },
           {
-            path: 'terminal',
+            path: "terminal",
             element: (
               <ProtectedRoute adminOnly={true}>
                 <Terminals />
               </ProtectedRoute>
-            )
+            ),
           },
           {
-            path: 'tabular',
-            element: <Tabular />
+            path: "alarms",
+            element: (
+              <ProtectedRoute adminOnly={true}>
+                <Alarms />
+              </ProtectedRoute>
+            ),
           },
-        ]
+        ],
       },
       {
-        path: 'community-groups/setting-location',
-        element: <SettingLocationPage />
+        path: "community-groups/setting-location",
+        element: <SettingLocationPage />,
       },
-    ]
-  }
+    ],
+  },
 ]);

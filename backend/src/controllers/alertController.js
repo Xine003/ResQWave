@@ -2,10 +2,12 @@ const { AppDataSource } = require("../config/dataSource");
 const alertRepo = AppDataSource.getRepository("Alert");
 const terminalRepo = AppDataSource.getRepository("Terminal");
 const rescueFormRepo = AppDataSource.getRepository("RescueForm");
+const { sendDownlink } = require("../lms/downlink");
 const { getIO } = require("../realtime/socket");
 const {
 	getCache,
 	setCache,
+    deleteCache
 } = require("../config/cache");
 
 
@@ -43,6 +45,8 @@ const createCriticalAlert = async (req, res) => {
 		});
 
 		await alertRepo.save(alert);
+        await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 		res.status(201).json({ message: "Critical alert created", alert });
 	} catch (err) {
 		console.error(err);
@@ -70,6 +74,8 @@ const createUserInitiatedAlert = async (req, res) => {
 		});
 
 		await alertRepo.save(alert);
+        await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 		res.status(201).json({ message: "User-initiated alert created", alert });
 	} catch (err) {
 		console.error(err);
@@ -275,43 +281,55 @@ const getUnassignedMapAlerts = async (req, res) => {
 
     console.log('[BACKEND] Fetching all occupied terminals from database...');
 
-    // Fetch all terminals that have a neighborhood/focal person (occupied terminals)
-    // Join with the latest alert for each terminal to get alert data
+    // FIXED latest alert subquery (NULL-safe)
     const latestAlertSQ = alertRepo
       .createQueryBuilder("a")
       .select("a.terminalID", "terminalID")
       .addSelect("MAX(a.dateTimeSent)", "lastTime")
+      .where("a.dateTimeSent IS NOT NULL")
       .groupBy("a.terminalID");
 
     const terminals = await terminalRepo
       .createQueryBuilder("t")
-      .leftJoin("Neighborhood", "n", "n.terminalID = t.id")
-      .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+
+      // FIXED: use actual table names
+      .leftJoin("neighborhood", "n", "n.terminalID = t.id")
+      .leftJoin("focalpersons", "fp", "fp.id = n.focalPersonID")
+
+      // FIXED: properly aliased subquery
       .leftJoin(
         "(" + latestAlertSQ.getQuery() + ")",
         "latestAlert",
-        "latestAlert.terminalID = t.id"
+        "`latestAlert`.`terminalID` = `t`.`id`"
       )
-      .leftJoin("Alert", "alert", "alert.terminalID = t.id AND alert.dateTimeSent = latestAlert.lastTime")
+
+      // FIXED: backticked alias usage
+      .leftJoin(
+        "alerts",
+        "alert",
+        "`alert`.`terminalID` = `t`.`id` AND `alert`.`dateTimeSent` = `latestAlert`.`lastTime`"
+      )
+
       .setParameters(latestAlertSQ.getParameters())
+
       .select([
-        // Terminal data
         "t.id AS terminalId",
         "t.name AS terminalName",
         "t.status AS terminalStatus",
-        // Alert data (from latest alert, or null if no alerts exist)
+
         "alert.id AS alertId",
-        "alert.alertType AS alertType", // Can be NULL, 'Critical', or 'User-Initiated'
+        "alert.alertType AS alertType",
         "COALESCE(alert.dateTimeSent, t.dateCreated) AS timeSent",
         "alert.status AS alertStatus",
-        // Focal Person data
+
         "fp.id AS focalPersonId",
         "fp.firstName AS focalFirstName",
         "fp.lastName AS focalLastName",
         "fp.address AS focalAddress",
         "fp.contactNumber AS focalContactNumber",
       ])
-      .where("n.focalPersonID IS NOT NULL") // Only occupied terminals
+
+      .where("n.focalPersonID IS NOT NULL")
       .getRawMany();
 
     console.log('[BACKEND] Found occupied terminals:', terminals.length);
@@ -328,7 +346,7 @@ const getUnassignedMapAlerts = async (req, res) => {
     res.json(terminals);
   } catch (err) {
     console.error('[BACKEND] Error in getUnassignedMapAlerts:', err);
-    res.status(500).json({message: "Server Error"});
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -388,10 +406,10 @@ const updateAlertStatus = async (req, res) => {
         const { action } = req.body; // "waitlist" or "dispatch"
 
         // 1. Find alert
-        const alert = await alertRepo.findOne({ where: { id: alertID } });
-        if (!alert) {
-            return res.status(404).json({ message: "Alert not found" });
-        }
+        const alert = await alertRepo.findOne({
+          where: { id: alertID },
+          relations: ["terminal"],
+        });
 
         // 2. Validate that rescue form exists
         const rescueForm = await rescueFormRepo.findOne({ where: { emergencyID: alertID } });
@@ -410,11 +428,25 @@ const updateAlertStatus = async (req, res) => {
 
         await alertRepo.save(alert);
 
-		//  Realtime broadcast
-		getIO().to("alerts:all").emit("alertStatusUpdated", {
-		alertID: alert.id,
-		newStatus: alert.status,
-		});
+        // Send Downlink ONLY when DISPATCHED
+        if (alert.status === "Dispatched") {
+          if (!alert.terminal?.devEUI) {
+            console.warn(
+              `[Downlink Skipped] Terminal has no DevEUI for alert ${alert.id}`
+            );
+          } else {
+            await sendDownlink(
+              alert.terminal.devEUI,
+              alert.status
+            );
+          }
+        }
+
+        //  Realtime broadcast
+        getIO().to("alerts:all").emit("alertStatusUpdated", {
+        alertID: alert.id,
+        newStatus: alert.status,
+        });
 
 
         return res.status(200).json({

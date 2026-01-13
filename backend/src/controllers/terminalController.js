@@ -1,12 +1,12 @@
 const { AppDataSource } = require("../config/dataSource");
 const terminalRepo = AppDataSource.getRepository("Terminal");
-// removed unused communityGroupRepo variable
 const neighborhoodRepo = AppDataSource.getRepository("Neighborhood");
 const {
     getCache,
     setCache,
     deleteCache
 } = require("../config/cache");
+const { addAdminLog } = require("../utils/adminLogs");
 
 // Get next terminal ID (for frontend preview)
 const getNextTerminalId = async (req, res) => {
@@ -35,13 +35,33 @@ const getNextTerminalId = async (req, res) => {
 // CREATE Terminal
 const createTerminal = async (req, res) => {
     try {
-        const { name } = req.body;
+        const { name, devEUI } = req.body;
 
         // Validate Terminal Name
-        if (!name) {
-            return res.status(400).json({ message: "Terminal name is required" });
+        if (!name || !devEUI ) {
+            return res.status(400).json({ message: "Terminal name and devEUI is required" });
         }
 
+        // Normalize devEUI
+        const normalizedDevEUI = devEUI.replace(/-/g, "").toUpperCase();
+
+        if (!/^[0-9A-F]{16}$/.test(normalizedDevEUI)) {
+            return res.status(400).json({
+                message: "Invalid devEUI format"
+            });
+        }
+
+        // Prevent Duplicated DevEUI
+        const existing = await terminalRepo.findOne({
+            where: {devEUI: normalizedDevEUI}
+        });
+
+        if (existing) {
+            return res.status(400).json({
+                message: "devEUI already exists"
+            });
+        }
+        
         // Generate Specific UID
         const lastTerminal = await terminalRepo
             .createQueryBuilder("terminal")
@@ -59,16 +79,31 @@ const createTerminal = async (req, res) => {
         const terminal = terminalRepo.create({
             id: newID,
             name,
+            devEUI: normalizedDevEUI,
             status: "Offline",
         });
 
         await terminalRepo.save(terminal);
+
+        // Log terminal creation by dispatcher/admin
+        if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+            await addAdminLog({
+                action: "create",
+                entityType: "Terminal",
+                entityID: newID,
+                entityName: name,
+                dispatcherID: req.user.id,
+                dispatcherName: req.user.name
+            });
+        }
 
         // Invalidate
         await deleteCache("terminals:active");
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
+        await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         res.status(201).json({ message: "Terminal Created", terminal });
     } catch (err) {
@@ -280,10 +315,37 @@ const updateTerminal = async (req, res) => {
             return res.status(404).json({ message: "Terminal Not Found" });
         }
 
-        if (status) terminal.status = status;
-        if (name) terminal.name = name;
+        // Snapshot before changes for logging
+        const oldTerminal = { ...terminal };
+        const changes = [];
+
+        if (status) {
+            terminal.status = status;
+            if (status !== oldTerminal.status) {
+                changes.push({ field: "status", oldValue: oldTerminal.status, newValue: status });
+            }
+        }
+        if (name) {
+            terminal.name = name;
+            if (name !== oldTerminal.name) {
+                changes.push({ field: "name", oldValue: oldTerminal.name, newValue: name });
+            }
+        }
 
         await terminalRepo.save(terminal);
+
+        // Log changes by dispatcher/admin
+        if ((req.user?.role === "dispatcher" || req.user?.role === "admin") && changes.length > 0) {
+            await addAdminLog({
+                action: "edit",
+                entityType: "Terminal",
+                entityID: id,
+                entityName: terminal.name,
+                changes,
+                dispatcherID: req.user.id,
+                dispatcherName: req.user.name
+            });
+        }
 
         // Invalidate
         await deleteCache(`terminal:${id}`);
@@ -291,6 +353,7 @@ const updateTerminal = async (req, res) => {
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         res.json({ message: "Terminal Updated", terminal });
     } catch (err) {
@@ -326,6 +389,18 @@ const archivedTerminal = async (req, res) => {
         terminal.availability = "Available"; // Make it available again
         await terminalRepo.save(terminal);
 
+        // Log terminal archive by dispatcher/admin
+        if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+            await addAdminLog({
+                action: "archive",
+                entityType: "Terminal",
+                entityID: id,
+                entityName: terminal.name,
+                dispatcherID: req.user.id,
+                dispatcherName: req.user.name
+            });
+        }
+
         // If terminal is linked to an archived neighborhood, detach it
         const archivedNeighborhood = await neighborhoodRepo.findOne({
             where: { terminalID: id, archived: true }
@@ -340,6 +415,8 @@ const archivedTerminal = async (req, res) => {
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
+        await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         res.json({ message: "Terminal Archived and Now Available" });
     } catch (err) {
@@ -369,11 +446,25 @@ const unarchiveTerminal = async (req, res) => {
 
         await terminalRepo.save(terminal);
 
+        // Log terminal unarchive by dispatcher/admin
+        if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+            await addAdminLog({
+                action: "unarchive",
+                entityType: "Terminal",
+                entityID: id,
+                entityName: terminal.name,
+                dispatcherID: req.user.id,
+                dispatcherName: req.user.name
+            });
+        }
+
         //Cache
         await deleteCache("terminals:active");
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
+        await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         return res.json({ message: "Terminal Unarchived and Available" });
     } catch (err) {
@@ -449,6 +540,18 @@ const permanentDeleteTerminal = async (req, res) => {
             await neighborhoodRepo.save(archivedNeighborhood);
         }
 
+        // Log terminal deletion by dispatcher/admin before removing
+        if (req.user?.role === "dispatcher" || req.user?.role === "admin") {
+            await addAdminLog({
+                action: "delete",
+                entityType: "Terminal",
+                entityID: id,
+                entityName: terminal.name,
+                dispatcherID: req.user.id,
+                dispatcherName: req.user.name
+            });
+        }
+
         // Permanently delete the terminal from database
         await terminalRepo.remove(terminal);
 
@@ -457,6 +560,8 @@ const permanentDeleteTerminal = async (req, res) => {
         await deleteCache("onlineTerminals");
         await deleteCache("offlineTerminals");
         await deleteCache("terminals:archived");
+        await deleteCache("adminDashboardStats");
+        await deleteCache("adminDashboard:aggregatedMap");
 
         res.json({
             message: "Terminal Permanently Deleted",
@@ -485,4 +590,3 @@ module.exports = {
     permanentDeleteTerminal,
     getTerminalsForMap
 };
-

@@ -17,7 +17,7 @@ export default function SignalStatusLegend() {
             }}
         >
             <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>
-                Signal:
+                Signal Status:
             </div>
 
             {/* Your Community */}
