@@ -40,7 +40,7 @@ const createCriticalAlert = async (req, res) => {
 			terminalID,
 			alertType: alertType || "Critical",
 			sentThrough: sentThrough || "Sensor",
-			status: "Critical",
+			status: "Unassigned",
 			terminal: { id: terminalID },
 		});
 

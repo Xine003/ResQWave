@@ -116,7 +116,7 @@ AppDataSource.initialize()
     app.use("/", documentRoutes);
 
     // Handle 404
-    app.all("*", (req, res, next) => {
+    app.use((req, res, next) => {
         next(new NotFoundError(`Can't find ${req.originalUrl} on this server!`));
     });
 
