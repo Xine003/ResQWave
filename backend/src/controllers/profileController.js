@@ -69,8 +69,8 @@ const getProfile = async (req, res) => {
                 id: admin.id,
                 name: admin.name,
                 email: admin.email,
-                phone: admin.contactNumber,
-                lastPasswordChange: admin.passwordLastUpdated,
+                contactNumber: admin.contactNumber,
+                passwordLastUpdated: admin.passwordLastUpdated,
             });
         } else if (role === "dispatcher") {
             const dispatcher = await dispatcherRepo.findOne({ where: { id } });
@@ -80,8 +80,8 @@ const getProfile = async (req, res) => {
                 id: dispatcher.id,
                 name: dispatcher.name,
                 email: dispatcher.email,
-                phone: dispatcher.contactNumber,
-                lastPasswordChange: dispatcher.passwordLastUpdated,
+                contactNumber: dispatcher.contactNumber,
+                passwordLastUpdated: dispatcher.passwordLastUpdated,
             });
         } else if (role === "focalPerson") {
             const focalPerson = await AppDataSource.getRepository("FocalPerson").findOne({ where: { id } });
@@ -92,8 +92,8 @@ const getProfile = async (req, res) => {
                 firstName: focalPerson.firstName,
                 lastName: focalPerson.lastName,
                 email: focalPerson.email,
-                phone: focalPerson.contactNumber,
-                lastPasswordChange: focalPerson.passwordLastUpdated,
+                contactNumber: focalPerson.contactNumber,
+                passwordLastUpdated: focalPerson.passwordLastUpdated,
                 photo: focalPerson.photo
             });
         } else {

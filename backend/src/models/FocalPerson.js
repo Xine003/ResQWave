@@ -99,6 +99,10 @@ module.exports = new EntitySchema({
             type: "timestamp",
             nullable: true,
         },
+        newUser: {
+            type: "boolean",
+            default: true
+        },
 
         createdAt: {
             type: "timestamp",

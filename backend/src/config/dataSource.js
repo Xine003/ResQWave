@@ -13,7 +13,7 @@ const AppDataSource = new DataSource({
     ssl: {
         rejectUnauthorized: false // Required for Supabase
     },
-    synchronize: true, // auto create/update for tables
+    synchronize: false, // auto create/update for tables
     logging: true,
     entities: [
         __dirname + "/../models/*.js" // load all models in models
