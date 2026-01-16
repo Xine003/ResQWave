@@ -1,11 +1,7 @@
 const bcrypt = require("bcrypt");
 const { AppDataSource } = require("../config/dataSource");
 const dispatcherRepo = AppDataSource.getRepository("Dispatcher");
-const {
-    getCache,
-    setCache,
-    deleteCache
-} = require("../config/cache");
+const {getCache, setCache, deleteCache} = require("../config/cache");
 const { generateTemporaryPassword, sendTemporaryPasswordEmail } = require("../utils/passwordUtils");
 const { addAdminLog } = require("../utils/adminLogs");
 const catchAsync = require("../utils/catchAsync");
