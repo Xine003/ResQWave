@@ -1,3 +1,4 @@
+import { NumberTicker } from "@/components/ui/number-ticker";
 import { HeartPulse, House, Timer, Users } from "lucide-react";
 
 export function LandingNumbers() {
@@ -5,25 +6,25 @@ export function LandingNumbers() {
     {
       icon: <House className="w-8 h-8 text-blue-500" />,
       title: "Connected Households",
-      value: "125",
+      value: 125,
       description: "communities equipped with ResQWave terminals",
     },
     {
       icon: <Users className="w-8 h-8 text-yellow-500" />,
       title: "Individuals Covered",
-      value: "500",
+      value: 500,
       description: "residents connected and protected",
     },
     {
       icon: <HeartPulse className="w-8 h-8 text-green-500" />,
       title: "Rescues Completed",
-      value: "320",
+      value: 320,
       description: "successful rescues coordinated",
     },
     {
       icon: <Timer className="w-8 h-8 text-red-500" />,
       title: "Average Response Time",
-      value: "5",
+      value: 5,
       description: "minutes from alert to official response",
     },
   ];
@@ -61,7 +62,7 @@ export function LandingNumbers() {
                   
                   {/* Value */}
                   <div className="text-5xl font-bold text-white mb-2">
-                    {stat.value}
+                    <NumberTicker value={stat.value} className="text-5xl font-bold text-white" />
                   </div>
                   
                   {/* Description */}
