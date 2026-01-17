@@ -868,31 +868,32 @@ const getArchivedPostRescueForm = catchAsync(async (req, res, next) => {
     const cached = await getCache(cacheKey);
     if (cached) return res.json(cached);
 
-    let qb = postRescueRepo
-        .createQueryBuilder("prf")
-        .leftJoin("prf.alerts", "alert")
+    let qb = alertRepo
+        .createQueryBuilder("alert")
         .leftJoin("alert.terminal", "terminal")
-        .leftJoin("rescueforms", "rf", "rf.emergencyID = alert.id")
-        .leftJoin("focalpersons", "fp", "fp.id = rf.focalPersonID")
-        .leftJoin("dispatchers", "dispatcher", "dispatcher.id = rf.dispatcherID")
+        .leftJoin("Neighborhood", "n", "n.terminalID = terminal.id")
+        .leftJoin("FocalPerson", "fp", "fp.id = n.focalPersonID")
+        .leftJoin("RescueForm", "rescueForm", "rescueForm.emergencyID = alert.id")
+        .leftJoin("Dispatcher", "dispatcher", "dispatcher.id = rescueForm.dispatcherID")
+        .leftJoin("PostRescueForm", "prf", "prf.alertID = alert.id")
         .where("prf.archived = :archived", { archived: true });
 
     if (alertID) {
-        qb = qb.andWhere("prf.alertID = :alertID", { alertID });
+        qb = qb.andWhere("alert.id = :alertID", { alertID });
     }
 
     const rows = await qb
         .select([
-            "rf.emergencyID AS emergencyId",
-            "terminal.name AS terminalName",
-            "alert.terminalID AS terminalId",
-            "fp.firstName AS focalFirstName",
-            "fp.lastName AS focalLastName",
-            "alert.dateTimeSent AS dateTimeOccurred",
-            "rf.originalAlertType AS alertType",
-            "fp.address AS houseAddress",
-            "dispatcher.name AS dispatchedName",
-            "prf.completedAt AS completionDate",
+            "rescueForm.emergencyID AS \"emergencyId\"",
+            "terminal.name AS \"terminalName\"",
+            "alert.terminalID AS \"terminalId\"",
+            "fp.firstName AS \"focalFirstName\"",
+            "fp.lastName AS \"focalLastName\"",
+            "alert.dateTimeSent AS \"dateTimeOccurred\"",
+            "rescueForm.originalAlertType AS \"alertType\"",
+            "fp.address AS \"houseAddress\"",
+            "dispatcher.name AS \"dispatchedName\"",
+            "prf.completedAt AS \"completionDate\"",
         ])
         .orderBy("prf.completedAt", "DESC")
         .getRawMany();
