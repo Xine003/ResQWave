@@ -444,6 +444,10 @@ const getNeighborhood = catchAsync(async (req, res, next) => {
 const updateNeighborhood = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
+  console.log('🔍 [updateNeighborhood] Received request body:', req.body);
+  console.log('🔍 [updateNeighborhood] noOfHouseholds type:', typeof req.body.noOfHouseholds, 'value:', req.body.noOfHouseholds);
+  console.log('🔍 [updateNeighborhood] noOfResidents type:', typeof req.body.noOfResidents, 'value:', req.body.noOfResidents);
+
     const {
       terminalID,
       noOfHouseholds,
